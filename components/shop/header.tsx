@@ -33,9 +33,15 @@ const infoLinks = [
 
 interface HeaderProps {
   transparent?: boolean;
+  announcementText?: string;
+  announcementEnabled?: boolean;
 }
 
-export function Header({ transparent: propTransparent }: HeaderProps) {
+export function Header({
+  transparent: propTransparent,
+  announcementText = "Free UK shipping on orders over £50",
+  announcementEnabled = true,
+}: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -75,17 +81,19 @@ export function Header({ transparent: propTransparent }: HeaderProps) {
           : "bg-background/95 backdrop-blur-md border-b border-border/50 shadow-sm"
       )}
     >
-      {/* Announcement Bar - hide when transparent */}
-      <div
-        className={cn(
-          "px-4 py-2 text-center text-sm transition-all duration-300 overflow-hidden",
-          isTransparent
-            ? "h-0 opacity-0"
-            : "h-auto opacity-100 bg-primary text-primary-foreground"
-        )}
-      >
-        <p className="font-body">Free UK shipping on orders over £50</p>
-      </div>
+      {/* Announcement Bar - hide when transparent or disabled */}
+      {announcementEnabled && (
+        <div
+          className={cn(
+            "px-4 py-2 text-center text-sm transition-all duration-300 overflow-hidden",
+            isTransparent
+              ? "h-0 opacity-0"
+              : "h-auto opacity-100 bg-primary text-primary-foreground"
+          )}
+        >
+          <p className="font-body">{announcementText}</p>
+        </div>
+      )}
 
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between gap-4">

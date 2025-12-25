@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { eq, desc } from "drizzle-orm";
-import { db, products, categories } from "@/lib/db";
+import { db, products, categories, heroSlides as heroSlidesTable, siteSettings } from "@/lib/db";
 import { Header } from "@/components/shop/header";
 import { Footer } from "@/components/shop/footer";
 import { HeroCarousel, type CarouselSlide } from "@/components/home";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Leaf, Truck, Recycle, Award } from "lucide-react";
 import type { ProductWithRelations } from "@/types/product";
 
-export const revalidate = 3600;
+export const revalidate = 60; // Revalidate every minute for dynamic content
 
 async function getFeaturedProducts(): Promise<ProductWithRelations[]> {
   try {
@@ -41,8 +41,49 @@ async function getCategories() {
   }
 }
 
-// Hero carousel slides - these would typically come from CMS/database
-const heroSlides: CarouselSlide[] = [
+async function getHeroSlides(): Promise<CarouselSlide[]> {
+  try {
+    const slides = await db.query.heroSlides.findMany({
+      where: eq(heroSlidesTable.active, true),
+      orderBy: [heroSlidesTable.position],
+    });
+
+    if (slides.length === 0) {
+      // Return default slides if none configured
+      return defaultHeroSlides;
+    }
+
+    return slides.map((slide, index) => ({
+      id: `hero-${slide.id}`,
+      title: slide.title || "",
+      subtitle: slide.subtitle || "",
+      description: "",
+      cta: slide.buttonText ? { text: slide.buttonText, href: slide.buttonLink || "/products" } : undefined,
+      image: slide.imageUrl,
+      imageAlt: slide.imageAlt || "",
+      overlayPosition: "left" as const,
+      theme: "dark" as const,
+    }));
+  } catch {
+    return defaultHeroSlides;
+  }
+}
+
+async function getSettings(): Promise<Record<string, string>> {
+  try {
+    const settings = await db.query.siteSettings.findMany();
+    const settingsMap: Record<string, string> = {};
+    settings.forEach((s) => {
+      settingsMap[s.key] = s.value;
+    });
+    return settingsMap;
+  } catch {
+    return {};
+  }
+}
+
+// Default hero slides (fallback)
+const defaultHeroSlides: CarouselSlide[] = [
   {
     id: "hero-1",
     title: "Naturally\nDyed Yarn",
@@ -66,25 +107,18 @@ const heroSlides: CarouselSlide[] = [
     overlayPosition: "left",
     theme: "dark",
   },
-  {
-    id: "hero-3",
-    title: "Slow Craft,\nLasting Beauty",
-    subtitle: "Small Batch",
-    description: "Every skein is unique. Hand-dyed in small batches using foraged plants and sustainable practices.",
-    cta: { text: "Shop All Yarns", href: "/products" },
-    secondaryCta: { text: "View Collections", href: "/collections" },
-    image: "https://images.pexels.com/photos/6634569/pexels-photo-6634569.jpeg?auto=compress&cs=tinysrgb&w=1920",
-    imageAlt: "Natural fibers and yarn in earthy tones",
-    overlayPosition: "left",
-    theme: "dark",
-  },
 ];
 
 export default async function HomePage() {
-  const [featuredProducts, categoryList] = await Promise.all([
+  const [featuredProducts, categoryList, heroSlides, settings] = await Promise.all([
     getFeaturedProducts(),
     getCategories(),
+    getHeroSlides(),
+    getSettings(),
   ]);
+
+  const announcementText = settings.announcement_text || "Free UK shipping on orders over £50";
+  const announcementEnabled = settings.announcement_enabled !== "false";
 
   const collections = categoryList.length > 0
     ? categoryList
@@ -99,7 +133,10 @@ export default async function HomePage() {
     <div className="flex min-h-screen flex-col">
       {/* Floating Header - overlays the carousel */}
       <div className="fixed top-0 left-0 right-0 z-50">
-        <Header />
+        <Header
+          announcementText={announcementText}
+          announcementEnabled={announcementEnabled}
+        />
       </div>
 
       <main className="flex-1">

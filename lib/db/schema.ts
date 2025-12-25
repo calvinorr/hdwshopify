@@ -302,6 +302,29 @@ export const cartsRelations = relations(carts, ({ one }) => ({
   }),
 }));
 
+// Site Settings (key-value store for configuration)
+export const siteSettings = sqliteTable("site_settings", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(), // JSON string for complex values
+  updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
+});
+
+// Hero Slides for homepage carousel
+export const heroSlides = sqliteTable("hero_slides", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title"),
+  subtitle: text("subtitle"),
+  buttonText: text("button_text"),
+  buttonLink: text("button_link"),
+  imageUrl: text("image_url").notNull(),
+  imageAlt: text("image_alt"),
+  position: integer("position").default(0),
+  active: integer("active", { mode: "boolean" }).default(true),
+  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+  updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
+});
+
 // Type exports
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
@@ -318,3 +341,5 @@ export type DiscountCode = typeof discountCodes.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
 export type OrderItem = typeof orderItems.$inferSelect;
+export type SiteSetting = typeof siteSettings.$inferSelect;
+export type HeroSlide = typeof heroSlides.$inferSelect;
