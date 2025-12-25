@@ -7,8 +7,10 @@ export const categories = sqliteTable("categories", {
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description"),
+  image: text("image"),
   parentId: integer("parent_id"), // Self-reference handled via relations
   position: integer("position").default(0),
+  shopifyCollectionId: text("shopify_collection_id"),
   createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
   updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
 });
@@ -32,6 +34,8 @@ export const products = sqliteTable("products", {
   // SEO
   metaTitle: text("meta_title"),
   metaDescription: text("meta_description"),
+  // Shopify sync
+  shopifyId: text("shopify_id"),
   createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
   updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
 });
@@ -41,12 +45,13 @@ export const productVariants = sqliteTable("product_variants", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
   name: text("name").notNull(), // e.g., "Bunny Paw", "French Rose"
-  sku: text("sku").unique(),
+  sku: text("sku"),
   price: real("price").notNull(),
   compareAtPrice: real("compare_at_price"),
   stock: integer("stock").default(0),
   weightGrams: integer("weight_grams").default(100), // For shipping calculation
   position: integer("position").default(0),
+  shopifyVariantId: text("shopify_variant_id"),
   createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
   updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
 });

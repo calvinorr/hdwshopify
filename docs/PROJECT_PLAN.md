@@ -4,111 +4,168 @@
 
 Self-hosted e-commerce platform replacing Shopify for Herbarium Dyeworks, a small-batch naturally dyed yarn business based in Northern Ireland.
 
-## Business Context
+## Project Philosophy
 
-- **Current State**: Shopify store with established product catalog and customer base
-- **Target State**: Fully self-hosted solution with lower operational costs and greater customization
-- **Critical Success Factors**: Zero downtime migration, maintained SEO rankings, seamless customer experience
+This is a proof-of-concept to validate self-hosting as a viable alternative to Shopify. The goal is a **fully operational store** that can be managed without developer intervention, not a pixel-perfect replica.
+
+**Core principle**: Build what you need to *run* the business, not just *display* it.
 
 ## Technical Stack
 
 | Layer | Technology | Rationale |
 |-------|------------|-----------|
 | Framework | Next.js 16 (App Router) | SSR/SSG for SEO, React ecosystem |
-| Database | Turso (SQLite edge) | Low latency, cost-effective, sufficient for volume |
-| ORM | Drizzle | Type-safe, lightweight, excellent DX |
-| Payments | Stripe Checkout | PCI compliance offloaded, strong UK/EU support |
-| Auth | Clerk (optional) | Graceful degradation, handles edge cases |
-| Email | Resend | Transactional email, good deliverability |
-| Hosting | Vercel | Seamless Next.js integration, edge network |
+| Database | Turso (SQLite edge) | Low latency, cost-effective |
+| ORM | Drizzle | Type-safe, lightweight |
+| Payments | Stripe Checkout | PCI compliance offloaded |
+| Auth | Clerk (optional) | Admin access control |
+| Images | Vercel Blob | Simple image hosting |
+| Email | Resend | Transactional email |
+| Hosting | Vercel | Seamless Next.js integration |
 
-## Epic Overview
+## Revised Epic Structure
 
-| Epic | Priority | Complexity | Dependencies |
-|------|----------|------------|--------------|
-| [E1: Product Catalog](./epics/E1-product-catalog.md) | P0 | Medium | Database schema (done) |
-| [E2: Shopping Cart](./epics/E2-shopping-cart.md) | P0 | Medium | E1 |
-| [E3: Checkout & Payments](./epics/E3-checkout-payments.md) | P0 | High | E2, Stripe account |
-| [E4: Shipping & Fulfillment](./epics/E4-shipping-fulfillment.md) | P0 | Medium | E3 |
-| [E5: Customer Accounts](./epics/E5-customer-accounts.md) | P1 | Medium | E3 |
-| [E6: Admin Dashboard](./epics/E6-admin-dashboard.md) | P1 | High | E1-E4 |
-| [E7: Data Migration](./epics/E7-data-migration.md) | P0 | Medium | E1, Shopify export |
+### Phase 1: Operational Foundation (P0)
 
-## Implementation Phases
+**Goal**: A store you can use and manage
 
-### Phase 1: Core Commerce (P0)
-**Goal**: Minimum viable store that can accept orders
-
-1. E1: Product Catalog - Display products and collections
-2. E2: Shopping Cart - Add/remove items, persist cart
-3. E3: Checkout & Payments - Stripe integration, order creation
-4. E4: Shipping & Fulfillment - Rate calculation, zone handling
+| Epic | Description | Status |
+|------|-------------|--------|
+| E1: Product Catalog | Display products & collections | ✅ Done |
+| E2: Shopping Cart | Add/remove items, persist cart | 🔲 |
+| E3: Checkout & Payments | Stripe integration | 🔲 |
+| E4: Shipping | Rate calculation by zone/weight | 🔲 |
+| E7: Sample Migration | Import ~10-20 products from Shopify | 🔲 |
+| **E6: Admin Dashboard** | **Full store management** | 🔲 |
 
 ### Phase 2: Customer Experience (P1)
-**Goal**: Feature parity with Shopify
 
-5. E5: Customer Accounts - Login, order history, saved addresses
-6. E6: Admin Dashboard - Product/order management
+**Goal**: Feature parity for customers
 
-### Phase 3: Migration (P0 - Parallel)
-**Goal**: Seamless transition from Shopify
+| Epic | Description | Status |
+|------|-------------|--------|
+| E5: Customer Accounts | Login, order history | 🔲 |
+| Full Migration | Import all products, customers, orders | 🔲 |
+| Email Notifications | Order confirmation, shipping updates | 🔲 |
 
-7. E7: Data Migration - Import products, customers, historical orders
+## Admin Dashboard Scope (E6 - Now P0)
 
-## Critical Path
+The admin dashboard is now **core functionality**. You should be able to:
+
+### Products
+- [ ] Add new products with variants (colorways)
+- [ ] Edit existing products
+- [ ] Upload and manage product images
+- [ ] Set prices, stock levels, weights
+- [ ] Archive/activate products
+
+### Collections
+- [ ] Create collections (by yarn weight, color family, etc.)
+- [ ] Assign products to collections
+- [ ] Reorder collections
+- [ ] Set collection images and descriptions
+
+### Homepage / Content
+- [ ] Configure hero carousel images
+- [ ] Select featured products
+- [ ] Edit announcement bar text
+- [ ] Update "About" page content (stretch)
+
+### Orders
+- [ ] View orders list with status
+- [ ] View order details
+- [ ] Mark as fulfilled, add tracking
+- [ ] Print packing slips
+
+### Shipping
+- [ ] Configure shipping zones
+- [ ] Set weight-based rates per zone
+- [ ] Set free shipping thresholds
+
+### Inventory
+- [ ] View stock levels across all variants
+- [ ] Quick stock adjustments
+- [ ] Low stock alerts
+
+### Discounts
+- [ ] Create discount codes
+- [ ] Set percentage or fixed discounts
+- [ ] Set validity dates and usage limits
+
+## Implementation Order
 
 ```
-Database Schema (DONE)
-       │
-       ▼
-   E1: Products ──────────────────┐
-       │                          │
-       ▼                          ▼
-   E2: Cart                  E7: Migration
-       │                     (parallel work)
-       ▼
-   E3: Checkout
-       │
-       ▼
-   E4: Shipping
-       │
-       ├──────────────────────────┤
-       ▼                          ▼
-   E5: Accounts              E6: Admin
+Current State (Product Catalog ✅)
+     │
+     ▼
+E7: Sample Migration
+Import 10-20 real products from Shopify
+     │
+     ▼
+E6: Admin Dashboard ← FOCUS HERE FIRST
+├── Products CRUD
+├── Collections management
+├── Homepage configuration
+├── Shipping settings
+├── Inventory view
+└── Discount codes
+     │
+     ▼
+🎯 Manageable Site
+Validate you can run it
+     │
+     ▼
+E2: Shopping Cart
+     │
+     ▼
+E3: Checkout & Stripe
+     │
+     ▼
+E4: Shipping Calculation
+     │
+     ▼
+E6b: Order Management
+(Add once orders exist)
+     │
+     ▼
+🛒 Operational Store
 ```
 
-## Risk Register
+## What This Is NOT
 
-| Risk | Impact | Likelihood | Mitigation |
-|------|--------|------------|------------|
-| Stripe integration complexity | High | Medium | Use Checkout Sessions, not custom |
-| SEO ranking loss | High | Medium | Maintain URL structure, 301 redirects |
-| Data migration errors | High | Low | Dry-run imports, validation scripts |
-| Payment failures at launch | Critical | Low | Extensive testing, Stripe test mode |
-| Shipping calculation errors | Medium | Medium | Weight-based with fallback flat rates |
+To keep scope manageable, we're **not** building:
 
-## Success Metrics
+- Multi-currency (GBP only for now)
+- Gift cards
+- Subscriptions
+- Advanced analytics (use Plausible/Fathom)
+- Customer reviews
+- Wishlist
+- Complex promotions (BOGO, bundles)
+- Multi-user admin with roles
 
-- **Launch Criteria**: All P0 epics complete, tested with real payments
-- **Performance**: <2s page load, Core Web Vitals pass
-- **Conversion**: Maintain or improve checkout completion rate
-- **Operations**: Order processing time unchanged
+These can all be added later if needed.
+
+## Success Criteria
+
+**Minimum Viable Store:**
+- [ ] Customers can browse, add to cart, checkout with Stripe
+- [ ] Orders are recorded and visible in admin
+- [ ] You can add/edit products without touching code
+- [ ] You can manage collections and homepage
+- [ ] Shipping rates calculate correctly by zone/weight
+- [ ] You can fulfill orders and add tracking
 
 ## Environment Strategy
 
 | Environment | Purpose | Database |
 |-------------|---------|----------|
-| Development | Local dev | Local Turso / SQLite |
-| Preview | PR previews | Turso preview branch |
+| Development | Local dev | Local SQLite |
+| Preview | PR previews | Turso preview |
 | Production | Live site | Turso production |
 
-## Documentation Standards
+## Domain
 
-Each epic follows a consistent structure:
-- Overview & business value
-- User stories with acceptance criteria
-- Technical approach & API design
-- Database changes (if any)
-- Dependencies & blockers
-- Testing strategy
-- Rollout plan
+Production: `herbarium-dyeworks.warmwetcircles.com`
+
+(Can be changed to custom domain when ready for launch)
