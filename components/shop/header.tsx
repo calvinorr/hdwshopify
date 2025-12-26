@@ -14,6 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/search";
+import { UserMenu } from "./user-menu";
+import { useCart } from "@/contexts/cart-context";
 
 const collections = [
   { name: "All Collections", href: "/collections" },
@@ -44,6 +46,7 @@ export function Header({
 }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { itemCount } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -152,6 +155,13 @@ export function Header({
                     </Link>
                   ))}
                 </div>
+
+                <div className="border-t pt-4 mt-4">
+                  <UserMenu
+                    isMobile
+                    onMobileClose={() => setMobileMenuOpen(false)}
+                  />
+                </div>
               </nav>
             </SheetContent>
           </Sheet>
@@ -246,6 +256,9 @@ export function Header({
               />
             </div>
 
+            {/* User account */}
+            <UserMenu isTransparent={isTransparent} />
+
             {/* Cart */}
             <Button
               variant="ghost"
@@ -258,17 +271,19 @@ export function Header({
             >
               <Link href="/cart">
                 <ShoppingBag className="h-5 w-5" />
-                <span className="sr-only">Cart</span>
-                <span
-                  className={cn(
-                    "absolute -top-1 -right-1 h-4 w-4 rounded-full text-[10px] font-medium flex items-center justify-center",
-                    isTransparent
-                      ? "bg-white text-stone-900"
-                      : "bg-primary text-primary-foreground"
-                  )}
-                >
-                  0
-                </span>
+                <span className="sr-only">Cart ({itemCount} items)</span>
+                {itemCount > 0 && (
+                  <span
+                    className={cn(
+                      "absolute -top-1 -right-1 h-4 w-4 rounded-full text-[10px] font-medium flex items-center justify-center",
+                      isTransparent
+                        ? "bg-white text-stone-900"
+                        : "bg-primary text-primary-foreground"
+                    )}
+                  >
+                    {itemCount > 99 ? "99+" : itemCount}
+                  </span>
+                )}
               </Link>
             </Button>
           </div>

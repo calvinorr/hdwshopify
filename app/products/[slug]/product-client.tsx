@@ -5,6 +5,7 @@ import { ProductGallery } from "@/components/products/product-gallery";
 import { ProductInfo } from "@/components/products/product-info";
 import { VariantSelector } from "@/components/products/variant-selector";
 import { AddToCart } from "@/components/products/add-to-cart";
+import { useCart } from "@/contexts/cart-context";
 import type { ProductWithRelations } from "@/types/product";
 
 interface ProductClientProps {
@@ -12,6 +13,8 @@ interface ProductClientProps {
 }
 
 export function ProductClient({ product }: ProductClientProps) {
+  const { addItem } = useCart();
+
   // Default to first variant if available
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(
     product.variants[0]?.id ?? null
@@ -26,34 +29,13 @@ export function ProductClient({ product }: ProductClientProps) {
 
   const handleAddToCart = useCallback(
     async (variantId: number, quantity: number) => {
-      // TODO: Implement cart functionality
-      // This will call the cart API to add the item
-      console.log("Adding to cart:", { variantId, quantity });
-
-      // Placeholder for cart API call
-      try {
-        const response = await fetch("/api/cart", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            variantId,
-            quantity,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to add to cart");
-        }
-
-        // TODO: Show success toast or update cart count
-      } catch (error) {
-        console.error("Error adding to cart:", error);
-        // TODO: Show error toast
-      }
+      const variant = product.variants.find((v) => v.id === variantId);
+      await addItem(variantId, quantity, {
+        name: product.name,
+        variant: variant?.name ?? "Default",
+      });
     },
-    []
+    [addItem, product.name, product.variants]
   );
 
   return (
