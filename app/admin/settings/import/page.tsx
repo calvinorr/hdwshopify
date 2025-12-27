@@ -14,6 +14,8 @@ import {
   Package,
   FolderOpen,
   Image as ImageIcon,
+  Users,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -25,7 +27,7 @@ interface CredentialsStatus {
   domain?: string;
 }
 
-interface MigrationResult {
+interface ProductMigrationResult {
   success: boolean;
   message: string;
   productsImported?: number;
@@ -36,17 +38,33 @@ interface MigrationResult {
   error?: string;
 }
 
+interface CustomerMigrationResult {
+  success: boolean;
+  message: string;
+  customersImported?: number;
+  customersSkipped?: number;
+  addressesImported?: number;
+  errors?: string[];
+  error?: string;
+}
+
 export default function ImportPage() {
   const [credentialsStatus, setCredentialsStatus] = useState<CredentialsStatus | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
-  const [isImporting, setIsImporting] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
-  const [importResult, setImportResult] = useState<MigrationResult | null>(null);
 
-  // Import options
+  // Product import state
+  const [isImportingProducts, setIsImportingProducts] = useState(false);
+  const [isClearingProducts, setIsClearingProducts] = useState(false);
+  const [productResult, setProductResult] = useState<ProductMigrationResult | null>(null);
   const [productLimit, setProductLimit] = useState<number>(20);
   const [activeOnly, setActiveOnly] = useState(true);
-  const [clearExisting, setClearExisting] = useState(false);
+  const [clearExistingProducts, setClearExistingProducts] = useState(false);
+
+  // Customer import state
+  const [isImportingCustomers, setIsImportingCustomers] = useState(false);
+  const [isClearingCustomers, setIsClearingCustomers] = useState(false);
+  const [customerResult, setCustomerResult] = useState<CustomerMigrationResult | null>(null);
+  const [customerLimit, setCustomerLimit] = useState<number>(100);
 
   useEffect(() => {
     checkCredentials();
@@ -65,64 +83,123 @@ export default function ImportPage() {
     }
   }
 
-  async function handleImport() {
-    setIsImporting(true);
-    setImportResult(null);
+  async function handleImportProducts() {
+    setIsImportingProducts(true);
+    setProductResult(null);
 
     try {
       const params = new URLSearchParams({
         limit: productLimit.toString(),
         activeOnly: activeOnly.toString(),
-        clear: clearExisting.toString(),
+        clear: clearExistingProducts.toString(),
       });
 
       const res = await fetch(`/api/admin/migrate?${params}`, {
         method: "POST",
       });
-      const data: MigrationResult = await res.json();
-      setImportResult(data);
+      const data: ProductMigrationResult = await res.json();
+      setProductResult(data);
     } catch (error) {
-      setImportResult({
+      setProductResult({
         success: false,
         message: "Import failed",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     } finally {
-      setIsImporting(false);
+      setIsImportingProducts(false);
     }
   }
 
-  async function handleClear() {
+  async function handleClearProducts() {
     if (!confirm("Are you sure you want to clear ALL products? This cannot be undone.")) {
       return;
     }
 
-    setIsClearing(true);
+    setIsClearingProducts(true);
     try {
       const res = await fetch("/api/admin/migrate", { method: "DELETE" });
       const data = await res.json();
       if (data.success) {
-        setImportResult({
+        setProductResult({
           success: true,
           message: "All products cleared successfully",
         });
       } else {
-        setImportResult({
+        setProductResult({
           success: false,
           message: "Clear failed",
           error: data.error,
         });
       }
     } catch (error) {
-      setImportResult({
+      setProductResult({
         success: false,
         message: "Clear failed",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     } finally {
-      setIsClearing(false);
+      setIsClearingProducts(false);
     }
   }
+
+  async function handleImportCustomers() {
+    setIsImportingCustomers(true);
+    setCustomerResult(null);
+
+    try {
+      const params = new URLSearchParams({
+        limit: customerLimit.toString(),
+      });
+
+      const res = await fetch(`/api/admin/migrate/customers?${params}`, {
+        method: "POST",
+      });
+      const data: CustomerMigrationResult = await res.json();
+      setCustomerResult(data);
+    } catch (error) {
+      setCustomerResult({
+        success: false,
+        message: "Import failed",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setIsImportingCustomers(false);
+    }
+  }
+
+  async function handleClearCustomers() {
+    if (!confirm("Are you sure you want to clear ALL customers and their addresses? This cannot be undone.")) {
+      return;
+    }
+
+    setIsClearingCustomers(true);
+    try {
+      const res = await fetch("/api/admin/migrate/customers", { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        setCustomerResult({
+          success: true,
+          message: "All customers cleared successfully",
+        });
+      } else {
+        setCustomerResult({
+          success: false,
+          message: "Clear failed",
+          error: data.error,
+        });
+      }
+    } catch (error) {
+      setCustomerResult({
+        success: false,
+        message: "Clear failed",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setIsClearingCustomers(false);
+    }
+  }
+
+  const isAnyOperationRunning = isImportingProducts || isClearingProducts || isImportingCustomers || isClearingCustomers;
 
   return (
     <div className="space-y-6">
@@ -139,13 +216,13 @@ export default function ImportPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Import from Shopify</h1>
         <p className="text-muted-foreground">
-          Import your products, collections, and images from Shopify
+          Import your products, collections, customers, and addresses from Shopify
         </p>
       </div>
 
       {/* Credentials Status */}
       <div className="max-w-2xl">
-        <div className="rounded-lg border bg-card p-6 space-y-6">
+        <div className="rounded-lg border bg-card p-6 space-y-4">
           <div className="flex items-start gap-4">
             {isLoadingStatus ? (
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mt-0.5" />
@@ -183,170 +260,6 @@ export default function ImportPage() {
             </Button>
           </div>
 
-          {credentialsStatus?.configured && (
-            <>
-              <hr className="border-border" />
-
-              {/* Import Options */}
-              <div className="space-y-4">
-                <h3 className="font-medium">Import Options</h3>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="limit">Product Limit</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Maximum number of products to import (1-250)
-                      </p>
-                    </div>
-                    <Input
-                      id="limit"
-                      type="number"
-                      min={1}
-                      max={250}
-                      value={productLimit}
-                      onChange={(e) => setProductLimit(Math.min(250, Math.max(1, parseInt(e.target.value) || 20)))}
-                      className="w-24"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="active-only">Active Products Only</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Skip draft and archived products
-                      </p>
-                    </div>
-                    <Switch
-                      id="active-only"
-                      checked={activeOnly}
-                      onCheckedChange={setActiveOnly}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="clear-existing" className="text-amber-600">Clear Existing</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Delete all existing products before import
-                      </p>
-                    </div>
-                    <Switch
-                      id="clear-existing"
-                      checked={clearExisting}
-                      onCheckedChange={setClearExisting}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <hr className="border-border" />
-
-              {/* Import Actions */}
-              <div className="flex gap-3">
-                <Button
-                  onClick={handleImport}
-                  disabled={isImporting || isClearing}
-                  className="flex-1"
-                >
-                  {isImporting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Importing...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Start Import
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={handleClear}
-                  disabled={isImporting || isClearing}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  {isClearing ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Clear All
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {/* Import Result */}
-              {importResult && (
-                <div
-                  className={`rounded-lg p-4 ${
-                    importResult.success
-                      ? "bg-green-50 border border-green-200"
-                      : "bg-red-50 border border-red-200"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    {importResult.success ? (
-                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
-                    ) : (
-                      <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-                    )}
-                    <div className="flex-1">
-                      <p
-                        className={`font-medium ${
-                          importResult.success ? "text-green-800" : "text-red-800"
-                        }`}
-                      >
-                        {importResult.message}
-                      </p>
-
-                      {importResult.success && importResult.productsImported !== undefined && (
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                          <div className="flex items-center gap-2 text-green-700">
-                            <Package className="h-4 w-4" />
-                            <span>{importResult.productsImported} products</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-green-700">
-                            <FolderOpen className="h-4 w-4" />
-                            <span>{importResult.variantsImported} variants</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-green-700">
-                            <ImageIcon className="h-4 w-4" />
-                            <span>{importResult.imagesImported} images</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-green-700">
-                            <FolderOpen className="h-4 w-4" />
-                            <span>{importResult.collectionsImported} collections</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {importResult.errors && importResult.errors.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-sm font-medium text-amber-800 mb-1">
-                            Warnings ({importResult.errors.length}):
-                          </p>
-                          <ul className="text-xs text-amber-700 space-y-1 max-h-32 overflow-y-auto">
-                            {importResult.errors.map((err, i) => (
-                              <li key={i}>• {err}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {importResult.error && (
-                        <p className="mt-2 text-sm text-red-700">{importResult.error}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
           {!credentialsStatus?.configured && !isLoadingStatus && (
             <>
               <hr className="border-border" />
@@ -379,6 +292,321 @@ export default function ImportPage() {
           )}
         </div>
       </div>
+
+      {credentialsStatus?.configured && (
+        <>
+          {/* Products Import Card */}
+          <div className="max-w-2xl">
+            <div className="rounded-lg border bg-card p-6 space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
+                  <Package className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="font-medium">Products & Collections</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Import products, variants, images, and collections
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="product-limit">Product Limit</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Maximum number of products to import (1-250)
+                    </p>
+                  </div>
+                  <Input
+                    id="product-limit"
+                    type="number"
+                    min={1}
+                    max={250}
+                    value={productLimit}
+                    onChange={(e) => setProductLimit(Math.min(250, Math.max(1, parseInt(e.target.value) || 20)))}
+                    className="w-24"
+                    disabled={isAnyOperationRunning}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="active-only">Active Products Only</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Skip draft and archived products
+                    </p>
+                  </div>
+                  <Switch
+                    id="active-only"
+                    checked={activeOnly}
+                    onCheckedChange={setActiveOnly}
+                    disabled={isAnyOperationRunning}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="clear-products" className="text-amber-600">Clear Existing</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Delete all existing products before import
+                    </p>
+                  </div>
+                  <Switch
+                    id="clear-products"
+                    checked={clearExistingProducts}
+                    onCheckedChange={setClearExistingProducts}
+                    disabled={isAnyOperationRunning}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleImportProducts}
+                  disabled={isAnyOperationRunning}
+                  className="flex-1"
+                >
+                  {isImportingProducts ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Importing Products...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import Products
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={handleClearProducts}
+                  disabled={isAnyOperationRunning}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  {isClearingProducts ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Clear
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {productResult && (
+                <div
+                  className={`rounded-lg p-4 ${
+                    productResult.success
+                      ? "bg-green-50 border border-green-200"
+                      : "bg-red-50 border border-red-200"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    {productResult.success ? (
+                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                    )}
+                    <div className="flex-1">
+                      <p
+                        className={`font-medium ${
+                          productResult.success ? "text-green-800" : "text-red-800"
+                        }`}
+                      >
+                        {productResult.message}
+                      </p>
+
+                      {productResult.success && productResult.productsImported !== undefined && (
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                          <div className="flex items-center gap-2 text-green-700">
+                            <Package className="h-4 w-4" />
+                            <span>{productResult.productsImported} products</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-green-700">
+                            <FolderOpen className="h-4 w-4" />
+                            <span>{productResult.variantsImported} variants</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-green-700">
+                            <ImageIcon className="h-4 w-4" />
+                            <span>{productResult.imagesImported} images</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-green-700">
+                            <FolderOpen className="h-4 w-4" />
+                            <span>{productResult.collectionsImported} collections</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {productResult.errors && productResult.errors.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-sm font-medium text-amber-800 mb-1">
+                            Warnings ({productResult.errors.length}):
+                          </p>
+                          <ul className="text-xs text-amber-700 space-y-1 max-h-32 overflow-y-auto">
+                            {productResult.errors.map((err, i) => (
+                              <li key={i}>• {err}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {productResult.error && (
+                        <p className="mt-2 text-sm text-red-700">{productResult.error}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Customers Import Card */}
+          <div className="max-w-2xl">
+            <div className="rounded-lg border bg-card p-6 space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
+                  <Users className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <h2 className="font-medium">Customers & Addresses</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Import customer records and their saved addresses
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="customer-limit">Customer Limit</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Maximum number of customers to import (1-250)
+                    </p>
+                  </div>
+                  <Input
+                    id="customer-limit"
+                    type="number"
+                    min={1}
+                    max={250}
+                    value={customerLimit}
+                    onChange={(e) => setCustomerLimit(Math.min(250, Math.max(1, parseInt(e.target.value) || 100)))}
+                    className="w-24"
+                    disabled={isAnyOperationRunning}
+                  />
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <p className="text-xs text-amber-800">
+                    <strong>Note:</strong> Existing customers (matched by email) will have their data updated.
+                    Passwords cannot be migrated — customers will need to reset their passwords or use social login.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleImportCustomers}
+                  disabled={isAnyOperationRunning}
+                  className="flex-1"
+                >
+                  {isImportingCustomers ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Importing Customers...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import Customers
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={handleClearCustomers}
+                  disabled={isAnyOperationRunning}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  {isClearingCustomers ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Clear
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {customerResult && (
+                <div
+                  className={`rounded-lg p-4 ${
+                    customerResult.success
+                      ? "bg-green-50 border border-green-200"
+                      : "bg-red-50 border border-red-200"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    {customerResult.success ? (
+                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                    )}
+                    <div className="flex-1">
+                      <p
+                        className={`font-medium ${
+                          customerResult.success ? "text-green-800" : "text-red-800"
+                        }`}
+                      >
+                        {customerResult.message}
+                      </p>
+
+                      {customerResult.success && customerResult.customersImported !== undefined && (
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                          <div className="flex items-center gap-2 text-green-700">
+                            <Users className="h-4 w-4" />
+                            <span>{customerResult.customersImported} new customers</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-green-700">
+                            <Users className="h-4 w-4" />
+                            <span>{customerResult.customersSkipped} updated</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-green-700">
+                            <MapPin className="h-4 w-4" />
+                            <span>{customerResult.addressesImported} addresses</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {customerResult.errors && customerResult.errors.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-sm font-medium text-amber-800 mb-1">
+                            Warnings ({customerResult.errors.length}):
+                          </p>
+                          <ul className="text-xs text-amber-700 space-y-1 max-h-32 overflow-y-auto">
+                            {customerResult.errors.map((err, i) => (
+                              <li key={i}>• {err}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {customerResult.error && (
+                        <p className="mt-2 text-sm text-red-700">{customerResult.error}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

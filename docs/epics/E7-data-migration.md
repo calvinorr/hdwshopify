@@ -1,8 +1,8 @@
 # E7: Data Migration 📋 TODO - PARTIAL
 
-> **Status**: PARTIAL - Admin import UI functional, product migration works
-> **Completed**: Admin Shopify import UI with credentials check, product/variant/image import via GraphQL, collection import
-> **Remaining**: Customer import, order import, validation scripts, URL redirects
+> **Status**: PARTIAL - Product and customer migration works
+> **Completed**: Admin Shopify import UI, product/variant/image import, collection import, customer/address import with deduplication
+> **Remaining**: Order import, validation scripts, URL redirects
 
 **Priority**: P0 (Parallel with development)
 **Complexity**: Medium
@@ -58,17 +58,17 @@ Migrate all product data, customer records, and historical orders from Shopify t
 - [ ] URL slugs preserved
 - [ ] Validation report generated
 
-### US7.3: Import Customers
+### US7.3: Import Customers ✅
 **As an** admin
 **I want to** import customer records
 **So that** customers can access their history
 
 **Acceptance Criteria:**
-- [ ] Customer emails imported (primary identifier)
-- [ ] Names and addresses preserved
-- [ ] Marketing consent flags preserved
-- [ ] Duplicate handling (merge by email)
-- [ ] Password reset required (can't migrate passwords)
+- [x] Customer emails imported (primary identifier)
+- [x] Names and addresses preserved
+- [x] Marketing consent flags preserved
+- [x] Duplicate handling (merge by email)
+- [x] Password reset required (can't migrate passwords)
 
 ### US7.4: Import Orders
 **As an** admin

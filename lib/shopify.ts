@@ -4,6 +4,8 @@ import {
   productVariants,
   productImages,
   categories,
+  customers,
+  addresses,
 } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 
@@ -71,6 +73,33 @@ interface ShopifyCollection {
   image: {
     url: string;
     altText: string | null;
+  } | null;
+}
+
+interface ShopifyCustomer {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  acceptsMarketing: boolean;
+  createdAt: string;
+  addresses: Array<{
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    company: string | null;
+    address1: string | null;
+    address2: string | null;
+    city: string | null;
+    province: string | null;
+    zip: string | null;
+    country: string | null;
+    countryCodeV2: string | null;
+    phone: string | null;
+  }>;
+  defaultAddress: {
+    id: string;
   } | null;
 }
 
@@ -461,4 +490,171 @@ export async function migrateFromShopify(
 
 export async function importSampleProducts(count: number = 20): Promise<MigrationResult> {
   return migrateFromShopify({ limit: count, activeOnly: true });
+}
+
+// Customer Migration
+export interface CustomerMigrationOptions {
+  limit?: number;
+}
+
+export interface CustomerMigrationResult {
+  customersImported: number;
+  customersSkipped: number;
+  addressesImported: number;
+  errors: string[];
+}
+
+export async function migrateCustomers(
+  options: CustomerMigrationOptions = {}
+): Promise<CustomerMigrationResult> {
+  const { limit = 250 } = options;
+
+  const result: CustomerMigrationResult = {
+    customersImported: 0,
+    customersSkipped: 0,
+    addressesImported: 0,
+    errors: [],
+  };
+
+  try {
+    // Fetch customers from Shopify using GraphQL
+    const query = `
+      query GetCustomers($first: Int!) {
+        customers(first: $first) {
+          edges {
+            node {
+              id
+              email
+              firstName
+              lastName
+              phone
+              acceptsMarketing
+              createdAt
+              addresses(first: 10) {
+                id
+                firstName
+                lastName
+                company
+                address1
+                address2
+                city
+                province
+                zip
+                country
+                countryCodeV2
+                phone
+              }
+              defaultAddress {
+                id
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const data = await shopifyGraphQL<{
+      customers: { edges: Array<{ node: ShopifyCustomer }> };
+    }>(query, { first: limit });
+
+    for (const edge of data.customers.edges) {
+      try {
+        const shopifyCustomer = edge.node;
+        const email = shopifyCustomer.email?.toLowerCase();
+
+        if (!email) {
+          result.errors.push(`Customer ${shopifyCustomer.id}: No email address`);
+          continue;
+        }
+
+        // Check if customer already exists by email
+        const existingCustomer = await db.query.customers.findFirst({
+          where: eq(customers.email, email),
+        });
+
+        let customerId: number;
+
+        if (existingCustomer) {
+          // Update existing customer (merge data)
+          await db
+            .update(customers)
+            .set({
+              firstName: shopifyCustomer.firstName || existingCustomer.firstName,
+              lastName: shopifyCustomer.lastName || existingCustomer.lastName,
+              phone: shopifyCustomer.phone || existingCustomer.phone,
+              acceptsMarketing: shopifyCustomer.acceptsMarketing,
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(customers.id, existingCustomer.id));
+
+          customerId = existingCustomer.id;
+          result.customersSkipped++;
+        } else {
+          // Insert new customer
+          const [inserted] = await db
+            .insert(customers)
+            .values({
+              email,
+              firstName: shopifyCustomer.firstName,
+              lastName: shopifyCustomer.lastName,
+              phone: shopifyCustomer.phone,
+              acceptsMarketing: shopifyCustomer.acceptsMarketing,
+              createdAt: shopifyCustomer.createdAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            })
+            .returning({ id: customers.id });
+
+          customerId = inserted.id;
+          result.customersImported++;
+        }
+
+        // Import addresses
+        const defaultAddressId = shopifyCustomer.defaultAddress?.id;
+
+        for (const addr of shopifyCustomer.addresses) {
+          // Skip if missing required fields
+          if (!addr.address1 || !addr.city || !addr.zip || !addr.countryCodeV2) {
+            continue;
+          }
+
+          await db.insert(addresses).values({
+            customerId,
+            type: "shipping",
+            firstName: addr.firstName || shopifyCustomer.firstName || "",
+            lastName: addr.lastName || shopifyCustomer.lastName || "",
+            company: addr.company,
+            line1: addr.address1,
+            line2: addr.address2,
+            city: addr.city,
+            state: addr.province,
+            postalCode: addr.zip,
+            country: addr.countryCodeV2,
+            phone: addr.phone,
+            isDefault: addr.id === defaultAddressId,
+            createdAt: new Date().toISOString(),
+          });
+
+          result.addressesImported++;
+        }
+      } catch (customerError) {
+        const errorMessage =
+          customerError instanceof Error ? customerError.message : String(customerError);
+        result.errors.push(`Customer ${edge.node.email}: ${errorMessage}`);
+      }
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    result.errors.push(`Customer migration failed: ${errorMessage}`);
+  }
+
+  return result;
+}
+
+export async function clearAllCustomers(): Promise<void> {
+  // Delete addresses first due to foreign key constraints
+  await db.delete(addresses);
+  await db.delete(customers);
+  // Reset auto-increment (SQLite specific)
+  await db.run(sql`DELETE FROM sqlite_sequence WHERE name='customers'`);
+  await db.run(sql`DELETE FROM sqlite_sequence WHERE name='addresses'`);
 }
