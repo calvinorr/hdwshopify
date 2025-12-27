@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ShoppingBag, X, Minus, Plus, Trash2 } from "lucide-react";
+import { ShoppingBag, X, Minus, Plus, Trash2, Truck, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -20,6 +20,50 @@ import { cn } from "@/lib/utils";
 
 interface CartDrawerProps {
   isTransparent?: boolean;
+}
+
+const FREE_SHIPPING_THRESHOLD = 50;
+
+function CompactFreeShippingBar({ subtotal }: { subtotal: number }) {
+  const progress = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
+  const amountRemaining = Math.max(FREE_SHIPPING_THRESHOLD - subtotal, 0);
+  const qualifies = subtotal >= FREE_SHIPPING_THRESHOLD;
+
+  if (subtotal === 0) return null;
+
+  return (
+    <div className={cn(
+      "p-3 rounded-lg mb-4",
+      qualifies ? "bg-green-50 dark:bg-green-950/30" : "bg-secondary/50"
+    )}>
+      <div className="flex items-center gap-2 mb-1.5">
+        {qualifies ? (
+          <div className="flex items-center justify-center w-4 h-4 rounded-full bg-green-500">
+            <Check className="w-2.5 h-2.5 text-white" />
+          </div>
+        ) : (
+          <Truck className="w-4 h-4 text-muted-foreground" />
+        )}
+        <span className={cn(
+          "font-body text-xs font-medium",
+          qualifies ? "text-green-700 dark:text-green-400" : "text-foreground"
+        )}>
+          {qualifies
+            ? "Free UK shipping!"
+            : `£${amountRemaining.toFixed(2)} to free shipping`}
+        </span>
+      </div>
+      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all duration-500 ease-out",
+            qualifies ? "bg-green-500" : "bg-primary"
+          )}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export function CartDrawer({ isTransparent }: CartDrawerProps) {
@@ -200,6 +244,8 @@ export function CartDrawer({ isTransparent }: CartDrawerProps) {
               <p className="font-body text-xs text-muted-foreground mb-4">
                 Shipping calculated at checkout
               </p>
+
+              <CompactFreeShippingBar subtotal={subtotal} />
 
               <div className="space-y-2">
                 <SheetClose asChild>

@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Copy,
   Check,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -213,6 +214,14 @@ export function OrderDetail({ order }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => window.open(`/admin/orders/${order.id}/packing-slip`, '_blank')}
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            Packing Slip
+          </Button>
           <Button type="button" variant="outline" asChild>
             <Link href="/admin/orders">Back</Link>
           </Button>

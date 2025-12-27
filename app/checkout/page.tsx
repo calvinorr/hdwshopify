@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Tag, X } from "lucide-react";
+import { ArrowLeft, Loader2, Tag, X, Info, Globe } from "lucide-react";
 import { Header } from "@/components/shop/header";
 import { Footer } from "@/components/shop/footer";
 import { Button } from "@/components/ui/button";
@@ -258,6 +258,32 @@ export default function CheckoutPage() {
                 complete your purchase. Shipping costs will be calculated based on
                 your delivery address.
               </p>
+            </div>
+
+            {/* International Shipping Notice */}
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <Globe className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                <div>
+                  <h3 className="font-heading text-sm font-medium text-amber-900 dark:text-amber-200 mb-2">
+                    International Shipping & Customs
+                  </h3>
+                  <ul className="space-y-1.5 text-xs text-amber-800 dark:text-amber-300 font-body">
+                    <li className="flex items-start gap-2">
+                      <span className="font-medium shrink-0">UK & EU:</span>
+                      <span>No customs duties or import fees</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-medium shrink-0">USA:</span>
+                      <span>Duties pre-paid — no additional fees on delivery</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-medium shrink-0">Other countries:</span>
+                      <span>May be subject to local import duties and taxes, payable on delivery</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
             {/* Error Message */}

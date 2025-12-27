@@ -32,11 +32,11 @@ This is a proof-of-concept to validate self-hosting as a viable alternative to S
 | Epic | Description | Status |
 |------|-------------|--------|
 | E1: Product Catalog | Display products & collections | ✅ Done |
-| E2: Shopping Cart | Add/remove items, persist cart | 🔲 |
-| E3: Checkout & Payments | Stripe integration | 🔲 |
-| E4: Shipping | Rate calculation by zone/weight | 🔲 |
-| E7: Sample Migration | Import ~10-20 products from Shopify | 🔲 |
-| **E6: Admin Dashboard** | **Full store management** | 🔲 |
+| E2: Shopping Cart | Add/remove items, persist cart | ✅ Done |
+| E3: Checkout & Payments | Stripe integration | ✅ Done |
+| E4: Shipping & Fulfillment | Rate calculation, fulfillment workflow | ✅ Done |
+| E6: Admin Dashboard | Full store management | ✅ Done |
+| E7: Sample Migration | Import ~10-20 products from Shopify | 🚧 Partial |
 
 ### Phase 2: Customer Experience (P1)
 
@@ -44,9 +44,9 @@ This is a proof-of-concept to validate self-hosting as a viable alternative to S
 
 | Epic | Description | Status |
 |------|-------------|--------|
-| E5: Customer Accounts | Login, order history | 🔲 |
-| Full Migration | Import all products, customers, orders | 🔲 |
-| Email Notifications | Order confirmation, shipping updates | 🔲 |
+| E5: Customer Accounts | Login, order history | 🚧 Partial |
+| E7: Full Migration | Import all products, customers, orders | 🔲 |
+| Email Notifications | Order confirmation, shipping updates | ✅ Done |
 
 ## Admin Dashboard Scope (E6 - Now P0)
 

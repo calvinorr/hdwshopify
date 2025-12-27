@@ -6,16 +6,9 @@ import {
   ShoppingCart,
   Search,
   Filter,
-  Eye,
-  Package,
-  Truck,
-  CheckCircle,
-  XCircle,
-  Clock,
-  RefreshCcw,
-  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { OrdersList } from "./orders-list";
 
 interface SearchParams {
   status?: string;
@@ -25,19 +18,19 @@ interface SearchParams {
 }
 
 const ORDER_STATUSES = [
-  { value: "pending", label: "Pending", icon: Clock, color: "bg-amber-100 text-amber-700" },
-  { value: "processing", label: "Processing", icon: Package, color: "bg-blue-100 text-blue-700" },
-  { value: "shipped", label: "Shipped", icon: Truck, color: "bg-purple-100 text-purple-700" },
-  { value: "delivered", label: "Delivered", icon: CheckCircle, color: "bg-green-100 text-green-700" },
-  { value: "cancelled", label: "Cancelled", icon: XCircle, color: "bg-stone-100 text-stone-600" },
-  { value: "refunded", label: "Refunded", icon: RefreshCcw, color: "bg-red-100 text-red-700" },
+  { value: "pending", label: "Pending" },
+  { value: "processing", label: "Processing" },
+  { value: "shipped", label: "Shipped" },
+  { value: "delivered", label: "Delivered" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "refunded", label: "Refunded" },
 ];
 
 const PAYMENT_STATUSES = [
-  { value: "pending", label: "Pending", color: "bg-amber-100 text-amber-700" },
-  { value: "paid", label: "Paid", color: "bg-green-100 text-green-700" },
-  { value: "failed", label: "Failed", color: "bg-red-100 text-red-700" },
-  { value: "refunded", label: "Refunded", color: "bg-stone-100 text-stone-600" },
+  { value: "pending", label: "Pending" },
+  { value: "paid", label: "Paid" },
+  { value: "failed", label: "Failed" },
+  { value: "refunded", label: "Refunded" },
 ];
 
 async function getOrders(searchParams: SearchParams) {
@@ -90,24 +83,6 @@ async function getOrders(searchParams: SearchParams) {
     page,
     limit,
   };
-}
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return "-";
-  return new Date(dateStr).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function formatCurrency(amount: number, currency = "GBP") {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency,
-  }).format(amount);
 }
 
 export default async function OrdersPage({
@@ -205,127 +180,7 @@ export default async function OrdersPage({
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg border overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-stone-50 border-b">
-              <tr>
-                <th className="text-left text-xs font-medium text-stone-500 uppercase tracking-wider px-4 py-3">
-                  Order
-                </th>
-                <th className="text-left text-xs font-medium text-stone-500 uppercase tracking-wider px-4 py-3 hidden sm:table-cell">
-                  Date
-                </th>
-                <th className="text-left text-xs font-medium text-stone-500 uppercase tracking-wider px-4 py-3 hidden md:table-cell">
-                  Customer
-                </th>
-                <th className="text-left text-xs font-medium text-stone-500 uppercase tracking-wider px-4 py-3 hidden lg:table-cell">
-                  Items
-                </th>
-                <th className="text-left text-xs font-medium text-stone-500 uppercase tracking-wider px-4 py-3">
-                  Total
-                </th>
-                <th className="text-left text-xs font-medium text-stone-500 uppercase tracking-wider px-4 py-3">
-                  Status
-                </th>
-                <th className="text-left text-xs font-medium text-stone-500 uppercase tracking-wider px-4 py-3 hidden sm:table-cell">
-                  Payment
-                </th>
-                <th className="w-10 px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-200">
-              {orderList.map((order) => {
-                const status = ORDER_STATUSES.find((s) => s.value === order.status);
-                const payment = PAYMENT_STATUSES.find((s) => s.value === order.paymentStatus);
-                const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
-
-                return (
-                  <tr key={order.id} className="hover:bg-stone-50">
-                    {/* Order number */}
-                    <td className="px-4 py-4">
-                      <Link
-                        href={`/admin/orders/${order.id}`}
-                        className="font-medium text-stone-900 hover:text-primary"
-                      >
-                        #{order.orderNumber}
-                      </Link>
-                    </td>
-
-                    {/* Date */}
-                    <td className="px-4 py-4 hidden sm:table-cell">
-                      <span className="text-sm text-stone-600">
-                        {formatDate(order.createdAt)}
-                      </span>
-                    </td>
-
-                    {/* Customer */}
-                    <td className="px-4 py-4 hidden md:table-cell">
-                      <div>
-                        {order.customer ? (
-                          <span className="text-sm font-medium text-stone-900">
-                            {order.customer.firstName} {order.customer.lastName}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-stone-500">Guest</span>
-                        )}
-                        <p className="text-xs text-stone-500 truncate max-w-[200px]">
-                          {order.email}
-                        </p>
-                      </div>
-                    </td>
-
-                    {/* Items */}
-                    <td className="px-4 py-4 hidden lg:table-cell">
-                      <span className="text-sm text-stone-600">
-                        {itemCount} item{itemCount !== 1 ? "s" : ""}
-                      </span>
-                    </td>
-
-                    {/* Total */}
-                    <td className="px-4 py-4">
-                      <span className="font-medium text-stone-900">
-                        {formatCurrency(order.total, order.currency || "GBP")}
-                      </span>
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-4 py-4">
-                      {status && (
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${status.color}`}
-                        >
-                          <status.icon className="h-3 w-3" />
-                          {status.label}
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Payment */}
-                    <td className="px-4 py-4 hidden sm:table-cell">
-                      {payment && (
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${payment.color}`}
-                        >
-                          <CreditCard className="h-3 w-3" />
-                          {payment.label}
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-4 py-4">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                        <Link href={`/admin/orders/${order.id}`}>
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <OrdersList orders={orderList} />
       )}
 
       {/* Pagination */}

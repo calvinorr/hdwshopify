@@ -66,6 +66,33 @@ Optional:
 ### Product Structure
 Products have yarn-specific fields: `fiberContent`, `weight` (Laceweight/4ply/DK/Aran), `yardage`, `careInstructions`. Variants store colorway names, individual pricing, and `weightGrams` for shipping calculation.
 
+## Testing
+
+Visual/E2E tests are in `tests/*.md` and run via `/test` command using Chrome automation.
+
+**Before starting any work:** Review `TEST_PROGRESS.md` to identify existing regressions or incomplete tests.
+
+```bash
+/test tests/vibe-check.md   # Run single test
+/test all                   # Run all tests
+/test status                # Show test summary
+```
+
+Test results are logged to `TEST_PROGRESS.md`. Failed test screenshots saved to `test-failures/`.
+
+## Epic & Task Tracking
+
+Epics are documented in `docs/epics/E*.md`. When working on tasks:
+
+1. **Before starting**: Check the epic doc for current status and remaining work. Also check `TEST_PROGRESS.md` for any failing tests
+2. **After completing a story/feature**: Update the epic doc immediately
+   - Mark checkboxes as complete `[x]`
+   - Update the status header (e.g., `📋 TODO` → `✅ COMPLETE`)
+   - Add any new learnings or decisions to the doc
+3. **When an epic is fully complete**: Update both the epic doc AND `docs/PROJECT_PLAN.md`
+
+Be rigorous - don't let completed work go undocumented.
+
 ## Deployment
 
 Push to `main` deploys via Vercel. Domain: `herbarium-dyeworks.warmwetcircles.com`

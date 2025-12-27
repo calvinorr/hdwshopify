@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { orders } from "@/lib/db/schema";
+import { orders, orderItems } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth/admin";
 import { updateOrderSchema } from "@/lib/validations/order";
 import { logError } from "@/lib/logger";
+import { sendShippingConfirmationEmail } from "@/lib/email/send-shipping-confirmation";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -132,6 +133,22 @@ export async function PATCH(request: Request, context: RouteContext) {
       .set(updateData)
       .where(eq(orders.id, parsedId))
       .returning();
+
+    // Send shipping confirmation email if status changed to "shipped"
+    const statusChangedToShipped =
+      status === "shipped" && existing.status !== "shipped";
+
+    if (statusChangedToShipped) {
+      // Fetch order items for the email
+      const items = await db.query.orderItems.findMany({
+        where: eq(orderItems.orderId, parsedId),
+      });
+
+      // Send email (don't await - send in background)
+      sendShippingConfirmationEmail(updated, items).catch((err) => {
+        console.error("Failed to send shipping confirmation email:", err);
+      });
+    }
 
     return NextResponse.json(updated);
   } catch (error) {
