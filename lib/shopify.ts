@@ -84,7 +84,9 @@ interface ShopifyCustomer {
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
-  acceptsMarketing: boolean;
+  emailMarketingConsent: {
+    marketingState: string;
+  } | null;
   createdAt: string;
   addresses: Array<{
     id: string;
@@ -157,8 +159,7 @@ interface ShopifyOrder {
         quantity: number;
         originalUnitPriceSet: { shopMoney: { amount: string } };
         variant: {
-          weight: number | null;
-          weightUnit: string | null;
+          id: string;
         } | null;
       };
     }>;
@@ -597,7 +598,9 @@ export async function migrateCustomers(
               firstName
               lastName
               phone
-              acceptsMarketing
+              emailMarketingConsent {
+                marketingState
+              }
               createdAt
               addresses(first: 10) {
                 id
@@ -645,13 +648,14 @@ export async function migrateCustomers(
 
         if (existingCustomer) {
           // Update existing customer (merge data)
+          const acceptsMarketing = shopifyCustomer.emailMarketingConsent?.marketingState === "SUBSCRIBED";
           await db
             .update(customers)
             .set({
               firstName: shopifyCustomer.firstName || existingCustomer.firstName,
               lastName: shopifyCustomer.lastName || existingCustomer.lastName,
               phone: shopifyCustomer.phone || existingCustomer.phone,
-              acceptsMarketing: shopifyCustomer.acceptsMarketing,
+              acceptsMarketing,
               updatedAt: new Date().toISOString(),
             })
             .where(eq(customers.id, existingCustomer.id));
@@ -660,6 +664,7 @@ export async function migrateCustomers(
           result.customersSkipped++;
         } else {
           // Insert new customer
+          const acceptsMarketing = shopifyCustomer.emailMarketingConsent?.marketingState === "SUBSCRIBED";
           const [inserted] = await db
             .insert(customers)
             .values({
@@ -667,7 +672,7 @@ export async function migrateCustomers(
               firstName: shopifyCustomer.firstName,
               lastName: shopifyCustomer.lastName,
               phone: shopifyCustomer.phone,
-              acceptsMarketing: shopifyCustomer.acceptsMarketing,
+              acceptsMarketing,
               createdAt: shopifyCustomer.createdAt || new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             })
@@ -843,8 +848,7 @@ export async function migrateOrders(
                     quantity
                     originalUnitPriceSet { shopMoney { amount } }
                     variant {
-                      weight
-                      weightUnit
+                      id
                     }
                   }
                 }
@@ -950,13 +954,8 @@ export async function migrateOrders(
             }
           }
 
-          // Calculate weight in grams
-          let weightGrams: number | null = null;
-          if (item.variant?.weight) {
-            const weight = item.variant.weight;
-            const unit = item.variant.weightUnit?.toUpperCase() || "GRAMS";
-            weightGrams = convertWeightToGrams(weight, unit);
-          }
+          // Weight is not available in current API version, default to null
+          const weightGrams: number | null = null;
 
           await db.insert(orderItems).values({
             orderId: insertedOrder.id,
