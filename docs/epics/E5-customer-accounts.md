@@ -1,8 +1,8 @@
 # E5: Customer Accounts 🚧 IN PROGRESS
 
-> **Status**: IN PROGRESS - Core account pages built
-> **Completed**: Clerk integration, sign-in/sign-up pages, graceful degradation, account dashboard, order history, order detail, guest order tracking
-> **Remaining**: Address management UI, profile editing, cart sync across devices
+> **Status**: IN PROGRESS - Address management complete
+> **Completed**: Clerk integration, sign-in/sign-up pages, graceful degradation, account dashboard, order history, order detail, guest order tracking, address management (CRUD + default)
+> **Remaining**: Profile editing, cart sync across devices
 
 **Priority**: P1
 **Complexity**: Medium
@@ -59,16 +59,16 @@ Implement customer accounts using Clerk for authentication. Customers can create
 - [x] Tracking information for shipped orders
 - [x] Most recent orders first
 
-### US5.4: Manage Addresses
+### US5.4: Manage Addresses ✅
 **As a** customer
 **I want to** save shipping addresses
 **So that** checkout is faster
 
 **Acceptance Criteria:**
-- [ ] Add new address
-- [ ] Edit existing address
-- [ ] Delete address
-- [ ] Set default address
+- [x] Add new address
+- [x] Edit existing address
+- [x] Delete address
+- [x] Set default address
 - [ ] Auto-fill in checkout
 
 ### US5.5: Update Profile
