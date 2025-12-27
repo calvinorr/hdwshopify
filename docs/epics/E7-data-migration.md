@@ -1,8 +1,8 @@
 # E7: Data Migration 📋 TODO - PARTIAL
 
-> **Status**: PARTIAL - Basic import exists, full migration scripts incomplete
-> **Completed**: Admin Shopify import UI, basic product import
-> **Remaining**: Full migration scripts, customer/order import, validation, URL redirects
+> **Status**: PARTIAL - Admin import UI functional, product migration works
+> **Completed**: Admin Shopify import UI with credentials check, product/variant/image import via GraphQL, collection import
+> **Remaining**: Customer import, order import, validation scripts, URL redirects
 
 **Priority**: P0 (Parallel with development)
 **Complexity**: Medium
