@@ -1,8 +1,8 @@
 # E5: Customer Accounts 🚧 IN PROGRESS
 
-> **Status**: IN PROGRESS - Address management complete
-> **Completed**: Clerk integration, sign-in/sign-up pages, graceful degradation, account dashboard, order history, order detail, guest order tracking, address management (CRUD + default)
-> **Remaining**: Profile editing, cart sync across devices
+> **Status**: IN PROGRESS - Profile settings complete
+> **Completed**: Clerk integration, sign-in/sign-up pages, graceful degradation, account dashboard, order history, order detail, guest order tracking, address management, profile settings (phone, newsletter, Clerk security)
+> **Remaining**: Cart sync across devices, checkout address auto-fill
 
 **Priority**: P1
 **Complexity**: Medium
@@ -71,16 +71,16 @@ Implement customer accounts using Clerk for authentication. Customers can create
 - [x] Set default address
 - [ ] Auto-fill in checkout
 
-### US5.5: Update Profile
+### US5.5: Update Profile ✅
 **As a** customer
 **I want to** update my details
 **So that** my information stays current
 
 **Acceptance Criteria:**
-- [ ] Edit name, email, phone
-- [ ] Change password
-- [ ] Manage newsletter subscription
-- [ ] Delete account (with confirmation)
+- [x] Edit name, email, phone (Clerk handles name/email, we handle phone)
+- [x] Change password (Clerk UserProfile component)
+- [x] Manage newsletter subscription
+- [ ] Delete account (with confirmation) - deferred, Clerk handles via dashboard
 
 ### US5.6: Cart Persistence Across Devices
 **As a** logged-in customer

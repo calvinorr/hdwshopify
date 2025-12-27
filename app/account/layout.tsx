@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { Package, MapPin, User, ChevronRight } from "lucide-react";
+import { Package, MapPin, User, ChevronRight, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Header } from "@/components/shop/header";
 import { Footer } from "@/components/shop/footer";
@@ -10,6 +10,7 @@ const accountLinks = [
   { href: "/account", label: "Overview", icon: User },
   { href: "/account/orders", label: "Orders", icon: Package },
   { href: "/account/addresses", label: "Addresses", icon: MapPin },
+  { href: "/account/settings", label: "Settings", icon: Settings },
 ];
 
 // Check if Clerk is configured
