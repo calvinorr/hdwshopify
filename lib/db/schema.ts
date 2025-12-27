@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // Categories
 export const categories = sqliteTable("categories", {
@@ -11,8 +11,8 @@ export const categories = sqliteTable("categories", {
   parentId: integer("parent_id"), // Self-reference handled via relations
   position: integer("position").default(0),
   shopifyCollectionId: text("shopify_collection_id"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Products
@@ -36,8 +36,8 @@ export const products = sqliteTable("products", {
   metaDescription: text("meta_description"),
   // Shopify sync
   shopifyId: text("shopify_id"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [
   index("products_status_idx").on(table.status),
   index("products_category_idx").on(table.categoryId),
@@ -56,8 +56,8 @@ export const productVariants = sqliteTable("product_variants", {
   weightGrams: integer("weight_grams").default(100), // For shipping calculation
   position: integer("position").default(0),
   shopifyVariantId: text("shopify_variant_id"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [
   index("variants_product_idx").on(table.productId),
   index("variants_sku_idx").on(table.sku),
@@ -71,7 +71,7 @@ export const productImages = sqliteTable("product_images", {
   url: text("url").notNull(),
   alt: text("alt"),
   position: integer("position").default(0),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [
   index("images_product_idx").on(table.productId),
   index("images_variant_idx").on(table.variantId),
@@ -86,8 +86,8 @@ export const customers = sqliteTable("customers", {
   lastName: text("last_name"),
   phone: text("phone"),
   acceptsMarketing: integer("accepts_marketing", { mode: "boolean" }).default(false),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [
   index("customers_clerk_idx").on(table.clerkId),
 ]);
@@ -108,7 +108,7 @@ export const addresses = sqliteTable("addresses", {
   country: text("country").notNull(),
   phone: text("phone"),
   isDefault: integer("is_default", { mode: "boolean" }).default(false),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Shipping Zones
@@ -116,7 +116,7 @@ export const shippingZones = sqliteTable("shipping_zones", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   countries: text("countries").notNull(), // JSON array of country codes
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Shipping Rates
@@ -129,7 +129,7 @@ export const shippingRates = sqliteTable("shipping_rates", {
   price: real("price").notNull(),
   estimatedDays: text("estimated_days"), // e.g., "2-4"
   tracked: integer("tracked", { mode: "boolean" }).default(false),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Discount Codes
@@ -144,7 +144,7 @@ export const discountCodes = sqliteTable("discount_codes", {
   startsAt: text("starts_at"),
   expiresAt: text("expires_at"),
   active: integer("active", { mode: "boolean" }).default(true),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Orders
@@ -182,8 +182,8 @@ export const orders = sqliteTable("orders", {
   customerNotes: text("customer_notes"),
   internalNotes: text("internal_notes"),
   // Timestamps
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
   shippedAt: text("shipped_at"),
   deliveredAt: text("delivered_at"),
 }, (table) => [
@@ -205,7 +205,7 @@ export const orderItems = sqliteTable("order_items", {
   quantity: integer("quantity").notNull(),
   price: real("price").notNull(),
   weightGrams: integer("weight_grams"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Newsletter Subscribers
@@ -214,7 +214,7 @@ export const newsletterSubscribers = sqliteTable("newsletter_subscribers", {
   email: text("email").notNull().unique(),
   status: text("status", { enum: ["subscribed", "unsubscribed"] }).default("subscribed"),
   source: text("source").default("website"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Cart (for persistent carts)
@@ -223,8 +223,8 @@ export const carts = sqliteTable("carts", {
   customerId: integer("customer_id").references(() => customers.id, { onDelete: "cascade" }),
   sessionId: text("session_id"), // For guest carts
   items: text("items").notNull(), // JSON array of cart items
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Relations
@@ -326,7 +326,7 @@ export const siteSettings = sqliteTable("site_settings", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   key: text("key").notNull().unique(),
   value: text("value").notNull(), // JSON string for complex values
-  updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Weight Types (editable taxonomy for yarn weights)
@@ -337,8 +337,8 @@ export const weightTypes = sqliteTable("weight_types", {
   description: text("description"),
   sortOrder: integer("sort_order").default(0),
   active: integer("active", { mode: "boolean" }).default(true),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Product Tags (flexible tagging system)
@@ -347,7 +347,7 @@ export const productTags = sqliteTable("product_tags", {
   name: text("name").notNull().unique(), // e.g., "hand-dyed", "limited-edition"
   slug: text("slug").notNull().unique(),
   color: text("color").default("#6b7280"), // Badge color in admin (hex)
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Product Tag Assignments (many-to-many junction table)
@@ -387,8 +387,8 @@ export const heroSlides = sqliteTable("hero_slides", {
   imageAlt: text("image_alt"),
   position: integer("position").default(0),
   active: integer("active", { mode: "boolean" }).default(true),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Type exports
