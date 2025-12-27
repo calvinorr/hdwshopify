@@ -25,6 +25,18 @@ This is a proof-of-concept to validate self-hosting as a viable alternative to S
 
 ## Revised Epic Structure
 
+### Phase 0: Stabilization (P0 - CRITICAL)
+
+**Goal**: Production-ready reliability and safety
+
+| Epic | Description | Status |
+|------|-------------|--------|
+| E12: Core Reliability | Transactional integrity, shipping accuracy, admin security | 🔲 TODO |
+| E13: Operations & Resilience | Inventory reservation, exports, backups, notifications | 🔲 TODO |
+
+> ⚠️ **These epics must be completed before launch.** Based on senior Shopify engineer review.
+> See: `docs/archive/CODEBASE_REVIEW.md`, `docs/archive/STABILIZATION_ROADMAP.md`
+
 ### Phase 1: Operational Foundation (P0)
 
 **Goal**: A store you can use and manage
@@ -44,7 +56,7 @@ This is a proof-of-concept to validate self-hosting as a viable alternative to S
 
 | Epic | Description | Status |
 |------|-------------|--------|
-| E5: Customer Accounts | Login, order history | 🚧 Partial |
+| E5: Customer Accounts | Login, order history | 🚧 Partial (paused for stabilization) |
 | E7: Full Migration | Import all products, customers, orders | 🔲 |
 | Email Notifications | Order confirmation, shipping updates | ✅ Done |
 
