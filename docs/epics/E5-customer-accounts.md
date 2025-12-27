@@ -1,8 +1,8 @@
-# E5: Customer Accounts 📋 TODO - PARTIAL
+# E5: Customer Accounts 🚧 IN PROGRESS
 
-> **Status**: PARTIAL - Auth works, account pages missing
-> **Completed**: Clerk integration, sign-in/sign-up pages, graceful degradation
-> **Remaining**: Account dashboard, order history, saved addresses, wishlist
+> **Status**: IN PROGRESS - Core account pages built
+> **Completed**: Clerk integration, sign-in/sign-up pages, graceful degradation, account dashboard, order history, order detail, guest order tracking
+> **Remaining**: Address management UI, profile editing, cart sync across devices
 
 **Priority**: P1
 **Complexity**: Medium
@@ -48,16 +48,16 @@ Implement customer accounts using Clerk for authentication. Customers can create
 - [ ] Redirect to intended page after sign in
 - [ ] Session persists across browser sessions
 
-### US5.3: View Order History
+### US5.3: View Order History ✅
 **As a** customer
 **I want to** see my past orders
 **So that** I can track deliveries and reorder
 
 **Acceptance Criteria:**
-- [ ] List of orders with status, date, total
-- [ ] Order detail view with items
-- [ ] Tracking information for shipped orders
-- [ ] Most recent orders first
+- [x] List of orders with status, date, total
+- [x] Order detail view with items
+- [x] Tracking information for shipped orders
+- [x] Most recent orders first
 
 ### US5.4: Manage Addresses
 **As a** customer
@@ -92,16 +92,16 @@ Implement customer accounts using Clerk for authentication. Customers can create
 - [ ] Syncs on login
 - [ ] Merge with guest cart on login
 
-### US5.7: Passwordless Checkout Link
+### US5.7: Passwordless Checkout Link ✅
 **As a** customer who placed an order as guest
 **I want to** access my order without an account
 **So that** I can track my purchase
 
 **Acceptance Criteria:**
-- [ ] Order confirmation email includes secure link
-- [ ] Link shows order status and tracking
-- [ ] Token expires after 30 days
-- [ ] Can create account from this page
+- [x] Order confirmation email includes secure link (token generation ready)
+- [x] Link shows order status and tracking
+- [x] Token expires after 30 days
+- [ ] Can create account from this page (deferred)
 
 ## Technical Approach
 

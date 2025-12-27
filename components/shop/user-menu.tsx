@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { User } from "lucide-react";
+import { User, Package, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -179,17 +179,43 @@ export function UserMenu({
     return (
       <>
         <SignedIn>
-          <div className="flex items-center gap-3 py-2">
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: "h-8 w-8",
-                },
-              }}
-            />
-            <span className="text-sm font-body text-muted-foreground">
-              Account
-            </span>
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 py-2">
+              <UserButton
+                appearance={{
+                  elements: {
+                    avatarBox: "h-8 w-8",
+                  },
+                }}
+              />
+              <span className="text-sm font-body text-muted-foreground">
+                Account
+              </span>
+            </div>
+            <Link
+              href="/account"
+              className="flex items-center gap-3 py-1 text-sm font-body text-muted-foreground hover:text-primary transition-colors pl-11"
+              onClick={onMobileClose}
+            >
+              <User className="h-4 w-4" />
+              My Account
+            </Link>
+            <Link
+              href="/account/orders"
+              className="flex items-center gap-3 py-1 text-sm font-body text-muted-foreground hover:text-primary transition-colors pl-11"
+              onClick={onMobileClose}
+            >
+              <Package className="h-4 w-4" />
+              Orders
+            </Link>
+            <Link
+              href="/account/addresses"
+              className="flex items-center gap-3 py-1 text-sm font-body text-muted-foreground hover:text-primary transition-colors pl-11"
+              onClick={onMobileClose}
+            >
+              <MapPin className="h-4 w-4" />
+              Addresses
+            </Link>
           </div>
         </SignedIn>
         <SignedOut>
