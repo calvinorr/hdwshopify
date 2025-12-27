@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
   console.log("Processing checkout.session.completed:", session.id);
 
-  // Check if order already exists (idempotency)
+  // Check if order already exists (idempotency) - BEFORE transaction
   const existingOrder = await db.query.orders.findFirst({
     where: eq(orders.stripeSessionId, session.id),
   });
@@ -116,13 +116,36 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
-  const cartItems = JSON.parse(cart.items || "[]");
+  const cartItems = JSON.parse(cart.items || "[]") as Array<{
+    variantId: number;
+    quantity: number;
+  }>;
   if (cartItems.length === 0) {
     console.error("Cart is empty:", cartId);
     return;
   }
 
-  // Generate order number
+  // Batch-load all variants before transaction (read operations)
+  const variantIds = cartItems.map((item) => item.variantId);
+  const variants = await db.query.productVariants.findMany({
+    where: sql`${productVariants.id} IN (${sql.join(
+      variantIds.map((id) => sql`${id}`),
+      sql`, `
+    )})`,
+    with: { product: true },
+  });
+
+  // Create a map for quick lookup
+  const variantMap = new Map(variants.map((v) => [v.id, v]));
+
+  // Validate all variants exist
+  const missingVariants = variantIds.filter((id) => !variantMap.has(id));
+  if (missingVariants.length > 0) {
+    console.error("Missing variants:", missingVariants);
+    return;
+  }
+
+  // Generate order number (involves a read, do before transaction)
   const orderNumber = await generateOrderNumber();
 
   // Extract shipping details (collected via shipping_address_collection)
@@ -152,92 +175,89 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     ? await getShippingMethodName(session.shipping_cost.shipping_rate as string)
     : "Standard Shipping";
 
-  // Create order
-  const [order] = await db
-    .insert(orders)
-    .values({
-      orderNumber,
-      email: session.customer_details?.email ?? "",
-      status: "pending",
-      paymentStatus: "paid",
-      subtotal,
-      shippingCost,
-      discountAmount,
-      taxAmount: 0, // VAT included in prices
-      total,
-      currency: "GBP",
-      discountCodeId: discountCodeId ? parseInt(discountCodeId, 10) : null,
-      shippingMethod,
-      shippingAddress: shippingAddressJson,
-      stripeSessionId: session.id,
-      stripePaymentIntentId: session.payment_intent as string,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    })
-    .returning();
+  const now = new Date().toISOString();
 
-  console.log("Order created:", order.orderNumber);
+  // ============================================================
+  // TRANSACTION: All writes happen atomically
+  // If any operation fails, everything rolls back
+  // ============================================================
+  const { order, createdOrderItems } = await db.transaction(async (tx) => {
+    // 1. Create order
+    const [order] = await tx
+      .insert(orders)
+      .values({
+        orderNumber,
+        email: session.customer_details?.email ?? "",
+        status: "pending",
+        paymentStatus: "paid",
+        subtotal,
+        shippingCost,
+        discountAmount,
+        taxAmount: 0, // VAT included in prices
+        total,
+        currency: "GBP",
+        discountCodeId: discountCodeId ? parseInt(discountCodeId, 10) : null,
+        shippingMethod,
+        shippingAddress: shippingAddressJson,
+        stripeSessionId: session.id,
+        stripePaymentIntentId: session.payment_intent as string,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
 
-  // Create order items and update inventory
-  const createdOrderItems: Array<{
-    id: number;
-    orderId: number;
-    variantId: number | null;
-    productName: string;
-    variantName: string | null;
-    sku: string | null;
-    quantity: number;
-    price: number;
-    weightGrams: number | null;
-    createdAt: string | null;
-  }> = [];
-
-  for (const item of cartItems) {
-    const variant = await db.query.productVariants.findFirst({
-      where: eq(productVariants.id, item.variantId),
-      with: { product: true },
+    // 2. Create all order items
+    const orderItemsToInsert = cartItems.map((item) => {
+      const variant = variantMap.get(item.variantId)!;
+      return {
+        orderId: order.id,
+        variantId: item.variantId,
+        productName: variant.product.name,
+        variantName: variant.name,
+        sku: variant.sku,
+        quantity: item.quantity,
+        price: variant.price,
+        weightGrams: variant.weightGrams,
+        createdAt: now,
+      };
     });
 
-    if (!variant) continue;
+    const createdOrderItems = await tx
+      .insert(orderItems)
+      .values(orderItemsToInsert)
+      .returning();
 
-    // Create order item
-    const [createdItem] = await db.insert(orderItems).values({
-      orderId: order.id,
-      variantId: item.variantId,
-      productName: variant.product.name,
-      variantName: variant.name,
-      sku: variant.sku,
-      quantity: item.quantity,
-      price: variant.price,
-      weightGrams: variant.weightGrams,
-      createdAt: new Date().toISOString(),
-    }).returning();
+    // 3. Decrement inventory for all variants
+    for (const item of cartItems) {
+      await tx
+        .update(productVariants)
+        .set({
+          stock: sql`${productVariants.stock} - ${item.quantity}`,
+          updatedAt: now,
+        })
+        .where(eq(productVariants.id, item.variantId));
+    }
 
-    createdOrderItems.push(createdItem);
+    // 4. Update discount code usage count
+    if (discountCodeId) {
+      await tx
+        .update(discountCodes)
+        .set({
+          usesCount: sql`${discountCodes.usesCount} + 1`,
+        })
+        .where(eq(discountCodes.id, parseInt(discountCodeId, 10)));
+    }
 
-    // Update inventory
-    await db
-      .update(productVariants)
-      .set({
-        stock: sql`${productVariants.stock} - ${item.quantity}`,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(productVariants.id, item.variantId));
-  }
+    // 5. Clear the cart
+    await tx.delete(carts).where(eq(carts.id, parseInt(cartId, 10)));
 
-  // Update discount code usage count
-  if (discountCodeId) {
-    await db
-      .update(discountCodes)
-      .set({
-        usesCount: sql`${discountCodes.usesCount} + 1`,
-      })
-      .where(eq(discountCodes.id, parseInt(discountCodeId, 10)));
-  }
+    return { order, createdOrderItems };
+  });
+  // ============================================================
+  // END TRANSACTION
+  // ============================================================
 
-  // Clear the cart
-  await db.delete(carts).where(eq(carts.id, parseInt(cartId, 10)));
-
+  console.log("Order created:", order.orderNumber);
   console.log("Order processing complete:", order.orderNumber);
 
   // Send confirmation email (async, don't block webhook response)
