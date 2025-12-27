@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Tag, X, Globe, MapPin } from "lucide-react";
+import { ArrowLeft, Loader2, Tag, X, Globe, MapPin, Check } from "lucide-react";
 import { Header } from "@/components/shop/header";
 import { Footer } from "@/components/shop/footer";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,7 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shippingCountry, setShippingCountry] = useState<string>("");
+  const [savedAddressUsed, setSavedAddressUsed] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{
     code: string;
@@ -73,6 +74,30 @@ export default function CheckoutPage() {
   } | null>(null);
   const [discountError, setDiscountError] = useState<string | null>(null);
   const [isValidatingDiscount, setIsValidatingDiscount] = useState(false);
+
+  // Auto-fill country from saved default address
+  useEffect(() => {
+    async function loadDefaultAddress() {
+      try {
+        const res = await fetch("/api/account/addresses");
+        if (res.ok) {
+          const data = await res.json();
+          const defaultAddress = data.addresses?.find((a: { isDefault: boolean }) => a.isDefault);
+          if (defaultAddress?.country) {
+            // Check if it's a valid shipping country
+            const validCountry = SHIPPING_COUNTRIES.find(c => c.code === defaultAddress.country);
+            if (validCountry) {
+              setShippingCountry(defaultAddress.country);
+              setSavedAddressUsed(true);
+            }
+          }
+        }
+      } catch {
+        // Silently fail - user can select manually
+      }
+    }
+    loadDefaultAddress();
+  }, []);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim()) return;
@@ -297,9 +322,16 @@ export default function CheckoutPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-2 font-body">
-                Shipping rates will be shown based on your destination
-              </p>
+              {savedAddressUsed ? (
+                <p className="text-xs text-green-600 mt-2 font-body flex items-center gap-1">
+                  <Check className="h-3 w-3" />
+                  Pre-filled from your saved address
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-2 font-body">
+                  Shipping rates will be shown based on your destination
+                </p>
+              )}
             </div>
 
             {/* Discount Code */}

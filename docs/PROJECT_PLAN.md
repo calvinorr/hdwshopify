@@ -56,7 +56,7 @@ This is a proof-of-concept to validate self-hosting as a viable alternative to S
 
 | Epic | Description | Status |
 |------|-------------|--------|
-| E5: Customer Accounts | Login, order history | 🚧 Partial (paused for stabilization) |
+| E5: Customer Accounts | Login, order history | ✅ Done |
 | E7: Full Migration | Import all products, customers, orders | 🔲 |
 | Email Notifications | Order confirmation, shipping updates | ✅ Done |
 
