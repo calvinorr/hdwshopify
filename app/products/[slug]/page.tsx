@@ -6,6 +6,7 @@ import { eq, and } from "drizzle-orm";
 import { Header } from "@/components/shop/header";
 import { Footer } from "@/components/shop/footer";
 import { ProductClient } from "./product-client";
+import { getAvailableStockBatch } from "@/lib/db/stock";
 import type { ProductWithRelations } from "@/types/product";
 
 interface PageProps {
@@ -155,6 +156,16 @@ export default async function ProductPage({ params }: PageProps) {
     notFound();
   }
 
+  // Fetch available stock (accounting for reservations) for all variants
+  const variantIds = product.variants.map((v) => v.id);
+  const availableStockMap = await getAvailableStockBatch(variantIds);
+
+  // Convert Map to plain object for serialization
+  const availableStock: Record<number, number> = {};
+  for (const [id, stock] of availableStockMap) {
+    availableStock[id] = stock;
+  }
+
   const jsonLd = generateProductJsonLd(product);
 
   return (
@@ -197,7 +208,7 @@ export default async function ProductPage({ params }: PageProps) {
             </nav>
 
             {/* Product Content */}
-            <ProductClient product={product} />
+            <ProductClient product={product} availableStock={availableStock} />
           </div>
         </main>
 

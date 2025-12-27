@@ -254,6 +254,7 @@ export const productVariantsRelations = relations(productVariants, ({ one, many 
     references: [products.id],
   }),
   images: many(productImages),
+  reservations: many(stockReservations),
 }));
 
 export const productImagesRelations = relations(productImages, ({ one }) => ({
@@ -413,6 +414,27 @@ export const orderEventsRelations = relations(orderEvents, ({ one }) => ({
   }),
 }));
 
+// Stock Reservations (for checkout inventory locking)
+export const stockReservations = sqliteTable("stock_reservations", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  variantId: integer("variant_id").notNull().references(() => productVariants.id, { onDelete: "cascade" }),
+  quantity: integer("quantity").notNull(),
+  stripeSessionId: text("stripe_session_id").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  index("reservations_variant_idx").on(table.variantId),
+  index("reservations_session_idx").on(table.stripeSessionId),
+  index("reservations_expires_idx").on(table.expiresAt),
+]);
+
+export const stockReservationsRelations = relations(stockReservations, ({ one }) => ({
+  variant: one(productVariants, {
+    fields: [stockReservations.variantId],
+    references: [productVariants.id],
+  }),
+}));
+
 // Type exports
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
@@ -438,3 +460,5 @@ export type NewWeightType = typeof weightTypes.$inferInsert;
 export type ProductTag = typeof productTags.$inferSelect;
 export type NewProductTag = typeof productTags.$inferInsert;
 export type ProductTagAssignment = typeof productTagAssignments.$inferSelect;
+export type StockReservation = typeof stockReservations.$inferSelect;
+export type NewStockReservation = typeof stockReservations.$inferInsert;

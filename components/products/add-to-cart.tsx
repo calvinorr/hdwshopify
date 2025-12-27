@@ -8,6 +8,7 @@ import type { ProductVariant } from "@/types/product";
 
 interface AddToCartProps {
   variant: ProductVariant | null;
+  availableStock?: number;
   onAddToCart: (variantId: number, quantity: number) => Promise<void> | void;
 }
 
@@ -18,11 +19,12 @@ function formatPrice(price: number): string {
   }).format(price);
 }
 
-export function AddToCart({ variant, onAddToCart }: AddToCartProps) {
+export function AddToCart({ variant, availableStock, onAddToCart }: AddToCartProps) {
   const [quantity, setQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
-  const stock = variant?.stock ?? 0;
+  // Use availableStock (accounts for reservations) when provided, otherwise fall back to variant.stock
+  const stock = availableStock ?? variant?.stock ?? 0;
   const isOutOfStock = stock === 0;
   const maxQuantity = Math.min(stock, 10); // Cap at 10 or available stock
 

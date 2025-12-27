@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, gt, sql } from "drizzle-orm";
 import { stripe } from "@/lib/stripe";
-import { db, carts, shippingZones, shippingRates, discountCodes, productVariants, productImages } from "@/lib/db";
+import { db, carts, shippingZones, shippingRates, discountCodes, productVariants, productImages, stockReservations } from "@/lib/db";
 import { getCartSession, CartItemData } from "@/lib/cart";
 import type Stripe from "stripe";
+
+// Reservation duration in minutes
+const RESERVATION_DURATION_MINUTES = 30;
 
 // Countries we ship to, grouped by zone
 const SHIPPING_COUNTRIES: Record<string, string[]> = {
@@ -114,14 +117,16 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Check stock
-      const stock = variant.stock ?? 0;
-      if (item.quantity > stock) {
+      // Check available stock (accounting for active reservations)
+      const physicalStock = variant.stock ?? 0;
+      const availableStock = await getAvailableStock(variant.id, physicalStock);
+
+      if (item.quantity > availableStock) {
         return NextResponse.json(
           {
-            error: stock === 0
+            error: availableStock === 0
               ? `"${variant.product.name} - ${variant.name}" is out of stock`
-              : `Only ${stock} of "${variant.product.name} - ${variant.name}" available`,
+              : `Only ${availableStock} of "${variant.product.name} - ${variant.name}" available`,
           },
           { status: 400 }
         );
@@ -195,6 +200,9 @@ export async function POST(request: NextRequest) {
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create(sessionParams);
 
+    // Create stock reservations for all items in this session
+    await createReservations(cartItems, session.id);
+
     return NextResponse.json({
       sessionId: session.id,
       url: session.url,
@@ -210,6 +218,46 @@ export async function POST(request: NextRequest) {
 
 function getBaseUrl(): string {
   return process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
+}
+
+/**
+ * Get the available stock for a variant, accounting for active reservations
+ */
+async function getAvailableStock(variantId: number, currentStock: number): Promise<number> {
+  const now = new Date().toISOString();
+
+  // Sum up all non-expired reservations for this variant
+  const reservations = await db
+    .select({ totalReserved: sql<number>`COALESCE(SUM(${stockReservations.quantity}), 0)` })
+    .from(stockReservations)
+    .where(
+      and(
+        eq(stockReservations.variantId, variantId),
+        gt(stockReservations.expiresAt, now)
+      )
+    );
+
+  const reserved = reservations[0]?.totalReserved ?? 0;
+  return Math.max(0, currentStock - reserved);
+}
+
+/**
+ * Create stock reservations for all cart items
+ */
+async function createReservations(
+  cartItems: { variantId: number; quantity: number }[],
+  stripeSessionId: string
+): Promise<void> {
+  const expiresAt = new Date(Date.now() + RESERVATION_DURATION_MINUTES * 60 * 1000).toISOString();
+
+  await db.insert(stockReservations).values(
+    cartItems.map((item) => ({
+      variantId: item.variantId,
+      quantity: item.quantity,
+      stripeSessionId,
+      expiresAt,
+    }))
+  );
 }
 
 async function getShippingOptions(

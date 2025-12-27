@@ -10,9 +10,10 @@ import type { ProductWithRelations } from "@/types/product";
 
 interface ProductClientProps {
   product: ProductWithRelations;
+  availableStock: Record<number, number>;
 }
 
-export function ProductClient({ product }: ProductClientProps) {
+export function ProductClient({ product, availableStock }: ProductClientProps) {
   const { addItem } = useCart();
 
   // Default to first variant if available
@@ -58,7 +59,11 @@ export function ProductClient({ product }: ProductClientProps) {
               onVariantChange={handleVariantChange}
             />
 
-            <AddToCart variant={selectedVariant} onAddToCart={handleAddToCart} />
+            <AddToCart
+              variant={selectedVariant}
+              availableStock={selectedVariantId ? availableStock[selectedVariantId] : 0}
+              onAddToCart={handleAddToCart}
+            />
           </div>
         )}
       </div>

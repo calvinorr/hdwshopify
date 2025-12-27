@@ -1,10 +1,10 @@
-# E13: Operations & Resilience 🔲 TODO
+# E13: Operations & Resilience 🚧 IN PROGRESS
 
-> **Status**: TODO
+> **Status**: IN PROGRESS
 > **Priority**: P0 - HIGH (required for launch)
 > **Source**: Senior Shopify engineer stabilization roadmap
-> **Completed**: None
-> **Remaining**: All stories
+> **Completed**: US13.1
+> **Remaining**: US13.2 - US13.7
 
 ## Overview
 
@@ -19,20 +19,20 @@ Operational improvements and resilience features to reduce oversell risk, improv
 
 ## User Stories
 
-### US13.1: Inventory Reservation System
+### US13.1: Inventory Reservation System ✅
 **As a** store owner
 **I want** stock reserved during checkout
 **So that** simultaneous purchases don't oversell
 
 **Acceptance Criteria:**
-- [ ] Create `stock_reservations` table (variantId, quantity, sessionId, expiresAt)
-- [ ] Reserve stock when checkout session created
-- [ ] Release reservation on `checkout.session.expired` webhook
-- [ ] Convert reservation to actual decrement on payment success
-- [ ] Reservation expires after 30 minutes if no webhook received
-- [ ] Show "Only X left" warning when stock is low/reserved
+- [x] Create `stock_reservations` table (variantId, quantity, sessionId, expiresAt)
+- [x] Reserve stock when checkout session created
+- [x] Release reservation on `checkout.session.expired` webhook
+- [x] Convert reservation to actual decrement on payment success
+- [x] Reservation expires after 30 minutes if no webhook received
+- [x] Show "Only X left" warning when stock is low/reserved
 
-**Files:** `lib/db/schema.ts`, `app/api/checkout/session/route.ts`, `app/api/webhooks/stripe/route.ts`
+**Files:** `lib/db/schema.ts`, `app/api/checkout/session/route.ts`, `app/api/webhooks/stripe/route.ts`, `lib/db/stock.ts`, `app/api/cron/cleanup-reservations/route.ts`
 
 ---
 

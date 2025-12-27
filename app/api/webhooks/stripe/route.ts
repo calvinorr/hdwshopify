@@ -10,6 +10,7 @@ import {
   carts,
   productVariants,
   discountCodes,
+  stockReservations,
 } from "@/lib/db";
 import { sendOrderConfirmationEmail } from "@/lib/email/send-order-confirmation";
 import { logOrderEvent } from "@/lib/db/order-events";
@@ -63,8 +64,9 @@ export async function POST(request: NextRequest) {
         break;
 
       case "checkout.session.expired":
-        // Optional: Log expired sessions for analytics
-        console.log("Checkout session expired:", event.data.object.id);
+        await handleCheckoutSessionExpired(
+          event.data.object as Stripe.Checkout.Session
+        );
         break;
 
       case "payment_intent.payment_failed":
@@ -336,7 +338,10 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     // 5. Clear the cart
     await tx.delete(carts).where(eq(carts.id, parseInt(cartId, 10)));
 
-    // 6. Log order events (immutable audit trail)
+    // 6. Delete stock reservations for this session (stock now decremented)
+    await tx.delete(stockReservations).where(eq(stockReservations.stripeSessionId, session.id));
+
+    // 7. Log order events (immutable audit trail)
     // Log order created
     await tx.insert(orderEvents).values({
       orderId: order.id,
@@ -406,6 +411,20 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     .catch((error) => {
       console.error("Error sending order confirmation email:", error);
     });
+}
+
+/**
+ * Handle expired checkout session - release stock reservations
+ */
+async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session) {
+  console.log("Processing checkout.session.expired:", session.id);
+
+  // Delete all reservations for this session (frees up the reserved stock)
+  const result = await db
+    .delete(stockReservations)
+    .where(eq(stockReservations.stripeSessionId, session.id));
+
+  console.log("Released reservations for expired session:", session.id);
 }
 
 async function generateOrderNumber(): Promise<string> {
