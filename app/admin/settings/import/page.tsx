@@ -16,6 +16,8 @@ import {
   Image as ImageIcon,
   Users,
   MapPin,
+  ShoppingCart,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -48,6 +50,16 @@ interface CustomerMigrationResult {
   error?: string;
 }
 
+interface OrderMigrationResult {
+  success: boolean;
+  message: string;
+  ordersImported?: number;
+  ordersSkipped?: number;
+  orderItemsImported?: number;
+  errors?: string[];
+  error?: string;
+}
+
 export default function ImportPage() {
   const [credentialsStatus, setCredentialsStatus] = useState<CredentialsStatus | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
@@ -65,6 +77,12 @@ export default function ImportPage() {
   const [isClearingCustomers, setIsClearingCustomers] = useState(false);
   const [customerResult, setCustomerResult] = useState<CustomerMigrationResult | null>(null);
   const [customerLimit, setCustomerLimit] = useState<number>(100);
+
+  // Order import state
+  const [isImportingOrders, setIsImportingOrders] = useState(false);
+  const [isClearingOrders, setIsClearingOrders] = useState(false);
+  const [orderResult, setOrderResult] = useState<OrderMigrationResult | null>(null);
+  const [orderLimit, setOrderLimit] = useState<number>(100);
 
   useEffect(() => {
     checkCredentials();
@@ -199,7 +217,67 @@ export default function ImportPage() {
     }
   }
 
-  const isAnyOperationRunning = isImportingProducts || isClearingProducts || isImportingCustomers || isClearingCustomers;
+  async function handleImportOrders() {
+    setIsImportingOrders(true);
+    setOrderResult(null);
+
+    try {
+      const params = new URLSearchParams({
+        limit: orderLimit.toString(),
+      });
+
+      const res = await fetch(`/api/admin/migrate/orders?${params}`, {
+        method: "POST",
+      });
+      const data: OrderMigrationResult = await res.json();
+      setOrderResult(data);
+    } catch (error) {
+      setOrderResult({
+        success: false,
+        message: "Import failed",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setIsImportingOrders(false);
+    }
+  }
+
+  async function handleClearOrders() {
+    if (!confirm("Are you sure you want to clear ALL orders? This cannot be undone.")) {
+      return;
+    }
+
+    setIsClearingOrders(true);
+    try {
+      const res = await fetch("/api/admin/migrate/orders", { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        setOrderResult({
+          success: true,
+          message: "All orders cleared successfully",
+        });
+      } else {
+        setOrderResult({
+          success: false,
+          message: "Clear failed",
+          error: data.error,
+        });
+      }
+    } catch (error) {
+      setOrderResult({
+        success: false,
+        message: "Clear failed",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setIsClearingOrders(false);
+    }
+  }
+
+  const isAnyOperationRunning =
+    isImportingProducts || isClearingProducts ||
+    isImportingCustomers || isClearingCustomers ||
+    isImportingOrders || isClearingOrders;
 
   return (
     <div className="space-y-6">
@@ -216,7 +294,7 @@ export default function ImportPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Import from Shopify</h1>
         <p className="text-muted-foreground">
-          Import your products, collections, customers, and addresses from Shopify
+          Import your products, collections, customers, and orders from Shopify
         </p>
       </div>
 
@@ -598,6 +676,155 @@ export default function ImportPage() {
 
                       {customerResult.error && (
                         <p className="mt-2 text-sm text-red-700">{customerResult.error}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Orders Import Card */}
+          <div className="max-w-2xl">
+            <div className="rounded-lg border bg-card p-6 space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
+                  <ShoppingCart className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <h2 className="font-medium">Historical Orders</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Import past orders and line items for customer history
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="order-limit">Order Limit</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Maximum number of orders to import (1-250)
+                    </p>
+                  </div>
+                  <Input
+                    id="order-limit"
+                    type="number"
+                    min={1}
+                    max={250}
+                    value={orderLimit}
+                    onChange={(e) => setOrderLimit(Math.min(250, Math.max(1, parseInt(e.target.value) || 100)))}
+                    className="w-24"
+                    disabled={isAnyOperationRunning}
+                  />
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-xs text-blue-800">
+                    <strong>Recommended:</strong> Import customers before orders so that orders can be linked to customer accounts.
+                    Orders are matched by order number to avoid duplicates.
+                  </p>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <p className="text-xs text-amber-800">
+                    <strong>Note:</strong> Historical orders are imported for customer history only.
+                    Payment details are not migrated (they were already processed in Shopify).
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleImportOrders}
+                  disabled={isAnyOperationRunning}
+                  className="flex-1"
+                >
+                  {isImportingOrders ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Importing Orders...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import Orders
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={handleClearOrders}
+                  disabled={isAnyOperationRunning}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  {isClearingOrders ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Clear
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {orderResult && (
+                <div
+                  className={`rounded-lg p-4 ${
+                    orderResult.success
+                      ? "bg-green-50 border border-green-200"
+                      : "bg-red-50 border border-red-200"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    {orderResult.success ? (
+                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                    )}
+                    <div className="flex-1">
+                      <p
+                        className={`font-medium ${
+                          orderResult.success ? "text-green-800" : "text-red-800"
+                        }`}
+                      >
+                        {orderResult.message}
+                      </p>
+
+                      {orderResult.success && orderResult.ordersImported !== undefined && (
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                          <div className="flex items-center gap-2 text-green-700">
+                            <ShoppingCart className="h-4 w-4" />
+                            <span>{orderResult.ordersImported} new orders</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-green-700">
+                            <ShoppingCart className="h-4 w-4" />
+                            <span>{orderResult.ordersSkipped} skipped</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-green-700">
+                            <FileText className="h-4 w-4" />
+                            <span>{orderResult.orderItemsImported} line items</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {orderResult.errors && orderResult.errors.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-sm font-medium text-amber-800 mb-1">
+                            Warnings ({orderResult.errors.length}):
+                          </p>
+                          <ul className="text-xs text-amber-700 space-y-1 max-h-32 overflow-y-auto">
+                            {orderResult.errors.map((err, i) => (
+                              <li key={i}>• {err}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {orderResult.error && (
+                        <p className="mt-2 text-sm text-red-700">{orderResult.error}</p>
                       )}
                     </div>
                   </div>

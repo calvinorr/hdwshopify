@@ -1,8 +1,8 @@
 # E7: Data Migration 📋 TODO - PARTIAL
 
-> **Status**: PARTIAL - Product and customer migration works
-> **Completed**: Admin Shopify import UI, product/variant/image import, collection import, customer/address import with deduplication
-> **Remaining**: Order import, validation scripts, URL redirects
+> **Status**: PARTIAL - Products, customers, and orders migration complete
+> **Completed**: Admin Shopify import UI, product/variant/image import, collection import, customer/address import, order/line item import with status mapping
+> **Remaining**: Validation scripts, URL redirects
 
 **Priority**: P0 (Parallel with development)
 **Complexity**: Medium
@@ -70,17 +70,17 @@ Migrate all product data, customer records, and historical orders from Shopify t
 - [x] Duplicate handling (merge by email)
 - [x] Password reset required (can't migrate passwords)
 
-### US7.4: Import Orders
+### US7.4: Import Orders ✅
 **As an** admin
 **I want to** import historical orders
 **So that** customers see their purchase history
 
 **Acceptance Criteria:**
-- [ ] Order numbers preserved
-- [ ] Order items linked to products
-- [ ] Status preserved (fulfilled, cancelled, etc.)
-- [ ] Dates preserved
-- [ ] Payment info NOT imported (already processed)
+- [x] Order numbers preserved
+- [x] Order items linked to products (by SKU)
+- [x] Status preserved (fulfilled, cancelled, etc.)
+- [x] Dates preserved
+- [x] Payment info NOT imported (already processed)
 
 ### US7.5: URL Redirects
 **As an** admin

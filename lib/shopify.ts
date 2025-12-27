@@ -6,6 +6,8 @@ import {
   categories,
   customers,
   addresses,
+  orders,
+  orderItems,
 } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 
@@ -101,6 +103,73 @@ interface ShopifyCustomer {
   defaultAddress: {
     id: string;
   } | null;
+}
+
+interface ShopifyOrder {
+  id: string;
+  name: string; // Order number like "#1001"
+  email: string;
+  createdAt: string;
+  displayFulfillmentStatus: string;
+  displayFinancialStatus: string;
+  subtotalPriceSet: { shopMoney: { amount: string } };
+  totalShippingPriceSet: { shopMoney: { amount: string } };
+  totalDiscountsSet: { shopMoney: { amount: string } };
+  totalTaxSet: { shopMoney: { amount: string } };
+  totalPriceSet: { shopMoney: { amount: string } };
+  currencyCode: string;
+  note: string | null;
+  shippingAddress: {
+    firstName: string | null;
+    lastName: string | null;
+    company: string | null;
+    address1: string | null;
+    address2: string | null;
+    city: string | null;
+    province: string | null;
+    zip: string | null;
+    country: string | null;
+    countryCodeV2: string | null;
+    phone: string | null;
+  } | null;
+  billingAddress: {
+    firstName: string | null;
+    lastName: string | null;
+    company: string | null;
+    address1: string | null;
+    address2: string | null;
+    city: string | null;
+    province: string | null;
+    zip: string | null;
+    country: string | null;
+    countryCodeV2: string | null;
+    phone: string | null;
+  } | null;
+  customer: {
+    email: string;
+  } | null;
+  lineItems: {
+    edges: Array<{
+      node: {
+        title: string;
+        variantTitle: string | null;
+        sku: string | null;
+        quantity: number;
+        originalUnitPriceSet: { shopMoney: { amount: string } };
+        variant: {
+          weight: number | null;
+          weightUnit: string | null;
+        } | null;
+      };
+    }>;
+  };
+  fulfillments: Array<{
+    createdAt: string;
+    trackingInfo: Array<{
+      number: string | null;
+      url: string | null;
+    }>;
+  }>;
 }
 
 async function shopifyGraphQL<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
@@ -657,4 +726,271 @@ export async function clearAllCustomers(): Promise<void> {
   // Reset auto-increment (SQLite specific)
   await db.run(sql`DELETE FROM sqlite_sequence WHERE name='customers'`);
   await db.run(sql`DELETE FROM sqlite_sequence WHERE name='addresses'`);
+}
+
+// Order Migration
+export interface OrderMigrationOptions {
+  limit?: number;
+}
+
+export interface OrderMigrationResult {
+  ordersImported: number;
+  ordersSkipped: number;
+  orderItemsImported: number;
+  errors: string[];
+}
+
+function mapFulfillmentStatus(status: string): "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "refunded" | "on-hold" {
+  const statusLower = status.toLowerCase();
+  if (statusLower === "fulfilled") return "delivered";
+  if (statusLower === "partially_fulfilled" || statusLower === "partial") return "shipped";
+  if (statusLower === "unfulfilled") return "processing";
+  if (statusLower === "on_hold") return "on-hold";
+  return "pending";
+}
+
+function mapPaymentStatus(status: string): "pending" | "paid" | "failed" | "refunded" {
+  const statusLower = status.toLowerCase();
+  if (statusLower === "paid") return "paid";
+  if (statusLower === "refunded" || statusLower === "partially_refunded") return "refunded";
+  if (statusLower === "pending" || statusLower === "authorized") return "pending";
+  return "pending";
+}
+
+function formatAddress(addr: ShopifyOrder["shippingAddress"]): string {
+  if (!addr) return "{}";
+  return JSON.stringify({
+    firstName: addr.firstName || "",
+    lastName: addr.lastName || "",
+    company: addr.company || "",
+    line1: addr.address1 || "",
+    line2: addr.address2 || "",
+    city: addr.city || "",
+    state: addr.province || "",
+    postalCode: addr.zip || "",
+    country: addr.countryCodeV2 || addr.country || "",
+    phone: addr.phone || "",
+  });
+}
+
+export async function migrateOrders(
+  options: OrderMigrationOptions = {}
+): Promise<OrderMigrationResult> {
+  const { limit = 250 } = options;
+
+  const result: OrderMigrationResult = {
+    ordersImported: 0,
+    ordersSkipped: 0,
+    orderItemsImported: 0,
+    errors: [],
+  };
+
+  try {
+    // Fetch orders from Shopify using GraphQL
+    const query = `
+      query GetOrders($first: Int!) {
+        orders(first: $first, sortKey: CREATED_AT, reverse: true) {
+          edges {
+            node {
+              id
+              name
+              email
+              createdAt
+              displayFulfillmentStatus
+              displayFinancialStatus
+              subtotalPriceSet { shopMoney { amount } }
+              totalShippingPriceSet { shopMoney { amount } }
+              totalDiscountsSet { shopMoney { amount } }
+              totalTaxSet { shopMoney { amount } }
+              totalPriceSet { shopMoney { amount } }
+              currencyCode
+              note
+              shippingAddress {
+                firstName
+                lastName
+                company
+                address1
+                address2
+                city
+                province
+                zip
+                country
+                countryCodeV2
+                phone
+              }
+              billingAddress {
+                firstName
+                lastName
+                company
+                address1
+                address2
+                city
+                province
+                zip
+                country
+                countryCodeV2
+                phone
+              }
+              customer {
+                email
+              }
+              lineItems(first: 50) {
+                edges {
+                  node {
+                    title
+                    variantTitle
+                    sku
+                    quantity
+                    originalUnitPriceSet { shopMoney { amount } }
+                    variant {
+                      weight
+                      weightUnit
+                    }
+                  }
+                }
+              }
+              fulfillments {
+                createdAt
+                trackingInfo {
+                  number
+                  url
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const data = await shopifyGraphQL<{
+      orders: { edges: Array<{ node: ShopifyOrder }> };
+    }>(query, { first: limit });
+
+    for (const edge of data.orders.edges) {
+      try {
+        const shopifyOrder = edge.node;
+        const orderNumber = shopifyOrder.name; // e.g., "#1001"
+
+        // Check if order already exists by order number
+        const existingOrder = await db.query.orders.findFirst({
+          where: eq(orders.orderNumber, orderNumber),
+        });
+
+        if (existingOrder) {
+          result.ordersSkipped++;
+          continue;
+        }
+
+        // Find customer by email
+        let customerId: number | null = null;
+        const customerEmail = shopifyOrder.customer?.email || shopifyOrder.email;
+        if (customerEmail) {
+          const customer = await db.query.customers.findFirst({
+            where: eq(customers.email, customerEmail.toLowerCase()),
+          });
+          if (customer) {
+            customerId = customer.id;
+          }
+        }
+
+        // Get tracking info from fulfillments
+        let trackingNumber: string | null = null;
+        let trackingUrl: string | null = null;
+        let shippedAt: string | null = null;
+
+        if (shopifyOrder.fulfillments && shopifyOrder.fulfillments.length > 0) {
+          const latestFulfillment = shopifyOrder.fulfillments[0];
+          shippedAt = latestFulfillment.createdAt;
+          if (latestFulfillment.trackingInfo && latestFulfillment.trackingInfo.length > 0) {
+            trackingNumber = latestFulfillment.trackingInfo[0].number;
+            trackingUrl = latestFulfillment.trackingInfo[0].url;
+          }
+        }
+
+        // Insert order
+        const [insertedOrder] = await db
+          .insert(orders)
+          .values({
+            orderNumber,
+            customerId,
+            email: shopifyOrder.email,
+            status: mapFulfillmentStatus(shopifyOrder.displayFulfillmentStatus),
+            paymentStatus: mapPaymentStatus(shopifyOrder.displayFinancialStatus),
+            subtotal: parseFloat(shopifyOrder.subtotalPriceSet.shopMoney.amount),
+            shippingCost: parseFloat(shopifyOrder.totalShippingPriceSet.shopMoney.amount),
+            discountAmount: parseFloat(shopifyOrder.totalDiscountsSet.shopMoney.amount),
+            taxAmount: parseFloat(shopifyOrder.totalTaxSet.shopMoney.amount),
+            total: parseFloat(shopifyOrder.totalPriceSet.shopMoney.amount),
+            currency: shopifyOrder.currencyCode,
+            shippingAddress: formatAddress(shopifyOrder.shippingAddress),
+            billingAddress: formatAddress(shopifyOrder.billingAddress),
+            trackingNumber,
+            trackingUrl,
+            customerNotes: shopifyOrder.note,
+            createdAt: shopifyOrder.createdAt,
+            updatedAt: new Date().toISOString(),
+            shippedAt,
+          })
+          .returning({ id: orders.id });
+
+        result.ordersImported++;
+
+        // Import line items
+        for (const itemEdge of shopifyOrder.lineItems.edges) {
+          const item = itemEdge.node;
+
+          // Try to find variant by SKU
+          let variantId: number | null = null;
+          if (item.sku) {
+            const variant = await db.query.productVariants.findFirst({
+              where: eq(productVariants.sku, item.sku),
+            });
+            if (variant) {
+              variantId = variant.id;
+            }
+          }
+
+          // Calculate weight in grams
+          let weightGrams: number | null = null;
+          if (item.variant?.weight) {
+            const weight = item.variant.weight;
+            const unit = item.variant.weightUnit?.toUpperCase() || "GRAMS";
+            weightGrams = convertWeightToGrams(weight, unit);
+          }
+
+          await db.insert(orderItems).values({
+            orderId: insertedOrder.id,
+            variantId,
+            productName: item.title,
+            variantName: item.variantTitle,
+            sku: item.sku,
+            quantity: item.quantity,
+            price: parseFloat(item.originalUnitPriceSet.shopMoney.amount),
+            weightGrams,
+            createdAt: new Date().toISOString(),
+          });
+
+          result.orderItemsImported++;
+        }
+      } catch (orderError) {
+        const errorMessage =
+          orderError instanceof Error ? orderError.message : String(orderError);
+        result.errors.push(`Order ${edge.node.name}: ${errorMessage}`);
+      }
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    result.errors.push(`Order migration failed: ${errorMessage}`);
+  }
+
+  return result;
+}
+
+export async function clearAllOrders(): Promise<void> {
+  // Delete order items first due to foreign key constraints
+  await db.delete(orderItems);
+  await db.delete(orders);
+  // Reset auto-increment (SQLite specific)
+  await db.run(sql`DELETE FROM sqlite_sequence WHERE name='orders'`);
+  await db.run(sql`DELETE FROM sqlite_sequence WHERE name='order_items'`);
 }
