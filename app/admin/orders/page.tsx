@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrdersList } from "./orders-list";
+import { ExportOrdersButton } from "./export-button";
 
 interface SearchParams {
   status?: string;
@@ -106,6 +107,7 @@ export default async function OrdersPage({
             {total} order{total !== 1 ? "s" : ""} total
           </p>
         </div>
+        <ExportOrdersButton />
       </div>
 
       {/* Filters */}

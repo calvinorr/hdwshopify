@@ -3,8 +3,8 @@
 > **Status**: IN PROGRESS
 > **Priority**: P0 - HIGH (required for launch)
 > **Source**: Senior Shopify engineer stabilization roadmap
-> **Completed**: US13.1
-> **Remaining**: US13.2 - US13.7
+> **Completed**: US13.1, US13.2, US13.3, US13.4
+> **Remaining**: US13.5 - US13.7
 
 ## Overview
 
@@ -36,48 +36,48 @@ Operational improvements and resilience features to reduce oversell risk, improv
 
 ---
 
-### US13.2: CSV Export - Orders
+### US13.2: CSV Export - Orders ✅
 **As a** store owner
 **I want** to export orders as CSV
 **So that** I can do accounting and analysis in spreadsheets
 
 **Acceptance Criteria:**
-- [ ] Export button on admin orders page
-- [ ] CSV includes: order number, date, customer, email, items, total, status, tracking
-- [ ] Date range filter for export
-- [ ] Download triggers immediately (no background job needed at this scale)
+- [x] Export button on admin orders page
+- [x] CSV includes: order number, date, customer, email, items, total, status, tracking
+- [x] Date range filter for export
+- [x] Download triggers immediately (no background job needed at this scale)
 
-**Files:** `app/admin/orders/page.tsx`, `app/api/admin/orders/export/route.ts`
+**Files:** `app/admin/orders/page.tsx`, `app/api/admin/orders/export/route.ts`, `app/admin/orders/export-button.tsx`
 
 ---
 
-### US13.3: CSV Export - Customers
+### US13.3: CSV Export - Customers ✅
 **As a** store owner
 **I want** to export customers as CSV
 **So that** I can do marketing and GDPR compliance
 
 **Acceptance Criteria:**
-- [ ] Export button on admin customers page
-- [ ] CSV includes: name, email, order count, total spent, created date
-- [ ] Respects marketing consent (flag in export)
-- [ ] GDPR-ready: can export single customer's data on request
+- [x] Export button on admin customers page
+- [x] CSV includes: name, email, order count, total spent, created date
+- [x] Respects marketing consent (flag in export)
+- [x] GDPR-ready: can export single customer's data on request
 
-**Files:** `app/admin/customers/page.tsx`, `app/api/admin/customers/export/route.ts`
+**Files:** `app/admin/customers/page.tsx`, `app/api/admin/customers/export/route.ts`, `app/admin/customers/export-button.tsx`
 
 ---
 
-### US13.4: Bulk Stock Adjustment
+### US13.4: Bulk Stock Adjustment ✅
 **As a** store owner
 **I want** to adjust stock for multiple variants at once
 **So that** inventory reconciliation is fast
 
 **Acceptance Criteria:**
-- [ ] Multi-select variants in inventory page
-- [ ] Bulk action: "Adjust stock" with increment/decrement/set options
-- [ ] Confirmation dialog showing affected variants
-- [ ] Log stock changes in audit trail
+- [x] Multi-select variants in inventory page
+- [x] Bulk action: "Adjust stock" with increment/decrement/set options
+- [x] Confirmation dialog showing affected variants
+- [x] Log stock changes in audit trail (via console log)
 
-**Files:** `app/admin/inventory/page.tsx`, `app/api/admin/inventory/bulk/route.ts`
+**Files:** `app/admin/inventory/inventory-table.tsx`, `app/api/admin/inventory/bulk/route.ts`
 
 ---
 

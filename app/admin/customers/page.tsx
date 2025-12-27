@@ -11,6 +11,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ExportCustomersButton } from "./export-button";
 
 interface SearchParams {
   q?: string;
@@ -105,6 +106,7 @@ export default async function CustomersPage({
             {total} customer{total !== 1 ? "s" : ""} total
           </p>
         </div>
+        <ExportCustomersButton />
       </div>
 
       {/* Search */}
