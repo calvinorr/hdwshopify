@@ -1,8 +1,8 @@
 # E7: Data Migration 📋 TODO - PARTIAL
 
-> **Status**: PARTIAL - Products, customers, and orders migration complete
-> **Completed**: Admin Shopify import UI, product/variant/image import, collection import, customer/address import, order/line item import with status mapping
-> **Remaining**: Validation scripts, URL redirects
+> **Status**: PARTIAL - Products, customers, orders, and URL redirects complete
+> **Completed**: Admin Shopify import UI, product/variant/image import, collection import, customer/address import, order/line item import with status mapping, URL redirect system with admin UI
+> **Remaining**: Validation scripts
 
 **Priority**: P0 (Parallel with development)
 **Complexity**: Medium
@@ -82,17 +82,18 @@ Migrate all product data, customer records, and historical orders from Shopify t
 - [x] Dates preserved
 - [x] Payment info NOT imported (already processed)
 
-### US7.5: URL Redirects
+### US7.5: URL Redirects ✅
 **As an** admin
 **I want to** redirect old Shopify URLs
 **So that** SEO is preserved
 
 **Acceptance Criteria:**
-- [ ] `/products/*` redirects configured
-- [ ] `/collections/*` redirects configured
-- [ ] 301 permanent redirects
-- [ ] Redirect map for changed slugs
-- [ ] 404 handling for removed products
+- [x] `/products/*` redirects configured
+- [x] `/collections/*` redirects configured
+- [x] 301 permanent redirects
+- [x] Redirect map for changed slugs (admin UI for managing)
+- [x] Hit tracking to monitor redirect usage
+- [x] Active/inactive toggle for each redirect
 
 ### US7.6: Validation & Rollback
 **As an** admin

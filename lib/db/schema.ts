@@ -435,6 +435,22 @@ export const stockReservationsRelations = relations(stockReservations, ({ one })
   }),
 }));
 
+// URL Redirects (for SEO preservation during migration)
+export const redirects = sqliteTable("redirects", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  fromPath: text("from_path").notNull().unique(), // e.g., "/products/old-slug"
+  toPath: text("to_path").notNull(), // e.g., "/products/new-slug" or external URL
+  statusCode: integer("status_code").default(301), // 301 permanent, 302 temporary
+  hits: integer("hits").default(0), // Track usage
+  active: integer("active", { mode: "boolean" }).default(true),
+  notes: text("notes"), // Admin notes about why redirect exists
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  index("redirects_from_path_idx").on(table.fromPath),
+  index("redirects_active_idx").on(table.active),
+]);
+
 // Type exports
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
@@ -462,3 +478,5 @@ export type NewProductTag = typeof productTags.$inferInsert;
 export type ProductTagAssignment = typeof productTagAssignments.$inferSelect;
 export type StockReservation = typeof stockReservations.$inferSelect;
 export type NewStockReservation = typeof stockReservations.$inferInsert;
+export type Redirect = typeof redirects.$inferSelect;
+export type NewRedirect = typeof redirects.$inferInsert;

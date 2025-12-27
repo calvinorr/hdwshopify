@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { lookupRedirect, shouldCheckRedirect } from "@/lib/redirects";
 
 // Check if auth bypass is enabled (for development only)
 const isBypassEnabled =
@@ -40,13 +41,36 @@ if (!isAdminConfigured) {
 // Define protected routes
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
-// Bypass middleware - just pass through
-function bypassMiddleware(req: NextRequest) {
+// Check for redirects (shared between both middleware variants)
+async function checkRedirects(req: NextRequest): Promise<NextResponse | null> {
+  const pathname = req.nextUrl.pathname;
+
+  // Only check paths that might need redirects
+  if (!shouldCheckRedirect(pathname)) {
+    return null;
+  }
+
+  const redirect = await lookupRedirect(pathname);
+  if (redirect) {
+    const url = new URL(redirect.toPath, req.url);
+    return NextResponse.redirect(url, {
+      status: redirect.statusCode,
+    });
+  }
+
+  return null;
+}
+
+// Bypass middleware - just pass through (but still check redirects)
+async function bypassMiddleware(req: NextRequest) {
+  const redirectResponse = await checkRedirects(req);
+  if (redirectResponse) return redirectResponse;
+
   return NextResponse.next();
 }
 
 // Full Clerk middleware with auth checks
-const authMiddleware = clerkMiddleware(async (auth, req) => {
+const clerkAuthMiddleware = clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
 
   // Admin routes require authentication AND allowlist check
@@ -79,6 +103,16 @@ const authMiddleware = clerkMiddleware(async (auth, req) => {
 
   return NextResponse.next();
 });
+
+// Wrapper that checks redirects before Clerk auth
+async function authMiddleware(req: NextRequest) {
+  // Check redirects first (before auth)
+  const redirectResponse = await checkRedirects(req);
+  if (redirectResponse) return redirectResponse;
+
+  // Then run Clerk middleware
+  return clerkAuthMiddleware(req, {} as never);
+}
 
 // Export the appropriate middleware based on bypass setting
 export default isBypassEnabled ? bypassMiddleware : authMiddleware;

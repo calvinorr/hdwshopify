@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Home, Truck, Tags, Scale, Info } from "lucide-react";
+import { Home, Truck, Tags, Scale, Info, ArrowRightLeft } from "lucide-react";
 
 const settingsLinks = [
   {
@@ -31,6 +31,12 @@ const settingsLinks = [
     description: "Terms, privacy policy, returns, and shipping policy",
     href: "/admin/settings/legal",
     icon: Scale,
+  },
+  {
+    title: "URL Redirects",
+    description: "Manage 301/302 redirects for SEO and migrated URLs",
+    href: "/admin/settings/redirects",
+    icon: ArrowRightLeft,
   },
 ];
 
