@@ -197,7 +197,7 @@ export function HeroCarousel({
                       <Button
                         size="lg"
                         variant="outline"
-                        className="text-base px-8 py-6 rounded-full border-white/30 text-white hover:bg-white/10 backdrop-blur-sm transition-all duration-300"
+                        className="text-base px-8 py-6 rounded-full border-white/30 bg-transparent text-white hover:bg-white/10 backdrop-blur-sm transition-all duration-300"
                         asChild
                       >
                         <Link href={slide.secondaryCta.href}>
