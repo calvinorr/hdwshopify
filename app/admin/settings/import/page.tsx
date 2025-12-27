@@ -18,6 +18,8 @@ import {
   MapPin,
   ShoppingCart,
   FileText,
+  ClipboardCheck,
+  TriangleAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -60,6 +62,28 @@ interface OrderMigrationResult {
   error?: string;
 }
 
+interface ValidationCheck {
+  category: string;
+  check: string;
+  status: "pass" | "fail" | "warning";
+  message: string;
+  details?: unknown;
+}
+
+interface ValidationResult {
+  success: boolean;
+  summary: {
+    total: number;
+    passed: number;
+    warnings: number;
+    failed: number;
+    status: "passed" | "warning" | "failed";
+  };
+  counts: Record<string, number>;
+  checks: ValidationCheck[];
+  validatedAt: string;
+}
+
 export default function ImportPage() {
   const [credentialsStatus, setCredentialsStatus] = useState<CredentialsStatus | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
@@ -83,6 +107,10 @@ export default function ImportPage() {
   const [isClearingOrders, setIsClearingOrders] = useState(false);
   const [orderResult, setOrderResult] = useState<OrderMigrationResult | null>(null);
   const [orderLimit, setOrderLimit] = useState<number>(100);
+
+  // Validation state
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
 
   useEffect(() => {
     checkCredentials();
@@ -274,10 +302,26 @@ export default function ImportPage() {
     }
   }
 
+  async function handleValidate() {
+    setIsValidating(true);
+    setValidationResult(null);
+
+    try {
+      const res = await fetch("/api/admin/migrate/validate");
+      const data: ValidationResult = await res.json();
+      setValidationResult(data);
+    } catch (error) {
+      console.error("Validation failed:", error);
+    } finally {
+      setIsValidating(false);
+    }
+  }
+
   const isAnyOperationRunning =
     isImportingProducts || isClearingProducts ||
     isImportingCustomers || isClearingCustomers ||
-    isImportingOrders || isClearingOrders;
+    isImportingOrders || isClearingOrders ||
+    isValidating;
 
   return (
     <div className="space-y-6">
@@ -828,6 +872,161 @@ export default function ImportPage() {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Validation Card */}
+          <div className="max-w-2xl">
+            <div className="rounded-lg border bg-card p-6 space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
+                  <ClipboardCheck className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <h2 className="font-medium">Data Validation</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Validate migrated data integrity and completeness
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs text-blue-800">
+                  <strong>Checks performed:</strong> Record counts, product/variant relationships,
+                  customer emails, order integrity, image accessibility, and redirect configuration.
+                </p>
+              </div>
+
+              <Button
+                onClick={handleValidate}
+                disabled={isAnyOperationRunning}
+                className="w-full"
+                variant="outline"
+              >
+                {isValidating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Validating...
+                  </>
+                ) : (
+                  <>
+                    <ClipboardCheck className="h-4 w-4 mr-2" />
+                    Run Validation
+                  </>
+                )}
+              </Button>
+
+              {validationResult && (
+                <div className="space-y-4">
+                  {/* Summary */}
+                  <div
+                    className={`rounded-lg p-4 ${
+                      validationResult.summary.status === "passed"
+                        ? "bg-green-50 border border-green-200"
+                        : validationResult.summary.status === "warning"
+                        ? "bg-amber-50 border border-amber-200"
+                        : "bg-red-50 border border-red-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      {validationResult.summary.status === "passed" ? (
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                      ) : validationResult.summary.status === "warning" ? (
+                        <TriangleAlert className="h-5 w-5 text-amber-600" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-red-600" />
+                      )}
+                      <span
+                        className={`font-medium ${
+                          validationResult.summary.status === "passed"
+                            ? "text-green-800"
+                            : validationResult.summary.status === "warning"
+                            ? "text-amber-800"
+                            : "text-red-800"
+                        }`}
+                      >
+                        {validationResult.summary.status === "passed"
+                          ? "All Checks Passed"
+                          : validationResult.summary.status === "warning"
+                          ? "Passed with Warnings"
+                          : "Validation Failed"}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="bg-white/50 rounded p-2">
+                        <div className="text-lg font-semibold text-green-600">
+                          {validationResult.summary.passed}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Passed</div>
+                      </div>
+                      <div className="bg-white/50 rounded p-2">
+                        <div className="text-lg font-semibold text-amber-600">
+                          {validationResult.summary.warnings}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Warnings</div>
+                      </div>
+                      <div className="bg-white/50 rounded p-2">
+                        <div className="text-lg font-semibold text-red-600">
+                          {validationResult.summary.failed}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Failed</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Record Counts */}
+                  <div className="rounded-lg border p-4">
+                    <h3 className="font-medium mb-3">Record Counts</h3>
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      {Object.entries(validationResult.counts).map(([key, value]) => (
+                        <div key={key} className="flex justify-between">
+                          <span className="text-muted-foreground capitalize">{key}:</span>
+                          <span className="font-medium">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Detailed Checks */}
+                  <div className="rounded-lg border p-4">
+                    <h3 className="font-medium mb-3">Validation Checks</h3>
+                    <div className="space-y-2">
+                      {validationResult.checks.map((check, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-2 text-sm py-1 border-b last:border-0"
+                        >
+                          {check.status === "pass" ? (
+                            <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                          ) : check.status === "warning" ? (
+                            <TriangleAlert className="h-4 w-4 text-amber-500 shrink-0" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-red-500 shrink-0" />
+                          )}
+                          <span className="text-muted-foreground">[{check.category}]</span>
+                          <span className="flex-1">{check.check}</span>
+                          <span
+                            className={`text-xs ${
+                              check.status === "pass"
+                                ? "text-green-600"
+                                : check.status === "warning"
+                                ? "text-amber-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {check.message}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground text-center">
+                    Validated at {new Date(validationResult.validatedAt).toLocaleString()}
+                  </p>
                 </div>
               )}
             </div>
