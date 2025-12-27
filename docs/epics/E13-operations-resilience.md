@@ -1,10 +1,10 @@
-# E13: Operations & Resilience 🚧 IN PROGRESS
+# E13: Operations & Resilience ✅ COMPLETE
 
-> **Status**: IN PROGRESS
+> **Status**: COMPLETE
 > **Priority**: P0 - HIGH (required for launch)
 > **Source**: Senior Shopify engineer stabilization roadmap
-> **Completed**: US13.1, US13.2, US13.3, US13.4
-> **Remaining**: US13.5 - US13.7
+> **Completed**: US13.1 - US13.7 (all core stories)
+> **Remaining**: Optional fast wins (US13.8, US13.9)
 
 ## Overview
 
@@ -81,48 +81,48 @@ Operational improvements and resilience features to reduce oversell risk, improv
 
 ---
 
-### US13.5: Shipping Confirmation Email
+### US13.5: Shipping Confirmation Email ✅
 **As a** customer
 **I want** an email when my order ships
 **So that** I can track my delivery
 
 **Acceptance Criteria:**
-- [ ] Email sent automatically when tracking number added
-- [ ] Email includes: order number, tracking number, carrier link, items
-- [ ] Only sends once per order (idempotent)
-- [ ] Uses existing email template system (`lib/email/shipping-confirmation.tsx`)
+- [x] Email sent automatically when tracking number added
+- [x] Email includes: order number, tracking number, carrier link, items
+- [x] Only sends once per order (idempotent)
+- [x] Uses existing email template system (`lib/email/shipping-confirmation.tsx`)
 
-**Files:** `lib/email/send-shipping-confirmation.ts`, `app/api/admin/orders/[id]/fulfill/route.ts`
+**Files:** `lib/email/send-shipping-confirmation.ts`, `app/api/admin/orders/[id]/route.ts`
 
 ---
 
-### US13.6: Database Backups
+### US13.6: Database Backups ✅
 **As a** store owner
 **I want** regular database backups
 **So that** I can recover from disasters
 
 **Acceptance Criteria:**
-- [ ] Manual backup command: `npm run db:backup`
-- [ ] Backup saved to local file with timestamp
-- [ ] Document restore process in README
-- [ ] Turso automatic backups documented (if available on plan)
+- [x] Manual backup command: `npm run db:backup`
+- [x] Backup saved to local file with timestamp
+- [x] Document restore process in README
+- [x] Turso automatic backups documented (if available on plan)
 
-**Files:** `scripts/backup-db.ts`, `package.json`
+**Files:** `scripts/backup-db.ts`, `package.json`, `README.md`
 
 ---
 
-### US13.7: Full Data Export
+### US13.7: Full Data Export ✅
 **As a** store owner
 **I want** to export all my data
 **So that** I have portability and GDPR compliance
 
 **Acceptance Criteria:**
-- [ ] Export command: `npm run data:export`
-- [ ] Exports: products, variants, customers, orders, settings as JSON
-- [ ] Output is human-readable and can be re-imported
-- [ ] Document in README for compliance requests
+- [x] Export command: `npm run data:export`
+- [x] Exports: products, variants, customers, orders, settings as JSON
+- [x] Output is human-readable and can be re-imported
+- [x] Document in README for compliance requests
 
-**Files:** `scripts/export-all-data.ts`, `package.json`
+**Files:** `scripts/export-all-data.ts`, `package.json`, `README.md`
 
 ---
 
@@ -182,9 +182,9 @@ export const stockReservations = sqliteTable("stock_reservations", {
 
 ## Definition of Done
 
-- [ ] All core acceptance criteria met (US13.1-US13.7)
-- [ ] Oversell risk significantly reduced via reservations
-- [ ] Owner can export data without developer help
-- [ ] Shipping notifications automated
-- [ ] Backup/restore process documented and tested
-- [ ] Build passes, no regressions
+- [x] All core acceptance criteria met (US13.1-US13.7)
+- [x] Oversell risk significantly reduced via reservations
+- [x] Owner can export data without developer help
+- [x] Shipping notifications automated
+- [x] Backup/restore process documented and tested
+- [x] Build passes, no regressions

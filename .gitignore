@@ -43,3 +43,7 @@ next-env.d.ts
 
 # Local database
 local.db
+
+# Backups and exports
+/backups
+/exports

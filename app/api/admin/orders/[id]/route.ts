@@ -189,29 +189,55 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
-    // Send shipping confirmation email if status changed to "shipped"
+    // Determine if shipping confirmation email should be sent
+    // Triggers:
+    // 1. Status changed to "shipped" for the first time
+    // 2. Tracking number added to an already-shipped order
     const statusChangedToShipped =
       status === "shipped" && existing.status !== "shipped";
+    const trackingAddedToShippedOrder =
+      updated.status === "shipped" &&
+      trackingNumber &&
+      trackingNumber !== existing.trackingNumber;
 
-    if (statusChangedToShipped) {
-      // Fetch order items for the email
-      const items = await db.query.orderItems.findMany({
-        where: eq(orderItems.orderId, parsedId),
+    const shouldSendShippingEmail =
+      statusChangedToShipped || trackingAddedToShippedOrder;
+
+    if (shouldSendShippingEmail) {
+      // Check idempotency - only send if we haven't already sent this email
+      const existingEmailEvent = await db.query.orderEvents.findFirst({
+        where: (events, { and, eq }) =>
+          and(
+            eq(events.orderId, parsedId),
+            eq(events.event, "email_sent")
+          ),
       });
 
-      // Send email (don't await - send in background)
-      sendShippingConfirmationEmail(updated, items)
-        .then(async () => {
-          // Log email sent event
-          await logOrderEvent({
-            orderId: parsedId,
-            event: "email_sent",
-            data: { type: "shipping_confirmation", email: updated.email },
-          });
-        })
-        .catch((err) => {
-          console.error("Failed to send shipping confirmation email:", err);
+      // Parse existing event data to check if shipping_confirmation was sent
+      const alreadySent = existingEmailEvent?.data
+        ? JSON.parse(existingEmailEvent.data).type === "shipping_confirmation"
+        : false;
+
+      if (!alreadySent) {
+        // Fetch order items for the email
+        const items = await db.query.orderItems.findMany({
+          where: eq(orderItems.orderId, parsedId),
         });
+
+        // Send email (don't await - send in background)
+        sendShippingConfirmationEmail(updated, items)
+          .then(async () => {
+            // Log email sent event
+            await logOrderEvent({
+              orderId: parsedId,
+              event: "email_sent",
+              data: { type: "shipping_confirmation", email: updated.email },
+            });
+          })
+          .catch((err) => {
+            console.error("Failed to send shipping confirmation email:", err);
+          });
+      }
     }
 
     return NextResponse.json(updated);
