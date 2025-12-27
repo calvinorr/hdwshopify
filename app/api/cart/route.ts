@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, or, inArray } from "drizzle-orm";
 import { db, carts, productVariants, products, productImages } from "@/lib/db";
 import {
   getOrCreateCartSession,
   getCartSession,
+  ensureCartLinkedToCustomer,
   CartItem,
   CartItemData,
   CartResponse,
@@ -15,9 +16,10 @@ import {
 // GET /api/cart - Fetch current cart with populated product details
 export async function GET() {
   try {
-    const sessionId = await getCartSession();
+    // Get cart identifier (handles merge if logged in with guest cart)
+    const { customerId, sessionId } = await ensureCartLinkedToCustomer();
 
-    if (!sessionId) {
+    if (!customerId && !sessionId) {
       return NextResponse.json<CartResponse>({
         items: [],
         subtotal: 0,
@@ -25,9 +27,18 @@ export async function GET() {
       });
     }
 
-    const cart = await db.query.carts.findFirst({
-      where: eq(carts.sessionId, sessionId),
-    });
+    // Look up cart - prefer customerId, fallback to sessionId
+    let cart;
+    if (customerId) {
+      cart = await db.query.carts.findFirst({
+        where: eq(carts.customerId, customerId),
+      });
+    }
+    if (!cart && sessionId) {
+      cart = await db.query.carts.findFirst({
+        where: eq(carts.sessionId, sessionId),
+      });
+    }
 
     if (!cart) {
       return NextResponse.json<CartResponse>({
@@ -98,12 +109,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sessionId = await getOrCreateCartSession();
+    // Get cart identifier - handles merge if logged in with guest cart
+    const { customerId, sessionId: existingSessionId } = await ensureCartLinkedToCustomer();
+    const sessionId = existingSessionId || await getOrCreateCartSession();
 
-    // Get or create cart
-    let cart = await db.query.carts.findFirst({
-      where: eq(carts.sessionId, sessionId),
-    });
+    // Get or create cart - prefer customerId lookup
+    let cart;
+    if (customerId) {
+      cart = await db.query.carts.findFirst({
+        where: eq(carts.customerId, customerId),
+      });
+    }
+    if (!cart && sessionId) {
+      cart = await db.query.carts.findFirst({
+        where: eq(carts.sessionId, sessionId),
+      });
+    }
 
     let storedItems: CartItemData[] = cart ? JSON.parse(cart.items || "[]") : [];
 
@@ -144,8 +165,10 @@ export async function POST(request: NextRequest) {
         .set({ items: itemsJson, updatedAt: now })
         .where(eq(carts.id, cart.id));
     } else {
+      // Create new cart - link to customer if logged in
       await db.insert(carts).values({
-        sessionId,
+        customerId: customerId || null,
+        sessionId: customerId ? null : sessionId, // Only use sessionId for guests
         items: itemsJson,
         createdAt: now,
         updatedAt: now,

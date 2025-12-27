@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db, carts, productVariants } from "@/lib/db";
 import {
-  getCartSession,
+  ensureCartLinkedToCustomer,
   CartItemData,
   CartResponse,
   calculateSubtotal,
@@ -29,17 +29,26 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const sessionId = await getCartSession();
-    if (!sessionId) {
+    const { customerId, sessionId } = await ensureCartLinkedToCustomer();
+    if (!customerId && !sessionId) {
       return NextResponse.json(
         { error: "Cart not found" },
         { status: 404 }
       );
     }
 
-    const cart = await db.query.carts.findFirst({
-      where: eq(carts.sessionId, sessionId),
-    });
+    // Look up cart - prefer customerId
+    let cart;
+    if (customerId) {
+      cart = await db.query.carts.findFirst({
+        where: eq(carts.customerId, customerId),
+      });
+    }
+    if (!cart && sessionId) {
+      cart = await db.query.carts.findFirst({
+        where: eq(carts.sessionId, sessionId),
+      });
+    }
 
     if (!cart) {
       return NextResponse.json(
@@ -122,17 +131,26 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { itemId } = await params;
 
-    const sessionId = await getCartSession();
-    if (!sessionId) {
+    const { customerId, sessionId } = await ensureCartLinkedToCustomer();
+    if (!customerId && !sessionId) {
       return NextResponse.json(
         { error: "Cart not found" },
         { status: 404 }
       );
     }
 
-    const cart = await db.query.carts.findFirst({
-      where: eq(carts.sessionId, sessionId),
-    });
+    // Look up cart - prefer customerId
+    let cart;
+    if (customerId) {
+      cart = await db.query.carts.findFirst({
+        where: eq(carts.customerId, customerId),
+      });
+    }
+    if (!cart && sessionId) {
+      cart = await db.query.carts.findFirst({
+        where: eq(carts.sessionId, sessionId),
+      });
+    }
 
     if (!cart) {
       return NextResponse.json(

@@ -1,8 +1,8 @@
 # E5: Customer Accounts 🚧 IN PROGRESS
 
-> **Status**: IN PROGRESS - Profile settings complete
-> **Completed**: Clerk integration, sign-in/sign-up pages, graceful degradation, account dashboard, order history, order detail, guest order tracking, address management, profile settings (phone, newsletter, Clerk security)
-> **Remaining**: Cart sync across devices, checkout address auto-fill
+> **Status**: IN PROGRESS - Cart sync complete
+> **Completed**: Clerk integration, sign-in/sign-up pages, graceful degradation, account dashboard, order history, order detail, guest order tracking, address management, profile settings, cart sync across devices
+> **Remaining**: Checkout address auto-fill
 
 **Priority**: P1
 **Complexity**: Medium
@@ -82,15 +82,15 @@ Implement customer accounts using Clerk for authentication. Customers can create
 - [x] Manage newsletter subscription
 - [ ] Delete account (with confirmation) - deferred, Clerk handles via dashboard
 
-### US5.6: Cart Persistence Across Devices
+### US5.6: Cart Persistence Across Devices ✅
 **As a** logged-in customer
 **I want to** my cart synced across devices
 **So that** I can continue shopping anywhere
 
 **Acceptance Criteria:**
-- [ ] Cart stored in database linked to account
-- [ ] Syncs on login
-- [ ] Merge with guest cart on login
+- [x] Cart stored in database linked to account
+- [x] Syncs on login
+- [x] Merge with guest cart on login
 
 ### US5.7: Passwordless Checkout Link ✅
 **As a** customer who placed an order as guest
