@@ -145,6 +145,94 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
+  // ============================================================
+  // STOCK VALIDATION: Check if all items have sufficient stock
+  // ============================================================
+  const stockIssues: string[] = [];
+  for (const item of cartItems) {
+    const variant = variantMap.get(item.variantId)!;
+    const availableStock = variant.stock ?? 0;
+    if (availableStock < item.quantity) {
+      stockIssues.push(
+        `${variant.product.name} - ${variant.name}: requested ${item.quantity}, available ${availableStock}`
+      );
+    }
+  }
+  const hasStockIssues = stockIssues.length > 0;
+  if (hasStockIssues) {
+    console.warn("Stock issues detected:", stockIssues);
+  }
+
+  // Calculate amounts early (convert from pence to pounds) - needed for discount validation
+  const subtotal = (session.amount_subtotal ?? 0) / 100;
+  const shippingCost = (session.shipping_cost?.amount_total ?? 0) / 100;
+  const discountAmount = (session.total_details?.amount_discount ?? 0) / 100;
+  const total = (session.amount_total ?? 0) / 100;
+
+  // ============================================================
+  // DISCOUNT VALIDATION: Recheck discount is still valid
+  // ============================================================
+  let discountIssues: string[] = [];
+  let validatedDiscountCodeId: number | null = null;
+
+  if (discountCodeId) {
+    const discountCode = await db.query.discountCodes.findFirst({
+      where: eq(discountCodes.id, parseInt(discountCodeId, 10)),
+    });
+
+    if (!discountCode) {
+      discountIssues.push("Discount code no longer exists");
+    } else {
+      const now = new Date();
+
+      // Check if active
+      if (!discountCode.active) {
+        discountIssues.push("Discount code is no longer active");
+      }
+
+      // Check start date
+      if (discountCode.startsAt && new Date(discountCode.startsAt) > now) {
+        discountIssues.push("Discount code has not started yet");
+      }
+
+      // Check expiry date
+      if (discountCode.expiresAt && new Date(discountCode.expiresAt) < now) {
+        discountIssues.push("Discount code has expired");
+      }
+
+      // Check usage limit
+      const currentUses = discountCode.usesCount ?? 0;
+      if (discountCode.maxUses !== null && currentUses >= discountCode.maxUses) {
+        discountIssues.push(
+          `Discount code usage limit reached (${currentUses}/${discountCode.maxUses})`
+        );
+      }
+
+      // Check minimum order value
+      if (discountCode.minOrderValue !== null && subtotal < discountCode.minOrderValue) {
+        discountIssues.push(
+          `Order subtotal £${subtotal.toFixed(2)} below minimum £${discountCode.minOrderValue.toFixed(2)}`
+        );
+      }
+
+      // If no issues, the discount is valid
+      if (discountIssues.length === 0) {
+        validatedDiscountCodeId = discountCode.id;
+      }
+    }
+  }
+  const hasDiscountIssues = discountIssues.length > 0;
+  if (hasDiscountIssues) {
+    console.warn("Discount issues detected:", discountIssues);
+  }
+
+  // Determine order status and build internal notes
+  const allIssues = [...stockIssues, ...discountIssues];
+  const orderStatus = hasStockIssues ? "on-hold" : "pending";
+  const internalNotes = allIssues.length > 0
+    ? `[AUTO] Order requires attention:\n- ${allIssues.join("\n- ")}`
+    : null;
+
   // Generate order number (involves a read, do before transaction)
   const orderNumber = await generateOrderNumber();
 
@@ -164,12 +252,6 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     country: shippingAddress?.country,
   });
 
-  // Calculate amounts (convert from pence to pounds)
-  const subtotal = (session.amount_subtotal ?? 0) / 100;
-  const shippingCost = (session.shipping_cost?.amount_total ?? 0) / 100;
-  const discountAmount = (session.total_details?.amount_discount ?? 0) / 100;
-  const total = (session.amount_total ?? 0) / 100;
-
   // Get shipping method name
   const shippingMethod = session.shipping_cost?.shipping_rate
     ? await getShippingMethodName(session.shipping_cost.shipping_rate as string)
@@ -182,13 +264,13 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   // If any operation fails, everything rolls back
   // ============================================================
   const { order, createdOrderItems } = await db.transaction(async (tx) => {
-    // 1. Create order
+    // 1. Create order (use on-hold status if stock issues detected)
     const [order] = await tx
       .insert(orders)
       .values({
         orderNumber,
         email: session.customer_details?.email ?? "",
-        status: "pending",
+        status: orderStatus,
         paymentStatus: "paid",
         subtotal,
         shippingCost,
@@ -196,11 +278,12 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         taxAmount: 0, // VAT included in prices
         total,
         currency: "GBP",
-        discountCodeId: discountCodeId ? parseInt(discountCodeId, 10) : null,
+        discountCodeId: validatedDiscountCodeId,
         shippingMethod,
         shippingAddress: shippingAddressJson,
         stripeSessionId: session.id,
         stripePaymentIntentId: session.payment_intent as string,
+        internalNotes,
         createdAt: now,
         updatedAt: now,
       })
@@ -238,14 +321,14 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         .where(eq(productVariants.id, item.variantId));
     }
 
-    // 4. Update discount code usage count
-    if (discountCodeId) {
+    // 4. Update discount code usage count (only if discount was validated)
+    if (validatedDiscountCodeId) {
       await tx
         .update(discountCodes)
         .set({
           usesCount: sql`${discountCodes.usesCount} + 1`,
         })
-        .where(eq(discountCodes.id, parseInt(discountCodeId, 10)));
+        .where(eq(discountCodes.id, validatedDiscountCodeId));
     }
 
     // 5. Clear the cart
@@ -257,7 +340,10 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   // END TRANSACTION
   // ============================================================
 
-  console.log("Order created:", order.orderNumber);
+  console.log("Order created:", order.orderNumber, "status:", order.status);
+  if (hasStockIssues || hasDiscountIssues) {
+    console.warn("Order requires attention:", order.orderNumber, allIssues);
+  }
   console.log("Order processing complete:", order.orderNumber);
 
   // Send confirmation email (async, don't block webhook response)

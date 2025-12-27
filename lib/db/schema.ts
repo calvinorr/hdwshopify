@@ -154,7 +154,7 @@ export const orders = sqliteTable("orders", {
   customerId: integer("customer_id").references(() => customers.id),
   email: text("email").notNull(),
   status: text("status", {
-    enum: ["pending", "processing", "shipped", "delivered", "cancelled", "refunded"]
+    enum: ["pending", "processing", "shipped", "delivered", "cancelled", "refunded", "on-hold"]
   }).default("pending"),
   paymentStatus: text("payment_status", {
     enum: ["pending", "paid", "failed", "refunded"]

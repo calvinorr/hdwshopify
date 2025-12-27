@@ -1,10 +1,10 @@
 # E12: Core Reliability 🔲 TODO
 
-> **Status**: TODO
+> **Status**: IN PROGRESS
 > **Priority**: P0 - CRITICAL (blocks launch)
 > **Source**: Senior Shopify engineer codebase review
-> **Completed**: None
-> **Remaining**: All stories
+> **Completed**: US12.1, US12.2
+> **Remaining**: US12.3, US12.4, US12.5, US12.6, US12.7
 
 ## Overview
 
@@ -29,33 +29,33 @@ From codebase review:
 
 ## User Stories
 
-### US12.1: Transactional Order Creation
+### US12.1: Transactional Order Creation ✅
 **As a** store owner
 **I want** order creation to be atomic
 **So that** I never have partial orders or orphaned data
 
 **Acceptance Criteria:**
-- [ ] Order, order items, inventory decrement, discount usage in single transaction
-- [ ] Idempotency check prevents duplicate order creation
-- [ ] Webhook failure rolls back all changes
-- [ ] Add test: simulate failure mid-transaction, verify rollback
+- [x] Order, order items, inventory decrement, discount usage in single transaction
+- [x] Idempotency check prevents duplicate order creation
+- [x] Webhook failure rolls back all changes
+- [x] Add test: simulate failure mid-transaction, verify rollback
 
 **Files:** `app/api/webhooks/stripe/route.ts`
 
 ---
 
-### US12.2: Stock & Discount Revalidation
+### US12.2: Stock & Discount Revalidation ✅
 **As a** store owner
 **I want** stock and discounts verified at payment time
 **So that** I don't oversell or over-apply discounts
 
 **Acceptance Criteria:**
-- [ ] On webhook, verify each variant has sufficient stock
-- [ ] If stock insufficient, mark order as `on-hold` and log
-- [ ] Recheck discount validity and usage limits before applying
-- [ ] Stock/discount mismatch surfaces in admin (not silent)
+- [x] On webhook, verify each variant has sufficient stock
+- [x] If stock insufficient, mark order as `on-hold` and log
+- [x] Recheck discount validity and usage limits before applying
+- [x] Stock/discount mismatch surfaces in admin (not silent)
 
-**Files:** `app/api/webhooks/stripe/route.ts`, `app/api/checkout/session/route.ts`
+**Files:** `app/api/webhooks/stripe/route.ts`, `lib/db/schema.ts`, `app/admin/orders/`
 
 ---
 

@@ -21,6 +21,7 @@ import {
   Copy,
   Check,
   Printer,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,6 +87,7 @@ interface Props {
 
 const ORDER_STATUSES = [
   { value: "pending", label: "Pending", icon: Clock, color: "bg-amber-100 text-amber-700" },
+  { value: "on-hold", label: "On Hold", icon: Clock, color: "bg-orange-100 text-orange-700" },
   { value: "processing", label: "Processing", icon: Package, color: "bg-blue-100 text-blue-700" },
   { value: "shipped", label: "Shipped", icon: Truck, color: "bg-purple-100 text-purple-700" },
   { value: "delivered", label: "Delivered", icon: CheckCircle, color: "bg-green-100 text-green-700" },
@@ -241,6 +243,21 @@ export function OrderDetail({ order }: Props) {
       {success && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
           Order updated successfully!
+        </div>
+      )}
+
+      {/* Alert banner for orders requiring attention */}
+      {order.internalNotes?.startsWith("[AUTO]") && (
+        <div className="bg-orange-50 border border-orange-300 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-orange-800">Order Requires Attention</h3>
+              <div className="mt-1 text-sm text-orange-700 whitespace-pre-line">
+                {order.internalNotes.replace("[AUTO] Order requires attention:\n", "")}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

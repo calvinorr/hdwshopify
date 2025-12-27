@@ -47,6 +47,7 @@ interface OrdersListProps {
 
 const ORDER_STATUSES = [
   { value: "pending", label: "Pending", icon: Clock, color: "bg-amber-100 text-amber-700" },
+  { value: "on-hold", label: "On Hold", icon: Clock, color: "bg-orange-100 text-orange-700" },
   { value: "processing", label: "Processing", icon: Package, color: "bg-blue-100 text-blue-700" },
   { value: "shipped", label: "Shipped", icon: Truck, color: "bg-purple-100 text-purple-700" },
   { value: "delivered", label: "Delivered", icon: CheckCircle, color: "bg-green-100 text-green-700" },
