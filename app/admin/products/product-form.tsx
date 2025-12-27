@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   ArrowLeft,
   Save,
@@ -24,6 +27,50 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ImageUpload } from "@/components/admin/image-upload";
+
+// Client-side form schema
+const variantFormSchema = z.object({
+  id: z.number().optional(),
+  name: z.string().min(1, "Variant name is required"),
+  sku: z.string().optional().nullable(),
+  price: z.number().positive("Price must be positive"),
+  compareAtPrice: z.number().positive().optional().nullable(),
+  stock: z.number().int().min(0, "Stock cannot be negative").nullable(),
+  weightGrams: z.number().int().positive().nullable(),
+});
+
+const imageFormSchema = z.object({
+  id: z.number().optional(),
+  url: z.string().url("Invalid image URL"),
+  alt: z.string().optional().nullable(),
+  position: z.number().optional().nullable(),
+});
+
+const productFormSchema = z.object({
+  name: z.string().min(1, "Name is required").max(255),
+  slug: z
+    .string()
+    .min(1, "Slug is required")
+    .max(255)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens only"),
+  description: z.string().optional(),
+  categoryId: z.string().optional(), // Keep as string for select, convert on submit
+  basePrice: z.number().positive("Base price must be positive"),
+  compareAtPrice: z.number().positive().optional().nullable(),
+  status: z.enum(["active", "draft", "archived"]),
+  featured: z.boolean(),
+  fiberContent: z.string().optional(),
+  weight: z.string().optional(),
+  yardage: z.string().optional(),
+  careInstructions: z.string().optional(),
+  metaTitle: z.string().max(70).optional(),
+  metaDescription: z.string().max(160).optional(),
+  variants: z.array(variantFormSchema).min(1, "At least one variant is required"),
+  images: z.array(imageFormSchema).optional(),
+});
+
+type ProductFormData = z.infer<typeof productFormSchema>;
 
 interface Category {
   id: number;
@@ -34,19 +81,19 @@ interface Category {
 interface Variant {
   id?: number;
   name: string;
-  sku: string;
+  sku: string | null;
   price: number;
   compareAtPrice: number | null;
-  stock: number;
-  weightGrams: number;
-  position: number;
+  stock: number | null;
+  weightGrams: number | null;
+  position: number | null;
 }
 
 interface ProductImage {
   id?: number;
   url: string;
   alt: string | null;
-  position: number;
+  position: number | null;
 }
 
 interface Product {
@@ -70,62 +117,84 @@ interface Product {
   category: Category | null;
 }
 
+interface WeightType {
+  id: number;
+  name: string;
+  label: string;
+  active: boolean | null;
+}
+
 interface Props {
   product?: Product;
   categories: Category[];
+  weightTypes: WeightType[];
   mode: "create" | "edit";
 }
 
-export function ProductForm({ product, categories, mode }: Props) {
+export function ProductForm({ product, categories, weightTypes, mode }: Props) {
   const router = useRouter();
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
-  // Form state
-  const [name, setName] = useState(product?.name || "");
-  const [slug, setSlug] = useState(product?.slug || "");
-  const [description, setDescription] = useState(product?.description || "");
-  const [categoryId, setCategoryId] = useState<string>(
-    product?.categoryId?.toString() || ""
-  );
-  const [basePrice, setBasePrice] = useState(product?.basePrice?.toString() || "");
-  const [compareAtPrice, setCompareAtPrice] = useState(
-    product?.compareAtPrice?.toString() || ""
-  );
-  const [status, setStatus] = useState<string>(product?.status || "draft");
-  const [featured, setFeatured] = useState(product?.featured || false);
+  const defaultVariant = {
+    name: "Default",
+    sku: "",
+    price: product?.basePrice || 0,
+    compareAtPrice: null,
+    stock: 0,
+    weightGrams: 100,
+  };
 
-  // Yarn-specific
-  const [fiberContent, setFiberContent] = useState(product?.fiberContent || "");
-  const [weight, setWeight] = useState(product?.weight || "");
-  const [yardage, setYardage] = useState(product?.yardage || "");
-  const [careInstructions, setCareInstructions] = useState(
-    product?.careInstructions || ""
-  );
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<ProductFormData>({
+    resolver: zodResolver(productFormSchema),
+    defaultValues: {
+      name: product?.name || "",
+      slug: product?.slug || "",
+      description: product?.description || "",
+      categoryId: product?.categoryId?.toString() || "none",
+      basePrice: product?.basePrice || 0,
+      compareAtPrice: product?.compareAtPrice || undefined,
+      status: product?.status || "draft",
+      featured: product?.featured || false,
+      fiberContent: product?.fiberContent || "",
+      weight: product?.weight || "",
+      yardage: product?.yardage || "",
+      careInstructions: product?.careInstructions || "",
+      metaTitle: product?.metaTitle || "",
+      metaDescription: product?.metaDescription || "",
+      variants: product?.variants?.length ? product.variants : [defaultVariant],
+      images: product?.images || [],
+    },
+  });
 
-  // SEO
-  const [metaTitle, setMetaTitle] = useState(product?.metaTitle || "");
-  const [metaDescription, setMetaDescription] = useState(
-    product?.metaDescription || ""
-  );
+  const {
+    fields: variantFields,
+    append: appendVariant,
+    remove: removeVariant,
+  } = useFieldArray({
+    control,
+    name: "variants",
+  });
 
-  // Variants
-  const [variants, setVariants] = useState<Variant[]>(
-    product?.variants || [
-      {
-        name: "Default",
-        sku: "",
-        price: parseFloat(basePrice) || 0,
-        compareAtPrice: null,
-        stock: 0,
-        weightGrams: 100,
-        position: 0,
-      },
-    ]
-  );
+  const {
+    fields: imageFields,
+    remove: removeImage,
+  } = useFieldArray({
+    control,
+    name: "images",
+  });
 
-  // Images
-  const [images, setImages] = useState<ProductImage[]>(product?.images || []);
+  const watchName = watch("name");
+  const watchSlug = watch("slug");
+  const watchMetaTitle = watch("metaTitle");
+  const watchMetaDescription = watch("metaDescription");
 
   // Generate slug from name
   const generateSlug = (name: string) => {
@@ -135,73 +204,73 @@ export function ProductForm({ product, categories, mode }: Props) {
       .replace(/^-|-$/g, "");
   };
 
-  const handleNameChange = (value: string) => {
-    setName(value);
-    if (mode === "create" || slug === generateSlug(product?.name || "")) {
-      setSlug(generateSlug(value));
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setValue("name", value);
+    if (mode === "create" || watchSlug === generateSlug(product?.name || "")) {
+      setValue("slug", generateSlug(value));
     }
   };
 
-  // Variant management
-  const addVariant = () => {
-    setVariants([
-      ...variants,
-      {
-        name: "",
-        sku: "",
-        price: parseFloat(basePrice) || 0,
-        compareAtPrice: null,
-        stock: 0,
-        weightGrams: 100,
-        position: variants.length,
-      },
-    ]);
+  // Add new variant
+  const handleAddVariant = () => {
+    appendVariant({
+      name: "",
+      sku: "",
+      price: watch("basePrice") || 0,
+      compareAtPrice: null,
+      stock: 0,
+      weightGrams: 100,
+    });
   };
 
-  const updateVariant = (index: number, field: keyof Variant, value: any) => {
-    const updated = [...variants];
-    updated[index] = { ...updated[index], [field]: value };
-    setVariants(updated);
-  };
+  // Delete product
+  const handleDelete = async () => {
+    if (!product?.id) return;
 
-  const removeVariant = (index: number) => {
-    if (variants.length === 1) return;
-    setVariants(variants.filter((_, i) => i !== index));
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${product.name}"? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setServerError(null);
+
+    try {
+      const response = await fetch(`/api/admin/products/${product.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete product");
+      }
+
+      router.push("/admin/products");
+      router.refresh();
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : "Failed to delete product");
+      setDeleting(false);
+    }
   };
 
   // Form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setError(null);
+  const onSubmit = async (data: ProductFormData) => {
+    setServerError(null);
 
     try {
       const payload = {
-        name,
-        slug,
-        description,
-        categoryId: categoryId ? parseInt(categoryId) : null,
-        basePrice: parseFloat(basePrice),
-        compareAtPrice: compareAtPrice ? parseFloat(compareAtPrice) : null,
-        status,
-        featured,
-        fiberContent,
-        weight,
-        yardage,
-        careInstructions,
-        metaTitle,
-        metaDescription,
-        variants: variants.map((v, i) => ({
+        ...data,
+        categoryId: data.categoryId && data.categoryId !== "none" ? parseInt(data.categoryId) : null,
+        compareAtPrice: data.compareAtPrice || null,
+        variants: data.variants.map((v, i) => ({
           ...v,
           position: i,
-          price: typeof v.price === "string" ? parseFloat(v.price) : v.price,
-          stock: typeof v.stock === "string" ? parseInt(v.stock as any) : v.stock,
-          weightGrams:
-            typeof v.weightGrams === "string"
-              ? parseInt(v.weightGrams as any)
-              : v.weightGrams,
+          sku: v.sku || null,
+          compareAtPrice: v.compareAtPrice || null,
         })),
-        images,
+        images: data.images,
       };
 
       const url =
@@ -216,22 +285,20 @@ export function ProductForm({ product, categories, mode }: Props) {
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to save product");
+        const responseData = await response.json();
+        throw new Error(responseData.error || "Failed to save product");
       }
 
-      const data = await response.json();
-      router.push(`/admin/products/${data.product.id}`);
+      const responseData = await response.json();
+      router.push(`/admin/products/${responseData.product.id}`);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setSaving(false);
+      setServerError(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -253,17 +320,17 @@ export function ProductForm({ product, categories, mode }: Props) {
           <Button type="button" variant="outline" asChild>
             <Link href="/admin/products">Cancel</Link>
           </Button>
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" disabled={isSubmitting}>
             <Save className="h-4 w-4 mr-2" />
-            {saving ? "Saving..." : "Save Product"}
+            {isSubmitting ? "Saving..." : "Save Product"}
           </Button>
         </div>
       </div>
 
-      {/* Error */}
-      {error && (
+      {/* Server Error */}
+      {serverError && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
+          {serverError}
         </div>
       )}
 
@@ -278,32 +345,35 @@ export function ProductForm({ product, categories, mode }: Props) {
               <Label htmlFor="name">Product Name *</Label>
               <Input
                 id="name"
-                value={name}
-                onChange={(e) => handleNameChange(e.target.value)}
+                {...register("name")}
+                onChange={handleNameChange}
                 placeholder="e.g., Merino DK"
-                required
               />
+              {errors.name && (
+                <p className="text-sm text-red-600">{errors.name.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="slug">URL Slug</Label>
               <Input
                 id="slug"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
+                {...register("slug")}
                 placeholder="merino-dk"
               />
               <p className="text-xs text-stone-500">
-                /products/{slug || "product-name"}
+                /products/{watchSlug || "product-name"}
               </p>
+              {errors.slug && (
+                <p className="text-sm text-red-600">{errors.slug.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                {...register("description")}
                 placeholder="Describe your product..."
                 rows={5}
               />
@@ -319,35 +389,51 @@ export function ProductForm({ product, categories, mode }: Props) {
                 <Label htmlFor="fiberContent">Fiber Content</Label>
                 <Input
                   id="fiberContent"
-                  value={fiberContent}
-                  onChange={(e) => setFiberContent(e.target.value)}
+                  {...register("fiberContent")}
                   placeholder="e.g., 100% Merino Wool"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="weight">Weight</Label>
-                <Select value={weight} onValueChange={setWeight}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select weight" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Laceweight">Laceweight</SelectItem>
-                    <SelectItem value="Heavy Laceweight">Heavy Laceweight</SelectItem>
-                    <SelectItem value="4ply">4 Ply / Fingering</SelectItem>
-                    <SelectItem value="DK">DK</SelectItem>
-                    <SelectItem value="Aran">Aran / Worsted</SelectItem>
-                    <SelectItem value="Chunky">Chunky</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="weight"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value || ""} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select weight" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {weightTypes.filter(w => w.active !== false).map((wt) => (
+                          <SelectItem key={wt.id} value={wt.name}>
+                            {wt.label}
+                          </SelectItem>
+                        ))}
+                        {weightTypes.length === 0 && (
+                          <div className="py-2 px-2 text-sm text-muted-foreground">
+                            No weight types defined
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {weightTypes.length === 0 && (
+                  <p className="text-xs text-amber-600">
+                    <Link href="/admin/settings/taxonomies" className="underline">
+                      Add weight types
+                    </Link>{" "}
+                    in Settings &rarr; Taxonomies
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="yardage">Yardage</Label>
                 <Input
                   id="yardage"
-                  value={yardage}
-                  onChange={(e) => setYardage(e.target.value)}
+                  {...register("yardage")}
                   placeholder="e.g., 400m / 437yds"
                 />
               </div>
@@ -356,8 +442,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                 <Label htmlFor="careInstructions">Care Instructions</Label>
                 <Input
                   id="careInstructions"
-                  value={careInstructions}
-                  onChange={(e) => setCareInstructions(e.target.value)}
+                  {...register("careInstructions")}
                   placeholder="e.g., Hand wash cold"
                 />
               </div>
@@ -368,16 +453,20 @@ export function ProductForm({ product, categories, mode }: Props) {
           <div className="bg-white rounded-lg border p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-medium text-stone-900">Variants</h2>
-              <Button type="button" variant="outline" size="sm" onClick={addVariant}>
+              <Button type="button" variant="outline" size="sm" onClick={handleAddVariant}>
                 <Plus className="h-4 w-4 mr-1" />
                 Add Variant
               </Button>
             </div>
 
+            {errors.variants && (
+              <p className="text-sm text-red-600">{errors.variants.message}</p>
+            )}
+
             <div className="space-y-3">
-              {variants.map((variant, index) => (
+              {variantFields.map((field, index) => (
                 <div
-                  key={index}
+                  key={field.id}
                   className="flex items-start gap-3 p-3 bg-stone-50 rounded-lg"
                 >
                   <GripVertical className="h-5 w-5 text-stone-400 mt-2 cursor-grab" />
@@ -386,21 +475,20 @@ export function ProductForm({ product, categories, mode }: Props) {
                     <div>
                       <Label className="text-xs">Name / Colorway</Label>
                       <Input
-                        value={variant.name}
-                        onChange={(e) =>
-                          updateVariant(index, "name", e.target.value)
-                        }
+                        {...register(`variants.${index}.name`)}
                         placeholder="e.g., Ocean Blue"
                         className="mt-1"
                       />
+                      {errors.variants?.[index]?.name && (
+                        <p className="text-xs text-red-600 mt-1">
+                          {errors.variants[index]?.name?.message}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs">SKU</Label>
                       <Input
-                        value={variant.sku}
-                        onChange={(e) =>
-                          updateVariant(index, "sku", e.target.value)
-                        }
+                        {...register(`variants.${index}.sku`)}
                         placeholder="Optional"
                         className="mt-1"
                       />
@@ -410,21 +498,20 @@ export function ProductForm({ product, categories, mode }: Props) {
                       <Input
                         type="number"
                         step="0.01"
-                        value={variant.price}
-                        onChange={(e) =>
-                          updateVariant(index, "price", e.target.value)
-                        }
+                        {...register(`variants.${index}.price`, { valueAsNumber: true })}
                         className="mt-1"
                       />
+                      {errors.variants?.[index]?.price && (
+                        <p className="text-xs text-red-600 mt-1">
+                          {errors.variants[index]?.price?.message}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs">Stock</Label>
                       <Input
                         type="number"
-                        value={variant.stock}
-                        onChange={(e) =>
-                          updateVariant(index, "stock", e.target.value)
-                        }
+                        {...register(`variants.${index}.stock`, { valueAsNumber: true })}
                         className="mt-1"
                       />
                     </div>
@@ -432,10 +519,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                       <Label className="text-xs">Weight (grams)</Label>
                       <Input
                         type="number"
-                        value={variant.weightGrams}
-                        onChange={(e) =>
-                          updateVariant(index, "weightGrams", e.target.value)
-                        }
+                        {...register(`variants.${index}.weightGrams`, { valueAsNumber: true })}
                         className="mt-1"
                       />
                     </div>
@@ -447,7 +531,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                     size="icon"
                     className="text-stone-400 hover:text-red-500"
                     onClick={() => removeVariant(index)}
-                    disabled={variants.length === 1}
+                    disabled={variantFields.length === 1}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -460,49 +544,47 @@ export function ProductForm({ product, categories, mode }: Props) {
           <div className="bg-white rounded-lg border p-6 space-y-4">
             <h2 className="font-medium text-stone-900">Images</h2>
 
-            {images.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {images.map((image, index) => (
-                  <div
-                    key={index}
-                    className="relative aspect-square rounded-lg overflow-hidden bg-stone-100 group"
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {imageFields.map((field, index) => (
+                <div
+                  key={field.id}
+                  className="relative aspect-square rounded-lg overflow-hidden bg-stone-100 group"
+                >
+                  <img
+                    src={watch(`images.${index}.url`)}
+                    alt={watch(`images.${index}.alt`) || "Product image"}
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    className="absolute top-2 right-2 p-1.5 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                    onClick={() => removeImage(index)}
                   >
-                    <img
-                      src={image.url}
-                      alt={image.alt || "Product image"}
-                      className="h-full w-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      className="absolute top-2 right-2 p-1.5 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-                      onClick={() =>
-                        setImages(images.filter((_, i) => i !== index))
-                      }
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="border-2 border-dashed border-stone-200 rounded-lg p-8 text-center">
-                <ImageIcon className="h-10 w-10 text-stone-300 mx-auto mb-3" />
-                <p className="text-stone-500 text-sm mb-2">No images yet</p>
-                <p className="text-stone-400 text-xs">
-                  Images from Shopify are automatically imported
-                </p>
-              </div>
-            )}
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
 
-            <div className="flex items-center gap-2 pt-2">
-              <Button type="button" variant="outline" size="sm" disabled>
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Images
-              </Button>
-              <span className="text-xs text-stone-400">
-                (Image upload coming soon)
-              </span>
+              {/* Add new image */}
+              <ImageUpload
+                value={undefined}
+                onChange={(url) => {
+                  if (url) {
+                    setValue("images", [
+                      ...watch("images") || [],
+                      { url, alt: "", position: imageFields.length },
+                    ]);
+                  }
+                }}
+                aspectRatio="square"
+              />
             </div>
+
+            {imageFields.length === 0 && (
+              <p className="text-sm text-stone-500 text-center">
+                Click or drag an image above to add product photos
+              </p>
+            )}
           </div>
 
           {/* SEO */}
@@ -513,27 +595,31 @@ export function ProductForm({ product, categories, mode }: Props) {
               <Label htmlFor="metaTitle">Meta Title</Label>
               <Input
                 id="metaTitle"
-                value={metaTitle}
-                onChange={(e) => setMetaTitle(e.target.value)}
-                placeholder={name || "Product name"}
+                {...register("metaTitle")}
+                placeholder={watchName || "Product name"}
               />
               <p className="text-xs text-stone-500">
-                {metaTitle.length}/60 characters
+                {(watchMetaTitle || "").length}/60 characters
               </p>
+              {errors.metaTitle && (
+                <p className="text-sm text-red-600">{errors.metaTitle.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="metaDescription">Meta Description</Label>
               <Textarea
                 id="metaDescription"
-                value={metaDescription}
-                onChange={(e) => setMetaDescription(e.target.value)}
+                {...register("metaDescription")}
                 placeholder="Brief description for search engines..."
                 rows={2}
               />
               <p className="text-xs text-stone-500">
-                {metaDescription.length}/160 characters
+                {(watchMetaDescription || "").length}/160 characters
               </p>
+              {errors.metaDescription && (
+                <p className="text-sm text-red-600">{errors.metaDescription.message}</p>
+              )}
             </div>
           </div>
         </div>
@@ -544,26 +630,38 @@ export function ProductForm({ product, categories, mode }: Props) {
           <div className="bg-white rounded-lg border p-6 space-y-4">
             <h2 className="font-medium text-stone-900">Status</h2>
 
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
-              </SelectContent>
-            </Select>
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
 
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={featured}
-                onChange={(e) => setFeatured(e.target.checked)}
-                className="rounded border-stone-300"
-              />
-              <span className="text-sm text-stone-700">Featured product</span>
-            </label>
+            <Controller
+              name="featured"
+              control={control}
+              render={({ field }) => (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={field.value}
+                    onChange={(e) => field.onChange(e.target.checked)}
+                    className="rounded border-stone-300"
+                  />
+                  <span className="text-sm text-stone-700">Featured product</span>
+                </label>
+              )}
+            />
           </div>
 
           {/* Pricing */}
@@ -576,11 +674,12 @@ export function ProductForm({ product, categories, mode }: Props) {
                 id="basePrice"
                 type="number"
                 step="0.01"
-                value={basePrice}
-                onChange={(e) => setBasePrice(e.target.value)}
+                {...register("basePrice", { valueAsNumber: true })}
                 placeholder="0.00"
-                required
               />
+              {errors.basePrice && (
+                <p className="text-sm text-red-600">{errors.basePrice.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -589,8 +688,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                 id="compareAtPrice"
                 type="number"
                 step="0.01"
-                value={compareAtPrice}
-                onChange={(e) => setCompareAtPrice(e.target.value)}
+                {...register("compareAtPrice", { valueAsNumber: true })}
                 placeholder="0.00"
               />
               <p className="text-xs text-stone-500">
@@ -603,19 +701,25 @@ export function ProductForm({ product, categories, mode }: Props) {
           <div className="bg-white rounded-lg border p-6 space-y-4">
             <h2 className="font-medium text-stone-900">Collection</h2>
 
-            <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select collection" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">None</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id.toString()}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              name="categoryId"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value || "none"} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select collection" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id.toString()}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           {/* Delete */}
@@ -625,9 +729,11 @@ export function ProductForm({ product, categories, mode }: Props) {
                 type="button"
                 variant="outline"
                 className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={handleDelete}
+                disabled={deleting}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete Product
+                {deleting ? "Deleting..." : "Delete Product"}
               </Button>
             </div>
           )}

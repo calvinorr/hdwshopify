@@ -1,4 +1,6 @@
 import { db } from "@/lib/db";
+import { weightTypes } from "@/lib/db/schema";
+import { asc } from "drizzle-orm";
 import { ProductForm } from "../product-form";
 
 async function getCategories() {
@@ -7,8 +9,23 @@ async function getCategories() {
   });
 }
 
-export default async function NewProductPage() {
-  const categories = await getCategories();
+async function getWeightTypes() {
+  return db.query.weightTypes.findMany({
+    orderBy: [asc(weightTypes.sortOrder), asc(weightTypes.name)],
+  });
+}
 
-  return <ProductForm categories={categories} mode="create" />;
+export default async function NewProductPage() {
+  const [categories, weightTypeList] = await Promise.all([
+    getCategories(),
+    getWeightTypes(),
+  ]);
+
+  return (
+    <ProductForm
+      categories={categories}
+      weightTypes={weightTypeList}
+      mode="create"
+    />
+  );
 }

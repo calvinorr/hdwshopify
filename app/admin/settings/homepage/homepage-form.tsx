@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/admin/image-upload";
 
 interface HeroSlide {
   id?: number;
@@ -62,6 +62,14 @@ export function HomepageSettingsForm({
   );
   const [announcementEnabled, setAnnouncementEnabled] = useState(
     settings.announcement_enabled !== "false"
+  );
+
+  // Background settings
+  const [backgroundImage, setBackgroundImage] = useState(
+    settings.homepage_background_image || ""
+  );
+  const [backgroundOverlay, setBackgroundOverlay] = useState(
+    settings.homepage_background_overlay || "rgba(0,0,0,0.4)"
   );
 
   // Hero slides
@@ -147,6 +155,8 @@ export function HomepageSettingsForm({
         body: JSON.stringify({
           announcementText,
           announcementEnabled,
+          backgroundImage,
+          backgroundOverlay,
           heroSlides: slides,
           featuredProductIds: featuredIds,
         }),
@@ -239,6 +249,68 @@ export function HomepageSettingsForm({
         {/* Preview */}
         <div className="mt-4 p-3 bg-stone-900 text-white text-center text-sm rounded">
           {announcementText || "Your announcement here"}
+        </div>
+      </div>
+
+      {/* Hero Background */}
+      <div className="bg-white rounded-lg border p-6 space-y-4">
+        <h2 className="font-medium text-stone-900">Hero Background</h2>
+        <p className="text-sm text-stone-600">
+          Set a background image that appears behind the centered carousel on your homepage.
+        </p>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Background Image</Label>
+            <ImageUpload
+              value={backgroundImage || undefined}
+              onChange={(url) => setBackgroundImage(url || "")}
+              aspectRatio="wide"
+            />
+            <p className="text-xs text-stone-500">
+              Recommended: 1920x1080 or larger. A default botanical image will be used if not set.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="overlay">Overlay Color</Label>
+              <Input
+                id="overlay"
+                value={backgroundOverlay}
+                onChange={(e) => setBackgroundOverlay(e.target.value)}
+                placeholder="rgba(0,0,0,0.4)"
+              />
+              <p className="text-xs text-stone-500">
+                CSS color value. Use rgba for transparency, e.g., rgba(0,0,0,0.4)
+              </p>
+            </div>
+
+            {/* Preview */}
+            <div className="space-y-2">
+              <Label>Preview</Label>
+              <div
+                className="aspect-video rounded-lg overflow-hidden relative"
+                style={{
+                  backgroundImage: backgroundImage
+                    ? `url(${backgroundImage})`
+                    : "url(https://cdn.shopify.com/s/files/1/0838/1127/0999/files/20240716_124322950_iOS.jpg?v=1721204126)",
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+              >
+                <div
+                  className="absolute inset-0"
+                  style={{ backgroundColor: backgroundOverlay }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white text-center text-sm border border-white/20">
+                    Carousel appears here
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

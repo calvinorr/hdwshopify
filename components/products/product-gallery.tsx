@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import Image from "next/image";
-import { ZoomIn, ChevronLeft, ChevronRight } from "lucide-react";
+import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Move } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,14 +21,90 @@ export function ProductGallery({ images }: ProductGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
+  // Zoom state
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [panPosition, setPanPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const resetZoom = useCallback(() => {
+    setIsZoomed(false);
+    setPanPosition({ x: 0, y: 0 });
+  }, []);
+
+  const handleZoomToggle = useCallback(() => {
+    if (isZoomed) {
+      resetZoom();
+    } else {
+      setIsZoomed(true);
+    }
+  }, [isZoomed, resetZoom]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!isZoomed) return;
+    e.preventDefault();
+    setIsDragging(true);
+    dragStart.current = { x: e.clientX - panPosition.x, y: e.clientY - panPosition.y };
+  }, [isZoomed, panPosition]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging || !isZoomed) return;
+    const newX = e.clientX - dragStart.current.x;
+    const newY = e.clientY - dragStart.current.y;
+    // Limit panning to reasonable bounds
+    const maxPan = 300;
+    setPanPosition({
+      x: Math.max(-maxPan, Math.min(maxPan, newX)),
+      y: Math.max(-maxPan, Math.min(maxPan, newY)),
+    });
+  }, [isDragging, isZoomed]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!isZoomed || e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    setIsDragging(true);
+    dragStart.current = { x: touch.clientX - panPosition.x, y: touch.clientY - panPosition.y };
+  }, [isZoomed, panPosition]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging || !isZoomed || e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const newX = touch.clientX - dragStart.current.x;
+    const newY = touch.clientY - dragStart.current.y;
+    const maxPan = 300;
+    setPanPosition({
+      x: Math.max(-maxPan, Math.min(maxPan, newX)),
+      y: Math.max(-maxPan, Math.min(maxPan, newY)),
+    });
+  }, [isDragging, isZoomed]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
   const selectedImage = sortedImages[selectedIndex];
 
   const goToPrevious = () => {
+    resetZoom();
     setSelectedIndex((prev) => (prev === 0 ? sortedImages.length - 1 : prev - 1));
   };
 
   const goToNext = () => {
+    resetZoom();
     setSelectedIndex((prev) => (prev === sortedImages.length - 1 ? 0 : prev + 1));
+  };
+
+  // Reset zoom when lightbox closes
+  const handleOpenChange = (open: boolean) => {
+    setLightboxOpen(open);
+    if (!open) {
+      resetZoom();
+    }
   };
 
   if (sortedImages.length === 0) {
@@ -42,7 +118,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
   return (
     <div className="space-y-4">
       {/* Main Image */}
-      <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+      <Dialog open={lightboxOpen} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
           <button
             className="group relative aspect-square w-full overflow-hidden rounded-lg bg-secondary/30 cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -67,17 +143,58 @@ export function ProductGallery({ images }: ProductGalleryProps) {
           className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-md border-0 sm:max-w-4xl"
           showCloseButton={true}
         >
-          <div className="relative aspect-square w-full sm:aspect-[4/3]">
+          <div
+            ref={containerRef}
+            className={cn(
+              "relative aspect-square w-full sm:aspect-[4/3] overflow-hidden select-none",
+              isZoomed ? "cursor-grab" : "cursor-zoom-in",
+              isDragging && "cursor-grabbing"
+            )}
+            onClick={!isDragging ? handleZoomToggle : undefined}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            role="button"
+            tabIndex={0}
+            aria-label={isZoomed ? "Click to zoom out, drag to pan" : "Click to zoom in"}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleZoomToggle();
+              }
+            }}
+          >
             <Image
               src={selectedImage.url}
               alt={selectedImage.alt || "Product image"}
               fill
-              className="object-contain"
+              className={cn(
+                "object-contain transition-transform duration-300 pointer-events-none",
+                isZoomed && "duration-0"
+              )}
+              style={{
+                transform: isZoomed
+                  ? `scale(2.5) translate(${panPosition.x / 2.5}px, ${panPosition.y / 2.5}px)`
+                  : "scale(1)",
+              }}
               sizes="95vw"
+              draggable={false}
             />
 
+            {/* Zoom indicator */}
+            {isZoomed && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-background/80 px-3 py-1.5 text-sm font-body backdrop-blur-sm">
+                <Move className="h-4 w-4" />
+                <span>Drag to pan</span>
+              </div>
+            )}
+
             {/* Lightbox Navigation */}
-            {sortedImages.length > 1 && (
+            {sortedImages.length > 1 && !isZoomed && (
               <>
                 <Button
                   variant="ghost"
@@ -105,6 +222,20 @@ export function ProductGallery({ images }: ProductGalleryProps) {
                 </Button>
               </>
             )}
+
+            {/* Zoom toggle button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 h-10 w-10 rounded-full bg-background/80 shadow-lg backdrop-blur-sm hover:bg-background"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleZoomToggle();
+              }}
+              aria-label={isZoomed ? "Zoom out" : "Zoom in"}
+            >
+              {isZoomed ? <ZoomOut className="h-5 w-5" /> : <ZoomIn className="h-5 w-5" />}
+            </Button>
 
             {/* Image Counter */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-background/80 px-3 py-1 text-sm font-body backdrop-blur-sm">

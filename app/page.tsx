@@ -53,7 +53,7 @@ async function getHeroSlides(): Promise<CarouselSlide[]> {
       return defaultHeroSlides;
     }
 
-    return slides.map((slide, index) => ({
+    return slides.map((slide) => ({
       id: `hero-${slide.id}`,
       title: slide.title || "",
       subtitle: slide.subtitle || "",
@@ -61,8 +61,6 @@ async function getHeroSlides(): Promise<CarouselSlide[]> {
       cta: slide.buttonText ? { text: slide.buttonText, href: slide.buttonLink || "/products" } : undefined,
       image: slide.imageUrl,
       imageAlt: slide.imageAlt || "",
-      overlayPosition: "left" as const,
-      theme: "dark" as const,
     }));
   } catch {
     return defaultHeroSlides;
@@ -91,10 +89,8 @@ const defaultHeroSlides: CarouselSlide[] = [
     description: "Discover our latest botanical colorways, hand-dyed on the coast of Northern Ireland using traditional plant-based methods.",
     cta: { text: "Shop Collection", href: "/products" },
     secondaryCta: { text: "Our Process", href: "/about" },
-    image: "https://images.pexels.com/photos/635002/pexels-photo-635002.jpeg?auto=compress&cs=tinysrgb&w=1920",
+    image: "https://cdn.shopify.com/s/files/1/0838/1127/0999/files/20240716_122642964_iOS.jpg?v=1721203146",
     imageAlt: "Hand-dyed yarn skeins in natural botanical colors",
-    overlayPosition: "left",
-    theme: "dark",
   },
   {
     id: "hero-2",
@@ -102,10 +98,8 @@ const defaultHeroSlides: CarouselSlide[] = [
     subtitle: "Artisan Dyed",
     description: "Gentle hues from nature's palette. Each skein tells a story of ancient craft and modern sustainability.",
     cta: { text: "Explore Collection", href: "/collections/dk" },
-    image: "https://images.pexels.com/photos/10474372/pexels-photo-10474372.jpeg?auto=compress&cs=tinysrgb&w=1920",
+    image: "https://cdn.shopify.com/s/files/1/0838/1127/0999/files/20240717_055855463_iOS.jpg?v=1721203170",
     imageAlt: "Soft pastel yarn skeins in cream, pink and green",
-    overlayPosition: "left",
-    theme: "dark",
   },
 ];
 
@@ -119,6 +113,8 @@ export default async function HomePage() {
 
   const announcementText = settings.announcement_text || "Free UK shipping on orders over £50";
   const announcementEnabled = settings.announcement_enabled !== "false";
+  const backgroundImage = settings.homepage_background_image;
+  const backgroundOverlay = settings.homepage_background_overlay || "rgba(0,0,0,0.4)";
 
   const collections = categoryList.length > 0
     ? categoryList
@@ -141,7 +137,12 @@ export default async function HomePage() {
 
       <main className="flex-1">
         {/* Full-viewport Hero Carousel */}
-        <HeroCarousel slides={heroSlides} autoPlayInterval={7000} />
+        <HeroCarousel
+          slides={heroSlides}
+          autoPlayInterval={7000}
+          backgroundImage={backgroundImage}
+          backgroundOverlay={backgroundOverlay}
+        />
 
         {/* Trust Bar - visible without scrolling on most devices */}
         <section className="relative z-10 -mt-1 bg-stone-900 text-white">

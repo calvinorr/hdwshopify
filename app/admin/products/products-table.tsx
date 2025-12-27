@@ -17,7 +17,7 @@ interface Product {
   slug: string;
   basePrice: number;
   status: "active" | "draft" | "archived" | null;
-  variants: { id: number; stock: number; price: number }[];
+  variants: { id: number; stock: number | null; price: number }[];
   images: { url: string; alt: string | null }[];
   category: { name: string } | null;
 }

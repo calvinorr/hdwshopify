@@ -1,4 +1,7 @@
-# E1: Product Catalog
+# E1: Product Catalog ✅ MOSTLY COMPLETE
+
+> **Status**: MOSTLY COMPLETE
+> **Remaining**: Accessibility audit
 
 **Priority**: P0
 **Complexity**: Medium
@@ -22,12 +25,12 @@ Build the public-facing product catalog enabling customers to browse products, v
 **So that** I can discover what's available
 
 **Acceptance Criteria:**
-- [ ] Grid view of products with image, name, price
-- [ ] Show "From £X" pricing when variants have different prices
-- [ ] Indicate stock status (In Stock / Low Stock / Sold Out)
-- [ ] Pagination or infinite scroll for large catalogs
-- [ ] Sort by: Featured, Price (low-high, high-low), Newest
-- [ ] Filter by: Yarn weight, Fiber content, Availability
+- [x] Grid view of products with image, name, price
+- [x] Show "From £X" pricing when variants have different prices
+- [x] Indicate stock status (In Stock / Low Stock / Sold Out)
+- [x] Pagination or infinite scroll for large catalogs
+- [x] Sort by: Featured, Price (low-high, high-low), Newest
+- [x] Filter by: Yarn weight, Fiber content, Availability
 
 ### US1.2: View Collection
 **As a** customer
@@ -35,11 +38,11 @@ Build the public-facing product catalog enabling customers to browse products, v
 **So that** I can find specific yarn types
 
 **Acceptance Criteria:**
-- [ ] Collection page with description and products
-- [ ] Maintain Shopify URL structure: `/collections/{slug}`
+- [x] Collection page with description and products
+- [x] Maintain Shopify URL structure: `/collections/{slug}`
 - [ ] Support nested collections (e.g., Yarn > DK)
-- [ ] Collection-specific filtering
-- [ ] Empty state for collections with no products
+- [x] Collection-specific filtering (same as products page)
+- [x] Empty state for collections with no products
 
 ### US1.3: View Product Detail
 **As a** customer
@@ -47,17 +50,17 @@ Build the public-facing product catalog enabling customers to browse products, v
 **So that** I can make an informed purchase decision
 
 **Acceptance Criteria:**
-- [ ] Product images with gallery/zoom
-- [ ] Variant selector (colorway dropdown/swatches)
-- [ ] Dynamic price update based on variant
-- [ ] Stock status per variant
-- [ ] Full description with yarn specifications:
+- [x] Product images with gallery/zoom (lightbox with 2.5x zoom and pan)
+- [x] Variant selector (colorway dropdown/swatches)
+- [x] Dynamic price update based on variant
+- [x] Stock status per variant
+- [x] Full description with yarn specifications:
   - Fiber content
   - Weight category
   - Yardage/meterage
   - Care instructions
-- [ ] Add to cart button (disabled when sold out)
-- [ ] URL structure: `/products/{slug}`
+- [x] Add to cart button (disabled when sold out)
+- [x] URL structure: `/products/{slug}`
 
 ### US1.4: Search Products
 **As a** customer
@@ -77,9 +80,9 @@ Build the public-facing product catalog enabling customers to browse products, v
 **So that** I can discover highlighted items
 
 **Acceptance Criteria:**
-- [ ] Featured products section on homepage
-- [ ] Configurable via `featured` flag in database
-- [ ] Limit to 4-8 products
+- [x] Featured products section on homepage
+- [x] Configurable via `featured` flag in database
+- [x] Limit to 4-8 products
 
 ## Technical Approach
 
@@ -185,12 +188,12 @@ const product = await db.query.products.findFirst({
 
 ## SEO Requirements
 
-- [ ] Meta title: `{Product Name} | Herbarium Dyeworks`
-- [ ] Meta description from product description
-- [ ] Open Graph images from product images
+- [x] Meta title: `{Product Name} | Herbarium Dyeworks`
+- [x] Meta description from product description
+- [x] Open Graph images from product images
 - [ ] JSON-LD structured data (Product schema)
-- [ ] Canonical URLs
-- [ ] Image alt text from database
+- [x] Canonical URLs
+- [x] Image alt text from database
 
 ## Testing Strategy
 
@@ -223,11 +226,11 @@ const product = await db.query.products.findFirst({
 3. **Staging**: Import real product data
 4. **Production**: Launch with feature flag
 
-## Open Questions
+## Open Questions (Resolved)
 
-- [ ] Image hosting: Vercel Blob, Cloudinary, or existing Shopify CDN?
-- [ ] Color swatch implementation: actual colors or variant images?
-- [ ] Inventory display: show exact count or just status?
+- [x] **Image hosting**: Keep existing Shopify CDN for migrated products (no re-upload needed), use Vercel Blob for new uploads via admin dashboard
+- [x] **Color swatch implementation**: Use variant images - natural dyes create unique color variations that hex codes can't capture; thumbnail images show actual yarn texture
+- [x] **Inventory display**: Show status only (In Stock / Low Stock / Sold Out) - exact counts can create false urgency and disappoint customers with stock discrepancies
 
 ## Definition of Done
 

@@ -30,13 +30,17 @@ export async function generateStaticParams() {
       columns: { slug: true },
     });
 
-    return allCategories.map((category) => ({
-      slug: category.slug,
-    }));
+    // Include "all" for the all-products virtual collection
+    return [
+      { slug: "all" },
+      ...allCategories.map((category) => ({
+        slug: category.slug,
+      })),
+    ];
   } catch (error) {
     // Return empty array if database is not available (e.g., during initial build)
     console.warn("Could not fetch categories for static params:", error);
-    return [];
+    return [{ slug: "all" }];
   }
 }
 
@@ -45,6 +49,18 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
+
+  // Special metadata for "all" collection
+  if (slug === "all") {
+    return {
+      title: "All Products | Herbarium Dyeworks",
+      description: "Browse our complete range of naturally dyed yarns.",
+      openGraph: {
+        title: "All Products | Herbarium Dyeworks",
+        description: "Browse our complete range of naturally dyed yarns.",
+      },
+    };
+  }
 
   try {
     const category = await db.query.categories.findFirst({
@@ -82,6 +98,43 @@ async function getCollection(slug: string): Promise<{
   products: ProductWithRelations[];
 } | null> {
   try {
+    // Special handling for "all" collection - show all products
+    if (slug === "all") {
+      const allProducts = await db.query.products.findMany({
+        orderBy: [desc(products.featured), desc(products.createdAt)],
+        with: {
+          variants: {
+            orderBy: (variants, { asc }) => [asc(variants.position)],
+          },
+          images: {
+            orderBy: (images, { asc }) => [asc(images.position)],
+          },
+          category: true,
+        },
+      });
+
+      const activeProducts = allProducts.filter(
+        (p) => p.status === "active"
+      ) as ProductWithRelations[];
+
+      // Return a virtual "All Products" collection
+      return {
+        collection: {
+          id: 0,
+          name: "All Products",
+          slug: "all",
+          description: "Browse our complete range of naturally dyed yarns.",
+          image: null,
+          parentId: null,
+          position: 0,
+          shopifyCollectionId: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        } as CollectionWithChildren,
+        products: activeProducts,
+      };
+    }
+
     // Fetch category with children
     const category = await db.query.categories.findFirst({
       where: eq(categories.slug, slug),

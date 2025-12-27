@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
 // Categories
@@ -38,7 +38,11 @@ export const products = sqliteTable("products", {
   shopifyId: text("shopify_id"),
   createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
   updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
-});
+}, (table) => [
+  index("products_status_idx").on(table.status),
+  index("products_category_idx").on(table.categoryId),
+  index("products_featured_idx").on(table.featured),
+]);
 
 // Product Variants (colorways, sizes)
 export const productVariants = sqliteTable("product_variants", {
@@ -54,7 +58,10 @@ export const productVariants = sqliteTable("product_variants", {
   shopifyVariantId: text("shopify_variant_id"),
   createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
   updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
-});
+}, (table) => [
+  index("variants_product_idx").on(table.productId),
+  index("variants_sku_idx").on(table.sku),
+]);
 
 // Product Images
 export const productImages = sqliteTable("product_images", {
@@ -65,7 +72,10 @@ export const productImages = sqliteTable("product_images", {
   alt: text("alt"),
   position: integer("position").default(0),
   createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-});
+}, (table) => [
+  index("images_product_idx").on(table.productId),
+  index("images_variant_idx").on(table.variantId),
+]);
 
 // Customers
 export const customers = sqliteTable("customers", {
@@ -78,7 +88,9 @@ export const customers = sqliteTable("customers", {
   acceptsMarketing: integer("accepts_marketing", { mode: "boolean" }).default(false),
   createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
   updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
-});
+}, (table) => [
+  index("customers_clerk_idx").on(table.clerkId),
+]);
 
 // Addresses
 export const addresses = sqliteTable("addresses", {
@@ -174,7 +186,13 @@ export const orders = sqliteTable("orders", {
   updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
   shippedAt: text("shipped_at"),
   deliveredAt: text("delivered_at"),
-});
+}, (table) => [
+  index("orders_customer_idx").on(table.customerId),
+  index("orders_email_idx").on(table.email),
+  index("orders_status_idx").on(table.status),
+  index("orders_payment_status_idx").on(table.paymentStatus),
+  index("orders_created_at_idx").on(table.createdAt),
+]);
 
 // Order Items
 export const orderItems = sqliteTable("order_items", {
@@ -227,6 +245,7 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   }),
   variants: many(productVariants),
   images: many(productImages),
+  tagAssignments: many(productTagAssignments),
 }));
 
 export const productVariantsRelations = relations(productVariants, ({ one, many }) => ({
@@ -310,6 +329,53 @@ export const siteSettings = sqliteTable("site_settings", {
   updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
 });
 
+// Weight Types (editable taxonomy for yarn weights)
+export const weightTypes = sqliteTable("weight_types", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull().unique(), // e.g., "DK", "4ply", "Aran"
+  label: text("label").notNull(), // Display label e.g., "DK (Double Knitting)"
+  description: text("description"),
+  sortOrder: integer("sort_order").default(0),
+  active: integer("active", { mode: "boolean" }).default(true),
+  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+  updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
+});
+
+// Product Tags (flexible tagging system)
+export const productTags = sqliteTable("product_tags", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull().unique(), // e.g., "hand-dyed", "limited-edition"
+  slug: text("slug").notNull().unique(),
+  color: text("color").default("#6b7280"), // Badge color in admin (hex)
+  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+});
+
+// Product Tag Assignments (many-to-many junction table)
+export const productTagAssignments = sqliteTable("product_tag_assignments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  tagId: integer("tag_id").notNull().references(() => productTags.id, { onDelete: "cascade" }),
+}, (table) => [
+  index("tag_assignment_product_idx").on(table.productId),
+  index("tag_assignment_tag_idx").on(table.tagId),
+]);
+
+// Tag relations
+export const productTagsRelations = relations(productTags, ({ many }) => ({
+  assignments: many(productTagAssignments),
+}));
+
+export const productTagAssignmentsRelations = relations(productTagAssignments, ({ one }) => ({
+  product: one(products, {
+    fields: [productTagAssignments.productId],
+    references: [products.id],
+  }),
+  tag: one(productTags, {
+    fields: [productTagAssignments.tagId],
+    references: [productTags.id],
+  }),
+}));
+
 // Hero Slides for homepage carousel
 export const heroSlides = sqliteTable("hero_slides", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -343,3 +409,8 @@ export type NewOrder = typeof orders.$inferInsert;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type SiteSetting = typeof siteSettings.$inferSelect;
 export type HeroSlide = typeof heroSlides.$inferSelect;
+export type WeightType = typeof weightTypes.$inferSelect;
+export type NewWeightType = typeof weightTypes.$inferInsert;
+export type ProductTag = typeof productTags.$inferSelect;
+export type NewProductTag = typeof productTags.$inferInsert;
+export type ProductTagAssignment = typeof productTagAssignments.$inferSelect;

@@ -1,4 +1,8 @@
-# E3: Checkout & Payments
+# E3: Checkout & Payments 🚨 TODO - CRITICAL
+
+> **Status**: NOT STARTED - BLOCKS ALL SALES
+> **Blocker**: Cannot process orders without this epic
+> **Next Steps**: Implement Stripe Checkout integration, order creation, confirmation emails
 
 **Priority**: P0
 **Complexity**: High
@@ -14,6 +18,8 @@ Implement secure checkout flow using Stripe Checkout Sessions. Customers complet
 - PCI compliance without infrastructure burden
 - Support for all major payment methods (cards, Apple Pay, Google Pay)
 - Automatic fraud protection via Stripe Radar
+- Multi-currency support via Adaptive Pricing (17.8% avg uplift in cross-border revenue)
+- Local payment methods unlocked (iDEAL, Bancontact, SEPA, Alipay)
 
 ## User Stories
 
@@ -86,6 +92,29 @@ Implement secure checkout flow using Stripe Checkout Sessions. Customers complet
 - [ ] Validate against allowed shipping countries
 - [ ] Calculate shipping cost based on zone
 - [ ] Store address for future orders (if logged in)
+
+### US3.7: Multi-Currency Support (Adaptive Pricing)
+**As an** international customer
+**I want to** see prices in my local currency
+**So that** I understand what I'm paying without mental conversion
+
+**Acceptance Criteria:**
+- [ ] Enable Stripe Adaptive Pricing in Dashboard
+- [ ] Customers see prices converted to their local currency at checkout
+- [ ] 150+ currencies supported automatically
+- [ ] Settlement always in GBP (no FX risk for merchant)
+- [ ] Refunds handled automatically in customer's currency
+
+**Implementation Notes:**
+- Zero code changes required - Stripe handles conversion automatically
+- Customer pays 2-4% conversion fee (built into exchange rate)
+- Exchange rate guaranteed for 24 hours
+- Unlocks local payment methods (iDEAL, Bancontact, SEPA, Alipay, etc.)
+- Can be enabled per-session via `adaptive_pricing: { enabled: true }` parameter
+
+**References:**
+- [Stripe Adaptive Pricing Docs](https://docs.stripe.com/payments/checkout/adaptive-pricing)
+- [Stripe Adaptive Pricing Support](https://support.stripe.com/questions/adaptive-pricing)
 
 ## Technical Approach
 
@@ -203,6 +232,9 @@ async function createCheckoutSession(cart: Cart, discountCode?: string) {
       allowed_countries: ALLOWED_SHIPPING_COUNTRIES,
     },
     shipping_options: shippingOptions,
+    // Multi-currency: Adaptive Pricing shows local currency to customers
+    // Enable in Dashboard or per-session here (customer pays 2-4% conversion fee)
+    adaptive_pricing: { enabled: true },
     success_url: `${process.env.NEXT_PUBLIC_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_URL}/cart`,
     metadata: {
@@ -452,6 +484,10 @@ NEXT_PUBLIC_URL=https://herbarium-dyeworks.com
 - [ ] Tax handling: Inclusive in price or calculate?
 - [ ] Guest checkout email: require before or collect in Stripe?
 - [ ] Order confirmation email template design?
+
+## Resolved Decisions
+
+- [x] **Multi-currency**: Use Stripe Adaptive Pricing (zero code, customer pays conversion fee, we settle in GBP)
 
 ## Definition of Done
 

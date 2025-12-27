@@ -1,5 +1,6 @@
 "use client";
 
+import DOMPurify from "isomorphic-dompurify";
 import {
   Leaf,
   Scale,
@@ -89,7 +90,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
         <div className="space-y-2">
           <div
             className="prose prose-sm max-w-none font-body text-muted-foreground prose-p:leading-relaxed prose-strong:text-foreground"
-            dangerouslySetInnerHTML={{ __html: product.description }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.description) }}
           />
         </div>
       )}

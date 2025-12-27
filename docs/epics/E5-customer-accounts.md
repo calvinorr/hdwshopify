@@ -1,4 +1,8 @@
-# E5: Customer Accounts
+# E5: Customer Accounts 📋 TODO - PARTIAL
+
+> **Status**: PARTIAL - Auth works, account pages missing
+> **Completed**: Clerk integration, sign-in/sign-up pages, graceful degradation
+> **Remaining**: Account dashboard, order history, saved addresses, wishlist
 
 **Priority**: P1
 **Complexity**: Medium

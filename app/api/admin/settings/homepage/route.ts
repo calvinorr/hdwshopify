@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { siteSettings, heroSlides, products } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
+import { requireAdmin } from "@/lib/auth/admin";
+import { logError } from "@/lib/logger";
 
 export async function GET() {
+  const authResult = await requireAdmin();
+  if (!authResult.authorized) return authResult.error;
+
   try {
     const [settings, slides] = await Promise.all([
       db.query.siteSettings.findMany(),
@@ -19,7 +24,7 @@ export async function GET() {
 
     return NextResponse.json({ settings: settingsMap, heroSlides: slides });
   } catch (error) {
-    console.error("Error fetching settings:", error);
+    logError("homepage.GET", error);
     return NextResponse.json(
       { error: "Failed to fetch settings" },
       { status: 500 }
@@ -28,13 +33,27 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const authResult = await requireAdmin();
+  if (!authResult.authorized) return authResult.error;
+
   try {
     const body = await request.json();
-    const { announcementText, announcementEnabled, heroSlides: slides, featuredProductIds } = body;
+    const {
+      announcementText,
+      announcementEnabled,
+      backgroundImage,
+      backgroundOverlay,
+      heroSlides: slides,
+      featuredProductIds,
+    } = body;
 
     // Update announcement settings
     await upsertSetting("announcement_text", announcementText || "");
     await upsertSetting("announcement_enabled", announcementEnabled ? "true" : "false");
+
+    // Update background settings
+    await upsertSetting("homepage_background_image", backgroundImage || "");
+    await upsertSetting("homepage_background_overlay", backgroundOverlay || "rgba(0,0,0,0.4)");
 
     // Update hero slides - delete all and recreate
     await db.delete(heroSlides);
@@ -72,9 +91,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error saving settings:", error);
+    logError("homepage.POST", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to save settings" },
+      { error: "Failed to save settings" },
       { status: 500 }
     );
   }

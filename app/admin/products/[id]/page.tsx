@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { products, categories } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { products, categories, weightTypes } from "@/lib/db/schema";
+import { eq, asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { ProductForm } from "../product-form";
 
@@ -31,6 +31,12 @@ async function getCategories() {
   });
 }
 
+async function getWeightTypes() {
+  return db.query.weightTypes.findMany({
+    orderBy: [asc(weightTypes.sortOrder), asc(weightTypes.name)],
+  });
+}
+
 export default async function EditProductPage({ params }: Props) {
   const { id } = await params;
   const productId = parseInt(id, 10);
@@ -39,9 +45,10 @@ export default async function EditProductPage({ params }: Props) {
     notFound();
   }
 
-  const [product, categoryList] = await Promise.all([
+  const [product, categoryList, weightTypeList] = await Promise.all([
     getProduct(productId),
     getCategories(),
+    getWeightTypes(),
   ]);
 
   if (!product) {
@@ -52,6 +59,7 @@ export default async function EditProductPage({ params }: Props) {
     <ProductForm
       product={product}
       categories={categoryList}
+      weightTypes={weightTypeList}
       mode="edit"
     />
   );

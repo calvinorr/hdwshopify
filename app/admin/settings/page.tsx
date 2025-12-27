@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Home, Truck, Bell, Palette } from "lucide-react";
+import { Home, Truck, Tags, Scale, Info } from "lucide-react";
 
 const settingsLinks = [
   {
@@ -9,10 +9,28 @@ const settingsLinks = [
     icon: Home,
   },
   {
+    title: "About Page",
+    description: "Story, values, and studio information",
+    href: "/admin/settings/about",
+    icon: Info,
+  },
+  {
     title: "Shipping",
     description: "Shipping zones, rates, and free shipping thresholds",
     href: "/admin/settings/shipping",
     icon: Truck,
+  },
+  {
+    title: "Taxonomies",
+    description: "Yarn weight types, product tags, and categories",
+    href: "/admin/settings/taxonomies",
+    icon: Tags,
+  },
+  {
+    title: "Legal Policies",
+    description: "Terms, privacy policy, returns, and shipping policy",
+    href: "/admin/settings/legal",
+    icon: Scale,
   },
 ];
 

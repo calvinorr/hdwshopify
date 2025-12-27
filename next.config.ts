@@ -5,23 +5,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "picsum.photos",
-      },
-      {
-        protocol: "https",
-        hostname: "*.picsum.photos",
-      },
-      {
-        protocol: "https",
         hostname: "cdn.shopify.com",
       },
       {
         protocol: "https",
-        hostname: "images.unsplash.com",
-      },
-      {
-        protocol: "https",
-        hostname: "images.pexels.com",
+        hostname: "*.blob.vercel-storage.com",
       },
     ],
   },

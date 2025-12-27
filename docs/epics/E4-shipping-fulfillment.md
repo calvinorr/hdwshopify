@@ -1,4 +1,8 @@
-# E4: Shipping & Fulfillment
+# E4: Shipping & Fulfillment 📋 TODO - PARTIAL
+
+> **Status**: PARTIAL - Shipping config exists, fulfillment workflow missing
+> **Completed**: Shipping zones & rates schema, admin configuration UI
+> **Remaining**: Integration with checkout, order fulfillment workflow, tracking updates, shipping emails
 
 **Priority**: P0
 **Complexity**: Medium

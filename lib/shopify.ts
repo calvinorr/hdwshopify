@@ -1,0 +1,464 @@
+import { db } from "@/lib/db";
+import {
+  products,
+  productVariants,
+  productImages,
+  categories,
+} from "@/lib/db/schema";
+import { eq, sql } from "drizzle-orm";
+
+const SHOPIFY_STORE_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN;
+const SHOPIFY_ACCESS_TOKEN = process.env.SHOPIFY_ACCESS_TOKEN;
+
+interface ShopifyProduct {
+  id: string;
+  title: string;
+  handle: string;
+  descriptionHtml: string;
+  status: string;
+  productType: string;
+  vendor: string;
+  tags: string[];
+  images: {
+    edges: Array<{
+      node: {
+        url: string;
+        altText: string | null;
+      };
+    }>;
+  };
+  variants: {
+    edges: Array<{
+      node: {
+        id: string;
+        title: string;
+        sku: string | null;
+        price: string;
+        compareAtPrice: string | null;
+        inventoryQuantity: number;
+        position: number;
+        image: {
+          url: string;
+          altText: string | null;
+        } | null;
+        inventoryItem: {
+          measurement: {
+            weight: {
+              value: number;
+              unit: string;
+            } | null;
+          } | null;
+        } | null;
+      };
+    }>;
+  };
+  metafields: {
+    edges: Array<{
+      node: {
+        namespace: string;
+        key: string;
+        value: string;
+      };
+    }>;
+  };
+}
+
+interface ShopifyCollection {
+  id: string;
+  title: string;
+  handle: string;
+  description: string;
+  image: {
+    url: string;
+    altText: string | null;
+  } | null;
+}
+
+async function shopifyGraphQL<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
+  if (!SHOPIFY_STORE_DOMAIN || !SHOPIFY_ACCESS_TOKEN) {
+    throw new Error("Shopify credentials not configured");
+  }
+
+  const response = await fetch(
+    `https://${SHOPIFY_STORE_DOMAIN}/admin/api/2024-01/graphql.json`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": SHOPIFY_ACCESS_TOKEN,
+      },
+      body: JSON.stringify({ query, variables }),
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Shopify API error: ${response.status} - ${text}`);
+  }
+
+  const json = await response.json();
+
+  if (json.errors) {
+    throw new Error(`Shopify GraphQL error: ${JSON.stringify(json.errors)}`);
+  }
+
+  return json.data;
+}
+
+function extractShopifyId(gid: string): string {
+  // Extract numeric ID from Shopify GID format: gid://shopify/Product/123
+  const match = gid.match(/\/(\d+)$/);
+  return match ? match[1] : gid;
+}
+
+function parseWeight(title: string, productType: string): string | null {
+  const lowerTitle = title.toLowerCase();
+  const lowerType = productType.toLowerCase();
+
+  if (lowerTitle.includes("lace") || lowerType.includes("lace")) return "Laceweight";
+  if (lowerTitle.includes("4ply") || lowerTitle.includes("4 ply") || lowerTitle.includes("fingering")) return "4ply";
+  if (lowerTitle.includes("dk") || lowerType.includes("dk")) return "DK";
+  if (lowerTitle.includes("aran") || lowerType.includes("aran")) return "Aran";
+  if (lowerTitle.includes("worsted")) return "Worsted";
+  if (lowerTitle.includes("bulky") || lowerTitle.includes("chunky")) return "Bulky";
+
+  return null;
+}
+
+function convertWeightToGrams(weight: number, unit: string): number {
+  switch (unit.toUpperCase()) {
+    case "GRAMS":
+      return Math.round(weight);
+    case "KILOGRAMS":
+      return Math.round(weight * 1000);
+    case "OUNCES":
+      return Math.round(weight * 28.3495);
+    case "POUNDS":
+      return Math.round(weight * 453.592);
+    default:
+      return Math.round(weight);
+  }
+}
+
+export interface MigrationOptions {
+  limit?: number;
+  activeOnly?: boolean;
+  clearExisting?: boolean;
+}
+
+export interface MigrationResult {
+  productsImported: number;
+  variantsImported: number;
+  imagesImported: number;
+  collectionsImported: number;
+  errors: string[];
+}
+
+export async function clearAllProducts(): Promise<void> {
+  // Delete in order due to foreign key constraints
+  await db.delete(productImages);
+  await db.delete(productVariants);
+  await db.delete(products);
+  // Reset auto-increment (SQLite specific)
+  await db.run(sql`DELETE FROM sqlite_sequence WHERE name='products'`);
+  await db.run(sql`DELETE FROM sqlite_sequence WHERE name='product_variants'`);
+  await db.run(sql`DELETE FROM sqlite_sequence WHERE name='product_images'`);
+}
+
+export async function migrateCollections(): Promise<number> {
+  const query = `
+    query GetCollections($first: Int!) {
+      collections(first: $first) {
+        edges {
+          node {
+            id
+            title
+            handle
+            description
+            image {
+              url
+              altText
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const data = await shopifyGraphQL<{
+    collections: { edges: Array<{ node: ShopifyCollection }> };
+  }>(query, { first: 50 });
+
+  let imported = 0;
+
+  for (const edge of data.collections.edges) {
+    const collection = edge.node;
+    const shopifyId = extractShopifyId(collection.id);
+
+    // Check if collection already exists
+    const existing = await db.query.categories.findFirst({
+      where: eq(categories.slug, collection.handle),
+    });
+
+    if (existing) {
+      // Update existing
+      await db
+        .update(categories)
+        .set({
+          name: collection.title,
+          description: collection.description || null,
+          image: collection.image?.url || null,
+          shopifyCollectionId: shopifyId,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(categories.id, existing.id));
+    } else {
+      // Insert new
+      await db.insert(categories).values({
+        name: collection.title,
+        slug: collection.handle,
+        description: collection.description || null,
+        image: collection.image?.url || null,
+        shopifyCollectionId: shopifyId,
+        position: imported,
+      });
+    }
+    imported++;
+  }
+
+  return imported;
+}
+
+export async function migrateFromShopify(
+  options: MigrationOptions = {}
+): Promise<MigrationResult> {
+  const { limit = 250, activeOnly = true, clearExisting = false } = options;
+
+  const result: MigrationResult = {
+    productsImported: 0,
+    variantsImported: 0,
+    imagesImported: 0,
+    collectionsImported: 0,
+    errors: [],
+  };
+
+  try {
+    // Optionally clear existing data
+    if (clearExisting) {
+      await clearAllProducts();
+    }
+
+    // First, import collections
+    result.collectionsImported = await migrateCollections();
+
+    // Fetch products from Shopify
+    const statusFilter = activeOnly ? "status:active" : "";
+    const query = `
+      query GetProducts($first: Int!, $query: String) {
+        products(first: $first, query: $query) {
+          edges {
+            node {
+              id
+              title
+              handle
+              descriptionHtml
+              status
+              productType
+              vendor
+              tags
+              images(first: 20) {
+                edges {
+                  node {
+                    url
+                    altText
+                  }
+                }
+              }
+              variants(first: 100) {
+                edges {
+                  node {
+                    id
+                    title
+                    sku
+                    price
+                    compareAtPrice
+                    inventoryQuantity
+                    position
+                    image {
+                      url
+                      altText
+                    }
+                    inventoryItem {
+                      measurement {
+                        weight {
+                          value
+                          unit
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              metafields(first: 20) {
+                edges {
+                  node {
+                    namespace
+                    key
+                    value
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const data = await shopifyGraphQL<{
+      products: { edges: Array<{ node: ShopifyProduct }> };
+    }>(query, { first: limit, query: statusFilter || null });
+
+    for (const edge of data.products.edges) {
+      try {
+        const shopifyProduct = edge.node;
+        const shopifyId = extractShopifyId(shopifyProduct.id);
+
+        // Extract metafields for yarn-specific info
+        const metafields = shopifyProduct.metafields.edges.reduce(
+          (acc, { node }) => {
+            acc[`${node.namespace}.${node.key}`] = node.value;
+            return acc;
+          },
+          {} as Record<string, string>
+        );
+
+        // Find matching category
+        let categoryId: number | null = null;
+        const weight = parseWeight(shopifyProduct.title, shopifyProduct.productType);
+
+        if (weight) {
+          const category = await db.query.categories.findFirst({
+            where: eq(categories.name, weight),
+          });
+          if (category) {
+            categoryId = category.id;
+          }
+        }
+
+        // Check if product already exists
+        const existingProduct = await db.query.products.findFirst({
+          where: eq(products.shopifyId, shopifyId),
+        });
+
+        let productId: number;
+
+        const productData = {
+          name: shopifyProduct.title,
+          slug: shopifyProduct.handle,
+          description: shopifyProduct.descriptionHtml || null,
+          categoryId,
+          basePrice: parseFloat(shopifyProduct.variants.edges[0]?.node.price || "0"),
+          compareAtPrice: shopifyProduct.variants.edges[0]?.node.compareAtPrice
+            ? parseFloat(shopifyProduct.variants.edges[0].node.compareAtPrice)
+            : null,
+          status: (shopifyProduct.status.toLowerCase() === "active" ? "active" : "draft") as "active" | "draft",
+          featured: false,
+          fiberContent: metafields["custom.fiber_content"] || null,
+          weight: weight || metafields["custom.weight"] || null,
+          yardage: metafields["custom.yardage"] || null,
+          careInstructions: metafields["custom.care_instructions"] || null,
+          shopifyId,
+          updatedAt: new Date().toISOString(),
+        };
+
+        if (existingProduct) {
+          // Update existing product
+          await db
+            .update(products)
+            .set(productData)
+            .where(eq(products.id, existingProduct.id));
+          productId = existingProduct.id;
+
+          // Delete existing variants and images to replace them
+          await db.delete(productVariants).where(eq(productVariants.productId, productId));
+          await db.delete(productImages).where(eq(productImages.productId, productId));
+        } else {
+          // Insert new product
+          const [inserted] = await db
+            .insert(products)
+            .values({
+              ...productData,
+              createdAt: new Date().toISOString(),
+            })
+            .returning({ id: products.id });
+          productId = inserted.id;
+        }
+
+        result.productsImported++;
+
+        // Import variants
+        for (const variantEdge of shopifyProduct.variants.edges) {
+          const variant = variantEdge.node;
+          const variantShopifyId = extractShopifyId(variant.id);
+
+          // Get weight from inventoryItem measurement
+          let weightGrams = 100; // default
+          if (variant.inventoryItem?.measurement?.weight) {
+            weightGrams = convertWeightToGrams(
+              variant.inventoryItem.measurement.weight.value,
+              variant.inventoryItem.measurement.weight.unit
+            );
+          }
+
+          await db.insert(productVariants).values({
+            productId,
+            name: variant.title === "Default Title" ? shopifyProduct.title : variant.title,
+            sku: variant.sku,
+            price: parseFloat(variant.price),
+            compareAtPrice: variant.compareAtPrice
+              ? parseFloat(variant.compareAtPrice)
+              : null,
+            stock: Math.max(0, variant.inventoryQuantity),
+            weightGrams,
+            position: variant.position,
+            shopifyVariantId: variantShopifyId,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+
+          result.variantsImported++;
+        }
+
+        // Import images
+        let imagePosition = 0;
+        for (const imageEdge of shopifyProduct.images.edges) {
+          const image = imageEdge.node;
+
+          await db.insert(productImages).values({
+            productId,
+            variantId: null,
+            url: image.url,
+            alt: image.altText || shopifyProduct.title,
+            position: imagePosition++,
+            createdAt: new Date().toISOString(),
+          });
+
+          result.imagesImported++;
+        }
+      } catch (productError) {
+        const errorMessage =
+          productError instanceof Error ? productError.message : String(productError);
+        result.errors.push(`Product ${edge.node.title}: ${errorMessage}`);
+      }
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    result.errors.push(`Migration failed: ${errorMessage}`);
+  }
+
+  return result;
+}
+
+export async function importSampleProducts(count: number = 20): Promise<MigrationResult> {
+  return migrateFromShopify({ limit: count, activeOnly: true });
+}
