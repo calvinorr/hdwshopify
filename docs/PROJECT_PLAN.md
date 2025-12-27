@@ -31,7 +31,7 @@ This is a proof-of-concept to validate self-hosting as a viable alternative to S
 
 | Epic | Description | Status |
 |------|-------------|--------|
-| E12: Core Reliability | Transactional integrity, shipping accuracy, admin security | 🔲 TODO |
+| E12: Core Reliability | Transactional integrity, shipping accuracy, admin security | ✅ Done |
 | E13: Operations & Resilience | Inventory reservation, exports, backups, notifications | 🔲 TODO |
 
 > ⚠️ **These epics must be completed before launch.** Based on senior Shopify engineer review.

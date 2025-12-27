@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db, carts, productVariants, products, productImages } from "@/lib/db";
 import {
   getOrCreateCartSession,
@@ -170,44 +170,61 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper to populate cart items with current product data
+// Uses batch loading to avoid N+1 queries
 async function populateCartItems(items: CartItemData[]): Promise<CartItem[]> {
   if (items.length === 0) return [];
 
+  const variantIds = items.map((item) => item.variantId);
+
+  // Batch load all variants with their products (1 query)
+  const variants = await db.query.productVariants.findMany({
+    where: inArray(productVariants.id, variantIds),
+    with: {
+      product: true,
+    },
+  });
+
+  // Create lookup map for quick access
+  const variantMap = new Map(variants.map((v) => [v.id, v]));
+
+  // Get all product IDs for image lookup
+  const productIds = [...new Set(variants.map((v) => v.productId))];
+
+  // Batch load all images for these products (1 query)
+  // Get both variant-specific and product-level images
+  const allImages = await db.query.productImages.findMany({
+    where: inArray(productImages.productId, productIds),
+    orderBy: (images, { asc }) => [asc(images.position)],
+  });
+
+  // Create lookup maps for images
+  // variantImageMap: variantId -> image (for variant-specific images)
+  // productImageMap: productId -> first image (for fallback)
+  const variantImageMap = new Map<number, string>();
+  const productImageMap = new Map<number, string>();
+
+  for (const image of allImages) {
+    if (image.variantId && !variantImageMap.has(image.variantId)) {
+      variantImageMap.set(image.variantId, image.url);
+    }
+    if (!productImageMap.has(image.productId)) {
+      productImageMap.set(image.productId, image.url);
+    }
+  }
+
+  // Build populated items from in-memory data
   const populatedItems: CartItem[] = [];
 
   for (const item of items) {
-    const variant = await db.query.productVariants.findFirst({
-      where: eq(productVariants.id, item.variantId),
-      with: {
-        product: {
-          with: {
-            images: {
-              limit: 1,
-              orderBy: (images, { asc }) => [asc(images.position)],
-            },
-          },
-        },
-      },
-    });
+    const variant = variantMap.get(item.variantId);
 
     if (!variant || variant.product.status !== "active") {
       continue; // Skip invalid or inactive products
     }
 
-    // Try to get variant-specific image or fall back to product image
-    let imageUrl: string | undefined;
-    const variantImage = await db.query.productImages.findFirst({
-      where: and(
-        eq(productImages.productId, variant.productId),
-        eq(productImages.variantId, variant.id)
-      ),
-    });
-
-    if (variantImage) {
-      imageUrl = variantImage.url;
-    } else if (variant.product.images.length > 0) {
-      imageUrl = variant.product.images[0].url;
-    }
+    // Try variant-specific image first, then fall back to product image
+    const imageUrl =
+      variantImageMap.get(variant.id) || productImageMap.get(variant.productId);
 
     populatedItems.push({
       id: generateCartItemId(item.variantId),

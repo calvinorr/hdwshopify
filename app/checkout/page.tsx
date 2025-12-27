@@ -2,18 +2,68 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Tag, X, Info, Globe } from "lucide-react";
+import { ArrowLeft, Loader2, Tag, X, Globe, MapPin } from "lucide-react";
 import { Header } from "@/components/shop/header";
 import { Footer } from "@/components/shop/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCart } from "@/contexts/cart-context";
 import { formatPrice } from "@/lib/stripe";
+
+// Countries we ship to, with display names
+const SHIPPING_COUNTRIES = [
+  // UK
+  { code: "GB", name: "United Kingdom", zone: "UK" },
+  // Ireland
+  { code: "IE", name: "Ireland", zone: "Ireland" },
+  // Europe
+  { code: "AT", name: "Austria", zone: "Europe" },
+  { code: "BE", name: "Belgium", zone: "Europe" },
+  { code: "BG", name: "Bulgaria", zone: "Europe" },
+  { code: "HR", name: "Croatia", zone: "Europe" },
+  { code: "CY", name: "Cyprus", zone: "Europe" },
+  { code: "CZ", name: "Czech Republic", zone: "Europe" },
+  { code: "DK", name: "Denmark", zone: "Europe" },
+  { code: "EE", name: "Estonia", zone: "Europe" },
+  { code: "FI", name: "Finland", zone: "Europe" },
+  { code: "FR", name: "France", zone: "Europe" },
+  { code: "GR", name: "Greece", zone: "Europe" },
+  { code: "HU", name: "Hungary", zone: "Europe" },
+  { code: "IT", name: "Italy", zone: "Europe" },
+  { code: "LV", name: "Latvia", zone: "Europe" },
+  { code: "LT", name: "Lithuania", zone: "Europe" },
+  { code: "LU", name: "Luxembourg", zone: "Europe" },
+  { code: "MT", name: "Malta", zone: "Europe" },
+  { code: "NL", name: "Netherlands", zone: "Europe" },
+  { code: "PL", name: "Poland", zone: "Europe" },
+  { code: "PT", name: "Portugal", zone: "Europe" },
+  { code: "RO", name: "Romania", zone: "Europe" },
+  { code: "SK", name: "Slovakia", zone: "Europe" },
+  { code: "SI", name: "Slovenia", zone: "Europe" },
+  { code: "ES", name: "Spain", zone: "Europe" },
+  { code: "SE", name: "Sweden", zone: "Europe" },
+  // International
+  { code: "US", name: "United States", zone: "International" },
+  { code: "CA", name: "Canada", zone: "International" },
+  { code: "AU", name: "Australia", zone: "International" },
+  { code: "NZ", name: "New Zealand", zone: "International" },
+  { code: "JP", name: "Japan", zone: "International" },
+  { code: "CH", name: "Switzerland", zone: "International" },
+  { code: "NO", name: "Norway", zone: "International" },
+];
 
 export default function CheckoutPage() {
   const { items, subtotal, itemCount, isLoading: cartLoading } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shippingCountry, setShippingCountry] = useState<string>("");
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{
     code: string;
@@ -64,6 +114,11 @@ export default function CheckoutPage() {
   };
 
   const handleCheckout = async () => {
+    if (!shippingCountry) {
+      setError("Please select your shipping destination");
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
@@ -73,6 +128,7 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           discountCode: appliedDiscount?.code,
+          shippingCountry,
         }),
       });
 
@@ -203,6 +259,49 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {/* Shipping Destination */}
+            <div className="bg-card border border-border rounded-lg p-6 mb-6">
+              <h2 className="font-heading text-lg mb-4 flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Shipping Destination
+              </h2>
+              <Select value={shippingCountry} onValueChange={setShippingCountry}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select your country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* Group countries by zone for easier scanning */}
+                  <SelectItem value="GB" className="font-medium">
+                    United Kingdom
+                  </SelectItem>
+                  <SelectItem value="IE">Ireland</SelectItem>
+
+                  {/* Europe */}
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                    Europe
+                  </div>
+                  {SHIPPING_COUNTRIES.filter(c => c.zone === "Europe").map(country => (
+                    <SelectItem key={country.code} value={country.code}>
+                      {country.name}
+                    </SelectItem>
+                  ))}
+
+                  {/* International */}
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                    International
+                  </div>
+                  {SHIPPING_COUNTRIES.filter(c => c.zone === "International").map(country => (
+                    <SelectItem key={country.code} value={country.code}>
+                      {country.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-2 font-body">
+                Shipping rates will be shown based on your destination
+              </p>
+            </div>
+
             {/* Discount Code */}
             <div className="bg-card border border-border rounded-lg p-6 mb-6">
               <h2 className="font-heading text-lg mb-4">Discount Code</h2>
@@ -296,7 +395,7 @@ export default function CheckoutPage() {
             {/* Checkout Button */}
             <Button
               onClick={handleCheckout}
-              disabled={isProcessing}
+              disabled={isProcessing || !shippingCountry}
               className="w-full h-12 text-lg"
             >
               {isProcessing ? (
@@ -304,6 +403,8 @@ export default function CheckoutPage() {
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   Redirecting to payment...
                 </>
+              ) : !shippingCountry ? (
+                "Select shipping destination to continue"
               ) : (
                 `Proceed to Payment • ${formatPrice(estimatedTotal)}`
               )}

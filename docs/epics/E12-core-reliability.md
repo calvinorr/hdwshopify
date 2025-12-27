@@ -1,10 +1,10 @@
-# E12: Core Reliability 🔲 TODO
+# E12: Core Reliability ✅ COMPLETE
 
-> **Status**: IN PROGRESS
+> **Status**: COMPLETE
 > **Priority**: P0 - CRITICAL (blocks launch)
 > **Source**: Senior Shopify engineer codebase review
-> **Completed**: US12.1, US12.2, US12.3, US12.4
-> **Remaining**: US12.5, US12.6, US12.7
+> **Completed**: US12.1, US12.2, US12.3, US12.4, US12.5, US12.6, US12.7
+> **Remaining**: None
 
 ## Overview
 
@@ -89,48 +89,67 @@ From codebase review:
 
 ---
 
-### US12.5: Shipping Rates by Destination
+### US12.5: Shipping Rates by Destination ✅
 **As a** customer
 **I want** to see only shipping options valid for my country
 **So that** I'm charged correctly
 
 **Acceptance Criteria:**
-- [ ] Filter shipping options by customer's country in checkout
-- [ ] Return clear error if no shipping zone matches destination
-- [ ] Never show UK-only rates to US customers (or vice versa)
-- [ ] Add test: verify rate filtering by country code
+- [x] Filter shipping options by customer's country in checkout
+- [x] Return clear error if no shipping zone matches destination
+- [x] Never show UK-only rates to US customers (or vice versa)
+- [x] Add test: verify rate filtering by country code
 
-**Files:** `app/api/checkout/session/route.ts`
+**Files:** `app/api/checkout/session/route.ts`, `app/checkout/page.tsx`
+
+**Implementation Notes:**
+- Added country selector to checkout page (required before proceeding to payment)
+- API filters shipping zones by selected country code
+- Stripe checkout limited to selected country only (prevents address mismatch)
+- Test added: `tests/checkout-shipping-country.md`
 
 ---
 
-### US12.6: Harden Admin Access
+### US12.6: Harden Admin Access ✅
 **As a** store owner
 **I want** admin access locked down in production
 **So that** unauthorized users cannot access admin
 
 **Acceptance Criteria:**
-- [ ] Require `ADMIN_USER_IDS` in production environment
-- [ ] Fail closed (deny access) if env var missing in production
-- [ ] Log loud warning on startup if missing
-- [ ] Dev environment can still work without it (for local dev)
+- [x] Require `ADMIN_USER_IDS` in production environment
+- [x] Fail closed (deny access) if env var missing in production
+- [x] Log loud warning on startup if missing
+- [x] Dev environment can still work without it (for local dev)
 
 **Files:** `middleware.ts`, `lib/auth/admin.ts`
 
+**Implementation Notes:**
+- Middleware now checks `isProduction` and `isAdminConfigured` flags
+- Production + no config = 503 "Admin access is not configured"
+- Development + no config = Allow any authenticated user (convenience)
+- Startup logs: CRITICAL error in prod, WARNING in dev
+- Same logic applied to API-level `requireAdmin()` function
+
 ---
 
-### US12.7: Optimize Cart/Checkout Queries
+### US12.7: Optimize Cart/Checkout Queries ✅
 **As a** developer
 **I want** cart and checkout to use efficient queries
 **So that** performance doesn't degrade with more products
 
 **Acceptance Criteria:**
-- [ ] Batch-load variants with single query (not N+1)
-- [ ] Batch-load product images with single query
-- [ ] Cart API: fixed query count regardless of item count
-- [ ] Checkout API: fixed query count regardless of item count
+- [x] Batch-load variants with single query (not N+1)
+- [x] Batch-load product images with single query
+- [x] Cart API: fixed query count regardless of item count
+- [x] Checkout API: fixed query count regardless of item count
 
 **Files:** `app/api/cart/route.ts`, `app/api/checkout/session/route.ts`
+
+**Implementation Notes:**
+- Cart API: Replaced 2N queries with 2 queries (variants + images)
+- Checkout API: Replaced N queries with 2 queries (variants + images)
+- Uses `inArray()` for batch loading, Map for O(1) lookups
+- Query count is now O(1) regardless of cart size
 
 ---
 
@@ -159,9 +178,9 @@ if (existing) return NextResponse.json({ received: true });
 
 ## Definition of Done
 
-- [ ] All acceptance criteria met
-- [ ] No partial orders possible under any failure scenario
-- [ ] Shipping rates always match customer country
-- [ ] Admin inaccessible without proper configuration
-- [ ] All queries are O(1) not O(n)
-- [ ] Build passes, no regressions
+- [x] All acceptance criteria met
+- [x] No partial orders possible under any failure scenario
+- [x] Shipping rates always match customer country
+- [x] Admin inaccessible without proper configuration
+- [x] All queries are O(1) not O(n)
+- [x] Build passes, no regressions

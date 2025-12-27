@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { stripe } from "@/lib/stripe";
-import { db, carts, shippingZones, shippingRates, discountCodes, productVariants } from "@/lib/db";
+import { db, carts, shippingZones, shippingRates, discountCodes, productVariants, productImages } from "@/lib/db";
 import { getCartSession, CartItemData } from "@/lib/cart";
 import type Stripe from "stripe";
 
@@ -26,7 +26,23 @@ const FREE_SHIPPING_ZONES = ["UK"]; // Only UK gets free shipping
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { discountCode } = body;
+    const { discountCode, shippingCountry } = body;
+
+    // Validate shipping country is provided
+    if (!shippingCountry) {
+      return NextResponse.json(
+        { error: "Please select your shipping destination" },
+        { status: 400 }
+      );
+    }
+
+    // Validate country is in our allowed list
+    if (!ALL_SHIPPING_COUNTRIES.includes(shippingCountry)) {
+      return NextResponse.json(
+        { error: "Sorry, we don't currently ship to your selected country" },
+        { status: 400 }
+      );
+    }
 
     // Get cart
     const sessionId = await getCartSession();
@@ -56,25 +72,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Populate cart items with current product data and validate stock
+    // Batch load all variants with their products (1 query instead of N)
+    const variantIds = cartItems.map((item) => item.variantId);
+    const variants = await db.query.productVariants.findMany({
+      where: inArray(productVariants.id, variantIds),
+      with: {
+        product: true,
+      },
+    });
+
+    // Create lookup map
+    const variantMap = new Map(variants.map((v) => [v.id, v]));
+
+    // Batch load all product images (1 query instead of N)
+    const productIds = [...new Set(variants.map((v) => v.productId))];
+    const allImages = await db.query.productImages.findMany({
+      where: inArray(productImages.productId, productIds),
+      orderBy: (images, { asc }) => [asc(images.position)],
+    });
+
+    // Create image lookup map (productId -> first image URL)
+    const productImageMap = new Map<number, string>();
+    for (const image of allImages) {
+      if (!productImageMap.has(image.productId)) {
+        productImageMap.set(image.productId, image.url);
+      }
+    }
+
+    // Validate all items and build line items
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
     let totalWeightGrams = 0;
     let subtotal = 0;
 
     for (const item of cartItems) {
-      const variant = await db.query.productVariants.findFirst({
-        where: eq(productVariants.id, item.variantId),
-        with: {
-          product: {
-            with: {
-              images: {
-                limit: 1,
-                orderBy: (images, { asc }) => [asc(images.position)],
-              },
-            },
-          },
-        },
-      });
+      const variant = variantMap.get(item.variantId);
 
       if (!variant || variant.product.status !== "active") {
         return NextResponse.json(
@@ -102,9 +133,7 @@ export async function POST(request: NextRequest) {
       subtotal += variant.price * item.quantity;
 
       // Build Stripe line item
-      const images = variant.product.images.length > 0
-        ? [variant.product.images[0].url]
-        : [];
+      const imageUrl = productImageMap.get(variant.productId);
 
       lineItems.push({
         price_data: {
@@ -112,7 +141,7 @@ export async function POST(request: NextRequest) {
           product_data: {
             name: variant.product.name,
             description: variant.name !== variant.product.name ? variant.name : undefined,
-            images: images.length > 0 ? images : undefined,
+            images: imageUrl ? [imageUrl] : undefined,
           },
           unit_amount: Math.round(variant.price * 100), // Convert pounds to pence
         },
@@ -120,8 +149,15 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Get shipping options
-    const shippingOptions = await getShippingOptions(totalWeightGrams, subtotal);
+    // Get shipping options filtered by customer's country
+    const shippingOptions = await getShippingOptions(totalWeightGrams, subtotal, shippingCountry);
+
+    if (shippingOptions.length === 0) {
+      return NextResponse.json(
+        { error: "No shipping options available for your destination. Please contact us for assistance." },
+        { status: 400 }
+      );
+    }
 
     // Build checkout session params
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
@@ -129,7 +165,8 @@ export async function POST(request: NextRequest) {
       payment_method_types: ["card"],
       line_items: lineItems,
       shipping_address_collection: {
-        allowed_countries: ALL_SHIPPING_COUNTRIES as Stripe.Checkout.SessionCreateParams.ShippingAddressCollection.AllowedCountry[],
+        // Only allow the country the customer selected - prevents mismatch
+        allowed_countries: [shippingCountry] as Stripe.Checkout.SessionCreateParams.ShippingAddressCollection.AllowedCountry[],
       },
       shipping_options: shippingOptions,
       success_url: `${getBaseUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -177,7 +214,8 @@ function getBaseUrl(): string {
 
 async function getShippingOptions(
   weightGrams: number,
-  subtotal: number
+  subtotal: number,
+  customerCountry: string
 ): Promise<Stripe.Checkout.SessionCreateParams.ShippingOption[]> {
   const zones = await db.query.shippingZones.findMany({
     with: { rates: true },
@@ -187,6 +225,11 @@ async function getShippingOptions(
 
   for (const zone of zones) {
     const countries: string[] = JSON.parse(zone.countries || "[]");
+
+    // Only include rates for zones that include the customer's country
+    if (!countries.includes(customerCountry)) {
+      continue;
+    }
 
     // Find applicable rates for this weight
     const applicableRates = zone.rates.filter(
@@ -233,24 +276,7 @@ async function getShippingOptions(
     }
   }
 
-  // If no shipping options from DB, add a default
-  if (options.length === 0) {
-    options.push({
-      shipping_rate_data: {
-        type: "fixed_amount",
-        fixed_amount: {
-          amount: 395, // £3.95 default
-          currency: "gbp",
-        },
-        display_name: "Standard Shipping",
-        delivery_estimate: {
-          minimum: { unit: "business_day", value: 3 },
-          maximum: { unit: "business_day", value: 7 },
-        },
-      },
-    });
-  }
-
+  // No fallback - if no rates match, caller should return error
   return options;
 }
 
