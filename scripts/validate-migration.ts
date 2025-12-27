@@ -11,7 +11,9 @@
  * - Sample data spot checks
  */
 
-import "dotenv/config";
+import * as dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+
 import { db } from "../lib/db";
 import {
   categories,
