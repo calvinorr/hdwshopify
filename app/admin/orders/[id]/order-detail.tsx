@@ -53,6 +53,13 @@ interface DiscountCode {
   value: number;
 }
 
+interface OrderEvent {
+  id: number;
+  event: string;
+  data: string | null;
+  createdAt: string | null;
+}
+
 interface Order {
   id: number;
   orderNumber: string;
@@ -79,6 +86,7 @@ interface Order {
   items: OrderItem[];
   customer: Customer | null;
   discountCode: DiscountCode | null;
+  events?: OrderEvent[];
 }
 
 interface Props {
@@ -125,6 +133,49 @@ function parseAddress(addressJson: string) {
     return JSON.parse(addressJson);
   } catch {
     return null;
+  }
+}
+
+function formatEventType(event: string): string {
+  const eventLabels: Record<string, string> = {
+    created: "Order Created",
+    paid: "Payment Received",
+    stock_updated: "Stock Updated",
+    email_sent: "Email Sent",
+    fulfilled: "Order Fulfilled",
+    shipped: "Order Shipped",
+    delivered: "Order Delivered",
+    cancelled: "Order Cancelled",
+    refunded: "Order Refunded",
+    note_added: "Note Added",
+    status_changed: "Status Changed",
+  };
+  return eventLabels[event] || event;
+}
+
+function formatEventData(event: string, dataStr: string): string {
+  try {
+    const data = JSON.parse(dataStr);
+    switch (event) {
+      case "created":
+        return `${data.itemCount} item(s), £${data.total?.toFixed(2) || "0.00"}`;
+      case "paid":
+        return `£${data.amount?.toFixed(2) || "0.00"} via Stripe`;
+      case "stock_updated":
+        return data.hasStockIssues ? "Stock issues detected" : "Stock decremented";
+      case "email_sent":
+        return `${data.type?.replace(/_/g, " ")} to ${data.email}`;
+      case "shipped":
+        return data.trackingNumber ? `Tracking: ${data.trackingNumber}` : "No tracking";
+      case "status_changed":
+        return `${data.from || "—"} → ${data.to}`;
+      case "note_added":
+        return data.note?.substring(0, 50) + (data.note?.length > 50 ? "..." : "");
+      default:
+        return JSON.stringify(data);
+    }
+  } catch {
+    return "";
   }
 }
 
@@ -526,31 +577,49 @@ export function OrderDetail({ order }: Props) {
             )}
           </div>
 
-          {/* Timeline */}
+          {/* Event Timeline */}
           <div className="bg-white rounded-lg border p-6 space-y-4">
-            <h2 className="font-medium text-stone-900">Timeline</h2>
+            <h2 className="font-medium text-stone-900">Activity Log</h2>
 
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-stone-500">Created</span>
-                <span>{formatDate(order.createdAt)}</span>
-              </div>
-              {order.updatedAt && order.updatedAt !== order.createdAt && (
-                <div className="flex justify-between">
-                  <span className="text-stone-500">Updated</span>
-                  <span>{formatDate(order.updatedAt)}</span>
-                </div>
-              )}
-              {order.shippedAt && (
-                <div className="flex justify-between">
-                  <span className="text-stone-500">Shipped</span>
-                  <span>{formatDate(order.shippedAt)}</span>
-                </div>
-              )}
-              {order.deliveredAt && (
-                <div className="flex justify-between">
-                  <span className="text-stone-500">Delivered</span>
-                  <span>{formatDate(order.deliveredAt)}</span>
+            <div className="space-y-3">
+              {order.events && order.events.length > 0 ? (
+                order.events.map((event) => (
+                  <div key={event.id} className="flex gap-3 text-sm">
+                    <div className="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-primary" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-stone-900">
+                        {formatEventType(event.event)}
+                      </p>
+                      {event.data && (
+                        <p className="text-stone-500 text-xs truncate">
+                          {formatEventData(event.event, event.data)}
+                        </p>
+                      )}
+                      <p className="text-stone-400 text-xs">
+                        {formatDate(event.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                // Fallback to basic timeline if no events
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-stone-500">Created</span>
+                    <span>{formatDate(order.createdAt)}</span>
+                  </div>
+                  {order.shippedAt && (
+                    <div className="flex justify-between">
+                      <span className="text-stone-500">Shipped</span>
+                      <span>{formatDate(order.shippedAt)}</span>
+                    </div>
+                  )}
+                  {order.deliveredAt && (
+                    <div className="flex justify-between">
+                      <span className="text-stone-500">Delivered</span>
+                      <span>{formatDate(order.deliveredAt)}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

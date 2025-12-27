@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { updateOrderSchema } from "@/lib/validations/order";
 import { logError } from "@/lib/logger";
 import { sendShippingConfirmationEmail } from "@/lib/email/send-shipping-confirmation";
+import { logOrderEvent } from "@/lib/db/order-events";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -33,6 +34,9 @@ export async function GET(request: Request, context: RouteContext) {
         items: true,
         customer: true,
         discountCode: true,
+        events: {
+          orderBy: (events, { asc }) => [asc(events.createdAt)],
+        },
       },
     });
 
@@ -134,6 +138,57 @@ export async function PATCH(request: Request, context: RouteContext) {
       .where(eq(orders.id, parsedId))
       .returning();
 
+    // Log status change event
+    if (status !== undefined && status !== existing.status) {
+      await logOrderEvent({
+        orderId: parsedId,
+        event: "status_changed",
+        data: {
+          from: existing.status,
+          to: status,
+        },
+      });
+
+      // Log specific status events
+      if (status === "shipped") {
+        await logOrderEvent({
+          orderId: parsedId,
+          event: "shipped",
+          data: {
+            trackingNumber: trackingNumber || updated.trackingNumber,
+            trackingUrl: trackingUrl || updated.trackingUrl,
+          },
+        });
+      } else if (status === "delivered") {
+        await logOrderEvent({
+          orderId: parsedId,
+          event: "delivered",
+          data: {},
+        });
+      } else if (status === "cancelled") {
+        await logOrderEvent({
+          orderId: parsedId,
+          event: "cancelled",
+          data: {},
+        });
+      } else if (status === "refunded") {
+        await logOrderEvent({
+          orderId: parsedId,
+          event: "refunded",
+          data: {},
+        });
+      }
+    }
+
+    // Log note changes
+    if (internalNotes !== undefined && internalNotes !== existing.internalNotes) {
+      await logOrderEvent({
+        orderId: parsedId,
+        event: "note_added",
+        data: { note: internalNotes },
+      });
+    }
+
     // Send shipping confirmation email if status changed to "shipped"
     const statusChangedToShipped =
       status === "shipped" && existing.status !== "shipped";
@@ -145,9 +200,18 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
 
       // Send email (don't await - send in background)
-      sendShippingConfirmationEmail(updated, items).catch((err) => {
-        console.error("Failed to send shipping confirmation email:", err);
-      });
+      sendShippingConfirmationEmail(updated, items)
+        .then(async () => {
+          // Log email sent event
+          await logOrderEvent({
+            orderId: parsedId,
+            event: "email_sent",
+            data: { type: "shipping_confirmation", email: updated.email },
+          });
+        })
+        .catch((err) => {
+          console.error("Failed to send shipping confirmation email:", err);
+        });
     }
 
     return NextResponse.json(updated);

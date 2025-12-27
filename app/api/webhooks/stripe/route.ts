@@ -6,11 +6,13 @@ import {
   db,
   orders,
   orderItems,
+  orderEvents,
   carts,
   productVariants,
   discountCodes,
 } from "@/lib/db";
 import { sendOrderConfirmationEmail } from "@/lib/email/send-order-confirmation";
+import { logOrderEvent } from "@/lib/db/order-events";
 import type Stripe from "stripe";
 
 // Disable body parsing - we need raw body for signature verification
@@ -334,6 +336,46 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     // 5. Clear the cart
     await tx.delete(carts).where(eq(carts.id, parseInt(cartId, 10)));
 
+    // 6. Log order events (immutable audit trail)
+    // Log order created
+    await tx.insert(orderEvents).values({
+      orderId: order.id,
+      event: "created",
+      data: JSON.stringify({
+        orderNumber: order.orderNumber,
+        total: order.total,
+        itemCount: createdOrderItems.length,
+        hasIssues: hasStockIssues || hasDiscountIssues,
+      }),
+      createdAt: now,
+    });
+
+    // Log payment received
+    await tx.insert(orderEvents).values({
+      orderId: order.id,
+      event: "paid",
+      data: JSON.stringify({
+        amount: order.total,
+        stripeSessionId: session.id,
+        paymentIntentId: session.payment_intent,
+      }),
+      createdAt: now,
+    });
+
+    // Log stock updated
+    await tx.insert(orderEvents).values({
+      orderId: order.id,
+      event: "stock_updated",
+      data: JSON.stringify({
+        items: cartItems.map((item) => ({
+          variantId: item.variantId,
+          quantity: item.quantity,
+        })),
+        hasStockIssues,
+      }),
+      createdAt: now,
+    });
+
     return { order, createdOrderItems };
   });
   // ============================================================
@@ -348,9 +390,15 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
   // Send confirmation email (async, don't block webhook response)
   sendOrderConfirmationEmail(order, createdOrderItems)
-    .then((result) => {
+    .then(async (result) => {
       if (result.success) {
         console.log("Order confirmation email sent for:", order.orderNumber);
+        // Log email sent event
+        await logOrderEvent({
+          orderId: order.id,
+          event: "email_sent",
+          data: { type: "order_confirmation", email: order.email },
+        });
       } else {
         console.error("Failed to send order confirmation email:", result.error);
       }

@@ -301,6 +301,7 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
     references: [discountCodes.id],
   }),
   items: many(orderItems),
+  events: many(orderEvents),
 }));
 
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
@@ -391,6 +392,27 @@ export const heroSlides = sqliteTable("hero_slides", {
   updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Order Events (audit log for order state changes)
+export const orderEvents = sqliteTable("order_events", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  orderId: integer("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+  event: text("event", {
+    enum: ["created", "paid", "stock_updated", "email_sent", "fulfilled", "shipped", "delivered", "cancelled", "refunded", "note_added", "status_changed"]
+  }).notNull(),
+  data: text("data"), // JSON for event-specific details
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  index("order_events_order_idx").on(table.orderId),
+  index("order_events_created_idx").on(table.createdAt),
+]);
+
+export const orderEventsRelations = relations(orderEvents, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderEvents.orderId],
+    references: [orders.id],
+  }),
+}));
+
 // Type exports
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
@@ -407,6 +429,8 @@ export type DiscountCode = typeof discountCodes.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
 export type OrderItem = typeof orderItems.$inferSelect;
+export type OrderEvent = typeof orderEvents.$inferSelect;
+export type NewOrderEvent = typeof orderEvents.$inferInsert;
 export type SiteSetting = typeof siteSettings.$inferSelect;
 export type HeroSlide = typeof heroSlides.$inferSelect;
 export type WeightType = typeof weightTypes.$inferSelect;

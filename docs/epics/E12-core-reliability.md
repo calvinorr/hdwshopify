@@ -3,8 +3,8 @@
 > **Status**: IN PROGRESS
 > **Priority**: P0 - CRITICAL (blocks launch)
 > **Source**: Senior Shopify engineer codebase review
-> **Completed**: US12.1, US12.2, US12.3
-> **Remaining**: US12.4, US12.5, US12.6, US12.7
+> **Completed**: US12.1, US12.2, US12.3, US12.4
+> **Remaining**: US12.5, US12.6, US12.7
 
 ## Overview
 
@@ -74,18 +74,18 @@ From codebase review:
 
 ---
 
-### US12.4: Order Event Audit Log
+### US12.4: Order Event Audit Log ✅
 **As a** store owner
 **I want** a log of order state changes
 **So that** I can debug issues and understand order history
 
 **Acceptance Criteria:**
-- [ ] Create `order_events` table (orderId, event, data, timestamp)
-- [ ] Log: created, paid, stock-updated, email-sent, fulfilled, shipped
-- [ ] Display event timeline in admin order detail
-- [ ] Events are immutable (append-only)
+- [x] Create `order_events` table (orderId, event, data, timestamp)
+- [x] Log: created, paid, stock-updated, email-sent, fulfilled, shipped
+- [x] Display event timeline in admin order detail
+- [x] Events are immutable (append-only) - only INSERT operations exposed
 
-**Files:** `lib/db/schema.ts`, `app/api/webhooks/stripe/route.ts`, `app/admin/orders/[id]/page.tsx`
+**Files:** `lib/db/schema.ts`, `lib/db/order-events.ts`, `app/api/webhooks/stripe/route.ts`, `app/api/admin/orders/[id]/route.ts`, `app/admin/orders/[id]/order-detail.tsx`
 
 ---
 
