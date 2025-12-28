@@ -1,14 +1,18 @@
-# Herbarium Dyeworks - Project Implementation Plan
+# Herbarium Dyeworks - Project Plan
 
 ## Executive Summary
 
 Self-hosted e-commerce platform replacing Shopify for Herbarium Dyeworks, a small-batch naturally dyed yarn business based in Northern Ireland.
+
+**Status**: Core platform complete. Ready for production configuration and launch.
 
 ## Project Philosophy
 
 This is a proof-of-concept to validate self-hosting as a viable alternative to Shopify. The goal is a **fully operational store** that can be managed without developer intervention, not a pixel-perfect replica.
 
 **Core principle**: Build what you need to *run* the business, not just *display* it.
+
+---
 
 ## Technical Stack
 
@@ -23,23 +27,18 @@ This is a proof-of-concept to validate self-hosting as a viable alternative to S
 | Email | Resend | Transactional email |
 | Hosting | Vercel | Seamless Next.js integration |
 
-## Revised Epic Structure
+---
 
-### Phase 0: Stabilization (P0 - CRITICAL)
+## Completion Status
 
-**Goal**: Production-ready reliability and safety
+### Phase 0: Stabilization ✅ COMPLETE
 
 | Epic | Description | Status |
 |------|-------------|--------|
 | E12: Core Reliability | Transactional integrity, shipping accuracy, admin security | ✅ Done |
 | E13: Operations & Resilience | Inventory reservation, exports, backups, notifications | ✅ Done |
 
-> ⚠️ **These epics must be completed before launch.** Based on senior Shopify engineer review.
-> See: `docs/archive/CODEBASE_REVIEW.md`, `docs/archive/STABILIZATION_ROADMAP.md`
-
-### Phase 1: Operational Foundation (P0)
-
-**Goal**: A store you can use and manage
+### Phase 1: Operational Foundation ✅ COMPLETE
 
 | Epic | Description | Status |
 |------|-------------|--------|
@@ -48,152 +47,96 @@ This is a proof-of-concept to validate self-hosting as a viable alternative to S
 | E3: Checkout & Payments | Stripe integration | ✅ Done |
 | E4: Shipping & Fulfillment | Rate calculation, fulfillment workflow | ✅ Done |
 | E6: Admin Dashboard | Full store management | ✅ Done |
-| E7: Sample Migration | Import ~10-20 products from Shopify | 🚧 Partial |
+| E7: Data Migration | Import from Shopify | ✅ Done |
 
-### Phase 2: Customer Experience (P1)
-
-**Goal**: Feature parity for customers
+### Phase 2: Customer Experience ✅ COMPLETE
 
 | Epic | Description | Status |
 |------|-------------|--------|
 | E5: Customer Accounts | Login, order history | ✅ Done |
-| E7: Full Migration | Import all products, customers, orders | ✅ Done |
 | Email Notifications | Order confirmation, shipping updates | ✅ Done |
 
-### Phase 3: Polish & Admin Excellence (P1)
-
-**Goal**: Professional admin experience, UX improvements
+### Phase 3: Polish & Admin Excellence ✅ COMPLETE
 
 | Epic | Description | Status |
 |------|-------------|--------|
 | E9: UX Improvements | Related products, quick-add, recently viewed | ✅ Done |
 | E14: Collection Management | Status, image upload, ordering, SEO, tags | ✅ Done |
 
-> **Note (Dec 2024):** Variant-heavy features (color swatches, quick-view modal) have been
-> sidelined. Hand-dyed yarns are unique products - variants don't apply the same way.
-> Focus shifted to professional collection management.
+---
 
-## Admin Dashboard Scope (E6 - Now P0)
+## What's Next
 
-The admin dashboard is now **core functionality**. You should be able to:
+### Immediate: Launch Preparation
+See **[LAUNCH_CHECKLIST.md](./LAUNCH_CHECKLIST.md)** for:
+- Stripe production configuration
+- Resend domain verification
+- Final testing checklist
+- Go-live steps
 
-### Products
-- [ ] Add new products with variants (colorways)
-- [ ] Edit existing products
-- [ ] Upload and manage product images
-- [ ] Set prices, stock levels, weights
-- [ ] Archive/activate products
+### Post-Launch: Optional Enhancements
+See **[epics/BACKLOG.md](./epics/BACKLOG.md)** for:
+- Product reviews & ratings
+- Wishlist functionality
+- Search autocomplete
+- Cloudflare migration (~$250/yr savings)
 
-### Collections (see E14 for enhanced features)
-- [x] Create collections (by yarn weight, color family, etc.)
-- [x] Assign products to collections
-- [ ] Reorder collections (drag-drop) → E14
-- [x] Set collection images and descriptions
-- [ ] Collection status (draft/active/hidden) → E14
-- [ ] Stock filtering per collection → E14
-- [ ] Tag management → E14
+---
 
-### Homepage / Content
-- [ ] Configure hero carousel images
-- [ ] Select featured products
-- [ ] Edit announcement bar text
-- [ ] Update "About" page content (stretch)
-
-### Orders
-- [ ] View orders list with status
-- [ ] View order details
-- [ ] Mark as fulfilled, add tracking
-- [ ] Print packing slips
-
-### Shipping
-- [ ] Configure shipping zones
-- [ ] Set weight-based rates per zone
-- [ ] Set free shipping thresholds
-
-### Inventory
-- [ ] View stock levels across all variants
-- [ ] Quick stock adjustments
-- [ ] Low stock alerts
-
-### Discounts
-- [ ] Create discount codes
-- [ ] Set percentage or fixed discounts
-- [ ] Set validity dates and usage limits
-
-## Implementation Order
+## Directory Structure
 
 ```
-Current State (Product Catalog ✅)
-     │
-     ▼
-E7: Sample Migration
-Import 10-20 real products from Shopify
-     │
-     ▼
-E6: Admin Dashboard ← FOCUS HERE FIRST
-├── Products CRUD
-├── Collections management
-├── Homepage configuration
-├── Shipping settings
-├── Inventory view
-└── Discount codes
-     │
-     ▼
-🎯 Manageable Site
-Validate you can run it
-     │
-     ▼
-E2: Shopping Cart
-     │
-     ▼
-E3: Checkout & Stripe
-     │
-     ▼
-E4: Shipping Calculation
-     │
-     ▼
-E6b: Order Management
-(Add once orders exist)
-     │
-     ▼
-🛒 Operational Store
+docs/
+├── PROJECT_PLAN.md          # This file - project overview
+├── LAUNCH_CHECKLIST.md      # Pre-launch tasks
+├── epics/
+│   ├── archive/             # Completed epics (E3-E7, E9, E12-E14)
+│   ├── E1-product-catalog.md    # Minor remaining (accessibility)
+│   ├── E6-admin-dashboard.md    # Minor remaining (bulk actions)
+│   ├── E8-cloudflare-migration.md  # Post-launch optimization
+│   └── BACKLOG.md           # Future enhancements
+└── archive/
+    ├── CODEBASE_REVIEW.md   # Senior engineer review
+    └── STABILIZATION_ROADMAP.md
 ```
+
+---
+
+## Success Criteria ✅
+
+**Minimum Viable Store** - All complete:
+- [x] Customers can browse, add to cart, checkout with Stripe
+- [x] Orders are recorded and visible in admin
+- [x] Admin can add/edit products without touching code
+- [x] Admin can manage collections and homepage
+- [x] Shipping rates calculate correctly by zone/weight
+- [x] Admin can fulfill orders and add tracking
+
+---
 
 ## What This Is NOT
 
 To keep scope manageable, we're **not** building:
-
-- Multi-currency (GBP only for now)
+- Multi-currency (GBP only)
 - Gift cards
 - Subscriptions
 - Advanced analytics (use Plausible/Fathom)
-- Customer reviews
-- Wishlist
+- Customer reviews (backlog)
+- Wishlist (backlog)
 - Complex promotions (BOGO, bundles)
 - Multi-user admin with roles
 
-These can all be added later if needed.
-
-## Success Criteria
-
-**Minimum Viable Store:**
-- [ ] Customers can browse, add to cart, checkout with Stripe
-- [ ] Orders are recorded and visible in admin
-- [ ] You can add/edit products without touching code
-- [ ] You can manage collections and homepage
-- [ ] Shipping rates calculate correctly by zone/weight
-- [ ] You can fulfill orders and add tracking
+---
 
 ## Environment Strategy
 
 | Environment | Purpose | Database |
 |-------------|---------|----------|
-| Development | Local dev | Local SQLite |
-| Preview | PR previews | Turso preview |
-| Production | Live site | Turso production |
+| Development | Local dev | Turso (dev branch) |
+| Preview | PR previews | Turso (preview) |
+| Production | Live site | Turso (production) |
 
 ## Domain
 
-Production: `herbarium-dyeworks.warmwetcircles.com`
-
-(Can be changed to custom domain when ready for launch)
+- **Current**: `herbarium-dyeworks.warmwetcircles.com`
+- **Future**: Custom domain when ready for public launch
