@@ -63,19 +63,19 @@ Professional-grade collection management for the admin dashboard. Makes it easy 
 
 ---
 
-### US14.3: Drag-Drop Collection Ordering ✅ P1
+### US14.3: Drag-Drop Collection Ordering ✅ COMPLETE
 **As an** admin
 **I want to** drag collections to reorder them
 **So that** I can quickly arrange the display order visually
 
 **Acceptance Criteria:**
-- [ ] Drag handle on each collection card/row
-- [ ] Visual feedback during drag (ghost, drop indicator)
-- [ ] Position saved immediately on drop
-- [ ] Works on desktop (mouse)
-- [ ] Works on tablet (touch)
-- [ ] Keyboard accessible (move up/down buttons)
-- [ ] Order reflected on storefront navigation
+- [x] Drag handle on each collection card/row
+- [x] Visual feedback during drag (ghost, drop indicator)
+- [x] Position saved immediately on drop
+- [x] Works on desktop (mouse)
+- [x] Works on tablet (touch)
+- [x] Keyboard accessible (move up/down buttons)
+- [x] Order reflected on storefront navigation
 
 **Technical Notes:**
 - Use `@dnd-kit/core` or similar
