@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { products } from "@/lib/db/schema";
-import { desc, eq, like, or, count } from "drizzle-orm";
+import { products, productTags, productTagAssignments } from "@/lib/db/schema";
+import { desc, eq, like, or, count, inArray, asc } from "drizzle-orm";
 import Link from "next/link";
 import { Plus, Package, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,14 +10,41 @@ interface Props {
   searchParams: Promise<{
     q?: string;
     status?: string;
+    tag?: string;
     page?: string;
   }>;
 }
 
 const ITEMS_PER_PAGE = 20;
 
-async function getProducts(search?: string, status?: string, page = 1) {
+async function getTags() {
+  return db.query.productTags.findMany({
+    orderBy: [asc(productTags.name)],
+  });
+}
+
+async function getProducts(search?: string, status?: string, tagId?: number, page = 1) {
   const offset = (page - 1) * ITEMS_PER_PAGE;
+
+  // If filtering by tag, first get the product IDs that have that tag
+  let productIdsWithTag: number[] | undefined;
+  if (tagId) {
+    const tagAssignments = await db
+      .select({ productId: productTagAssignments.productId })
+      .from(productTagAssignments)
+      .where(eq(productTagAssignments.tagId, tagId));
+    productIdsWithTag = tagAssignments.map((a) => a.productId);
+
+    // If no products have this tag, return empty
+    if (productIdsWithTag.length === 0) {
+      return {
+        products: [],
+        total: 0,
+        pages: 0,
+        currentPage: page,
+      };
+    }
+  }
 
   // Build where conditions
   const conditions = [];
@@ -35,6 +62,10 @@ async function getProducts(search?: string, status?: string, page = 1) {
     conditions.push(eq(products.status, status as "active" | "draft" | "archived"));
   }
 
+  if (productIdsWithTag) {
+    conditions.push(inArray(products.id, productIdsWithTag));
+  }
+
   const whereClause = conditions.length > 0 ? conditions.reduce((a, b) => a && b) : undefined;
 
   const [productList, [{ total }]] = await Promise.all([
@@ -50,6 +81,11 @@ async function getProducts(search?: string, status?: string, page = 1) {
           orderBy: (images, { asc }) => [asc(images.position)],
         },
         category: true,
+        tagAssignments: {
+          with: {
+            tag: true,
+          },
+        },
       },
     }),
     db.select({ total: count() }).from(products).where(whereClause),
@@ -67,13 +103,14 @@ export default async function ProductsPage({ searchParams }: Props) {
   const params = await searchParams;
   const search = params.q;
   const status = params.status;
+  const tag = params.tag;
+  const tagId = tag ? parseInt(tag, 10) : undefined;
   const page = parseInt(params.page || "1", 10);
 
-  const { products: productList, total, pages, currentPage } = await getProducts(
-    search,
-    status,
-    page
-  );
+  const [{ products: productList, total, pages, currentPage }, allTags] = await Promise.all([
+    getProducts(search, status, tagId, page),
+    getTags(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -122,6 +159,22 @@ export default async function ProductsPage({ searchParams }: Props) {
             <option value="archived">Archived</option>
           </select>
 
+          {/* Tag filter */}
+          {allTags.length > 0 && (
+            <select
+              name="tag"
+              defaultValue={tag || ""}
+              className="px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            >
+              <option value="">All tags</option>
+              {allTags.map((t) => (
+                <option key={t.id} value={t.id.toString()}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          )}
+
           <Button type="submit" variant="secondary">
             <Filter className="h-4 w-4 mr-2" />
             Filter
@@ -165,7 +218,7 @@ export default async function ProductsPage({ searchParams }: Props) {
                     <Link
                       href={`/admin/products?page=${currentPage - 1}${
                         search ? `&q=${search}` : ""
-                      }${status ? `&status=${status}` : ""}`}
+                      }${status ? `&status=${status}` : ""}${tag ? `&tag=${tag}` : ""}`}
                     >
                       Previous
                     </Link>
@@ -176,7 +229,7 @@ export default async function ProductsPage({ searchParams }: Props) {
                     <Link
                       href={`/admin/products?page=${currentPage + 1}${
                         search ? `&q=${search}` : ""
-                      }${status ? `&status=${status}` : ""}`}
+                      }${status ? `&status=${status}` : ""}${tag ? `&tag=${tag}` : ""}`}
                     >
                       Next
                     </Link>

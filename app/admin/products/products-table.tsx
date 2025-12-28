@@ -11,6 +11,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+interface Tag {
+  id: number;
+  name: string;
+  color: string | null;
+}
+
+interface TagAssignment {
+  tag: Tag;
+}
+
 interface Product {
   id: number;
   name: string;
@@ -20,6 +30,7 @@ interface Product {
   variants: { id: number; stock: number | null; price: number }[];
   images: { url: string; alt: string | null }[];
   category: { name: string } | null;
+  tagAssignments?: TagAssignment[];
 }
 
 interface Props {
@@ -82,10 +93,36 @@ export function ProductsTable({ products }: Props) {
                     <p className="font-medium text-stone-900 truncate">
                       {product.name}
                     </p>
-                    <p className="text-xs text-stone-500 truncate">
-                      {product.variants.length} variant
-                      {product.variants.length !== 1 ? "s" : ""}
-                    </p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <span className="text-xs text-stone-500">
+                        {product.variants.length} variant
+                        {product.variants.length !== 1 ? "s" : ""}
+                      </span>
+                      {product.tagAssignments && product.tagAssignments.length > 0 && (
+                        <div className="flex items-center gap-1 ml-1">
+                          {product.tagAssignments.slice(0, 3).map((ta) => (
+                            <span
+                              key={ta.tag.id}
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-stone-100"
+                              title={ta.tag.name}
+                            >
+                              <span
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: ta.tag.color || "#6b7280" }}
+                              />
+                              <span className="text-stone-600 truncate max-w-[60px]">
+                                {ta.tag.name}
+                              </span>
+                            </span>
+                          ))}
+                          {product.tagAssignments.length > 3 && (
+                            <span className="text-xs text-stone-400">
+                              +{product.tagAssignments.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </Link>
               </td>
