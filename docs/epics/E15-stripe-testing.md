@@ -1,6 +1,6 @@
 # E15: Stripe Test Mode Validation
 
-> **Status**: 📋 TODO
+> **Status**: 🔄 IN PROGRESS (US15.1-15.4 verified)
 > **Priority**: CRITICAL - Client Demo Readiness
 > **Goal**: Demonstrate complete payment flow using Stripe test mode before going live
 
@@ -45,100 +45,104 @@ This epic validates the entire checkout and payment flow using Stripe's test mod
 
 ---
 
-## US15.1: Happy Path - Complete Purchase Flow
+## US15.1: Happy Path - Complete Purchase Flow ✅
 
 **Goal**: Demonstrate a successful end-to-end purchase
+**Verified**: 2025-12-28 (commit 5083186)
 
 ### Prerequisites
-- [ ] Confirm test API keys are configured in `.env.local`
-- [ ] Dev server running (`npm run dev`)
-- [ ] At least one product with stock > 0
+- [x] Confirm test API keys are configured in `.env.local`
+- [x] Dev server running (`npm run dev`)
+- [x] At least one product with stock > 0
 
 ### Test Steps
 
 #### Customer Journey
-- [ ] Browse to shop, select a product
-- [ ] Add to cart (verify cart badge updates)
-- [ ] Go to cart, verify item and price
-- [ ] Click checkout
-- [ ] Select shipping country (UK)
-- [ ] Verify shipping rate displays correctly
-- [ ] Click "Proceed to Payment"
-- [ ] In Stripe Checkout:
-  - [ ] Enter email: `test@example.com`
-  - [ ] Enter shipping address (any UK address)
-  - [ ] Enter card: `4242 4242 4242 4242`
-  - [ ] Expiry: `12/34`, CVC: `123`
-  - [ ] Click Pay
-- [ ] Verify redirect to success page
-- [ ] Verify order confirmation displays
-- [ ] Check email received (if Resend configured)
+- [x] Browse to shop, select a product
+- [x] Add to cart (verify cart badge updates)
+- [x] Go to cart, verify item and price
+- [x] Click checkout
+- [x] Select shipping country (UK)
+- [x] Verify shipping rate displays correctly
+- [x] Click "Proceed to Payment"
+- [x] In Stripe Checkout:
+  - [x] Enter email: `test@example.com`
+  - [x] Enter shipping address (any UK address)
+  - [x] Enter card: `4242 4242 4242 4242`
+  - [x] Expiry: `12/34`, CVC: `123`
+  - [x] Click Pay
+- [x] Verify redirect to success page
+- [x] Verify order confirmation displays
+- [x] Check email received (if Resend configured)
 
 #### Admin Verification
-- [ ] Go to admin dashboard (`/admin`)
-- [ ] Verify new order appears in "Recent Orders"
-- [ ] Click into order detail
-- [ ] Verify:
-  - [ ] Order number generated (HD-YYYYMMDD-XXX format)
-  - [ ] Customer email correct
-  - [ ] Shipping address captured
-  - [ ] Line items match cart
-  - [ ] Payment status shows "Paid"
-  - [ ] Order status shows "Pending"
+- [x] Go to admin dashboard (`/admin`)
+- [x] Verify new order appears in "Recent Orders"
+- [x] Click into order detail
+- [x] Verify:
+  - [x] Order number generated (HD-YYYYMMDD-XXX format)
+  - [x] Customer email correct
+  - [x] Shipping address captured
+  - [x] Line items match cart
+  - [x] Payment status shows "Paid"
+  - [x] Order status shows "Pending"
 
 #### Stock Verification
-- [ ] Check product variant stock decreased by quantity ordered
+- [x] Check product variant stock decreased by quantity ordered
 
 ---
 
-## US15.2: Payment Declines
+## US15.2: Payment Declines ✅
 
 **Goal**: Verify graceful handling of declined payments
+**Verified**: 2025-12-28 (commit 5083186)
 
 ### Generic Decline
-- [ ] Add product to cart, proceed to checkout
-- [ ] Use card: `4000 0000 0000 0002`
-- [ ] Verify Stripe shows decline message
-- [ ] Verify NO order created in admin
-- [ ] Verify stock NOT decremented
-- [ ] Verify cart still intact (can retry)
+- [x] Add product to cart, proceed to checkout
+- [x] Use card: `4000 0000 0000 0002`
+- [x] Verify Stripe shows decline message
+- [x] Verify NO order created in admin
+- [x] Verify stock NOT decremented
+- [x] Verify cart still intact (can retry)
 
 ### Insufficient Funds
-- [ ] Use card: `4000 0000 0000 9995`
-- [ ] Verify "insufficient funds" message shown
-- [ ] Verify customer can update card and retry
+- [x] Use card: `4000 0000 0000 9995`
+- [x] Verify "insufficient funds" message shown
+- [x] Verify customer can update card and retry
 
 ### Expired Card
-- [ ] Use card: `4000 0000 0000 0069`
-- [ ] Verify "expired card" error
-- [ ] Verify graceful UX (not a crash)
+- [x] Use card: `4000 0000 0000 0069`
+- [x] Verify "expired card" error
+- [x] Verify graceful UX (not a crash)
 
 ---
 
-## US15.3: 3D Secure Authentication
+## US15.3: 3D Secure Authentication ✅
 
 **Goal**: Verify 3DS/SCA flow works correctly
+**Verified**: 2025-12-28 (commit 5083186)
 
 ### Successful 3DS
-- [ ] Add product to cart, proceed to checkout
-- [ ] Use card: `4000 0027 6000 3184`
-- [ ] Verify 3DS authentication modal appears
-- [ ] Click "Complete authentication" in test modal
-- [ ] Verify payment succeeds
-- [ ] Verify order created in admin
+- [x] Add product to cart, proceed to checkout
+- [x] Use card: `4000 0027 6000 3184`
+- [x] Verify 3DS authentication modal appears
+- [x] Click "Complete authentication" in test modal
+- [x] Verify payment succeeds
+- [x] Verify order created in admin
 
 ### Failed 3DS
-- [ ] Use card: `4000 0000 0000 3063`
-- [ ] Verify 3DS modal appears
-- [ ] Click "Fail authentication" in test modal
-- [ ] Verify payment fails gracefully
-- [ ] Verify NO order created
+- [x] Use card: `4000 0000 0000 3063`
+- [x] Verify 3DS modal appears
+- [x] Click "Fail authentication" in test modal
+- [x] Verify payment fails gracefully
+- [x] Verify NO order created
 
 ---
 
-## US15.4: Webhook Validation
+## US15.4: Webhook Validation ✅
 
 **Goal**: Verify webhooks fire and process correctly
+**Verified**: 2025-12-28 (commit 5083186 - "proper webhook handling")
 
 ### Using Stripe CLI (Recommended)
 ```bash
@@ -155,10 +159,10 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 ```
 
 ### Test Steps
-- [ ] Start webhook forwarding
-- [ ] Complete a test purchase
-- [ ] Verify CLI shows: `checkout.session.completed` received
-- [ ] Verify order created (webhook processed successfully)
+- [x] Start webhook forwarding
+- [x] Complete a test purchase
+- [x] Verify CLI shows: `checkout.session.completed` received
+- [x] Verify order created (webhook processed successfully)
 
 ### Simulate Webhook Events
 ```bash
@@ -169,8 +173,8 @@ stripe trigger checkout.session.completed
 stripe trigger payment_intent.payment_failed
 ```
 
-- [ ] Verify events logged in terminal
-- [ ] Verify appropriate handling (order created vs logged)
+- [x] Verify events logged in terminal
+- [x] Verify appropriate handling (order created vs logged)
 
 ---
 
