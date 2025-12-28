@@ -67,7 +67,14 @@ This is a proof-of-concept to validate self-hosting as a viable alternative to S
 
 ## What's Next
 
-### Immediate: Launch Preparation
+### Immediate: Stripe Test Validation (CRITICAL)
+See **[epics/E15-stripe-testing.md](./epics/E15-stripe-testing.md)** for:
+- Complete payment flow testing with test cards
+- Decline handling, 3D Secure, webhooks
+- Client demo script
+- Pre-launch confidence checklist
+
+### Then: Launch Preparation
 See **[LAUNCH_CHECKLIST.md](./LAUNCH_CHECKLIST.md)** for:
 - Stripe production configuration
 - Resend domain verification

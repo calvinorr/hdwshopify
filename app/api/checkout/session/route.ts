@@ -180,8 +180,8 @@ export async function POST(request: NextRequest) {
         cartId: cart.id.toString(),
         sessionId: sessionId,
       },
-      // Enable adaptive pricing for international customers
-      adaptive_pricing: { enabled: true },
+      // Disable adaptive pricing - always charge in GBP
+      // adaptive_pricing: { enabled: true },
     };
 
     // Handle discount code
