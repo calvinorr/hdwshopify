@@ -6,6 +6,7 @@ import { eq, and } from "drizzle-orm";
 import { Header } from "@/components/shop/header";
 import { Footer } from "@/components/shop/footer";
 import { ProductClient } from "./product-client";
+import { RelatedProducts } from "@/components/products/related-products";
 import { getAvailableStockBatch } from "@/lib/db/stock";
 import type { ProductWithRelations } from "@/types/product";
 
@@ -209,6 +210,9 @@ export default async function ProductPage({ params }: PageProps) {
 
             {/* Product Content */}
             <ProductClient product={product} availableStock={availableStock} />
+
+            {/* Related Products */}
+            <RelatedProducts currentSlug={slug} />
           </div>
         </main>
 

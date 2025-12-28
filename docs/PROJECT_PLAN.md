@@ -57,8 +57,21 @@ This is a proof-of-concept to validate self-hosting as a viable alternative to S
 | Epic | Description | Status |
 |------|-------------|--------|
 | E5: Customer Accounts | Login, order history | ✅ Done |
-| E7: Full Migration | Import all products, customers, orders | 🔲 |
+| E7: Full Migration | Import all products, customers, orders | ✅ Done |
 | Email Notifications | Order confirmation, shipping updates | ✅ Done |
+
+### Phase 3: Polish & Admin Excellence (P1)
+
+**Goal**: Professional admin experience, UX improvements
+
+| Epic | Description | Status |
+|------|-------------|--------|
+| E9: UX Improvements | Related products, quick-add, recently viewed | 🚧 In Progress |
+| E14: Collection Management | Status, image upload, ordering, SEO, tags | 📋 TODO |
+
+> **Note (Dec 2024):** Variant-heavy features (color swatches, quick-view modal) have been
+> sidelined. Hand-dyed yarns are unique products - variants don't apply the same way.
+> Focus shifted to professional collection management.
 
 ## Admin Dashboard Scope (E6 - Now P0)
 
@@ -71,11 +84,14 @@ The admin dashboard is now **core functionality**. You should be able to:
 - [ ] Set prices, stock levels, weights
 - [ ] Archive/activate products
 
-### Collections
-- [ ] Create collections (by yarn weight, color family, etc.)
-- [ ] Assign products to collections
-- [ ] Reorder collections
-- [ ] Set collection images and descriptions
+### Collections (see E14 for enhanced features)
+- [x] Create collections (by yarn weight, color family, etc.)
+- [x] Assign products to collections
+- [ ] Reorder collections (drag-drop) → E14
+- [x] Set collection images and descriptions
+- [ ] Collection status (draft/active/hidden) → E14
+- [ ] Stock filtering per collection → E14
+- [ ] Tag management → E14
 
 ### Homepage / Content
 - [ ] Configure hero carousel images

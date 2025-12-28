@@ -3,8 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Plus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useCart } from "@/contexts/cart-context";
+import { toast } from "sonner";
 import type { ProductWithRelations } from "@/types/product";
 
 interface ProductCardProps {
@@ -47,9 +51,17 @@ function getPriceDisplay(variants: ProductWithRelations["variants"], basePrice: 
 
 export function ProductCard({ product, className }: ProductCardProps) {
   const [isHovered, setIsHovered] = React.useState(false);
+  const [isAdding, setIsAdding] = React.useState(false);
+  const { addItem } = useCart();
 
   const stockInfo = getStockStatus(product.variants);
   const priceInfo = getPriceDisplay(product.variants, product.basePrice);
+  const isSoldOut = stockInfo.status === "sold-out";
+
+  // Check if product has a single variant (can quick-add directly)
+  const hasSingleVariant = product.variants.length === 1;
+  const singleVariant = hasSingleVariant ? product.variants[0] : null;
+  const canQuickAdd = hasSingleVariant && !isSoldOut && (singleVariant?.stock ?? 0) > 0;
 
   // Get primary and secondary images (sorted by position)
   const sortedImages = [...product.images].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -60,6 +72,31 @@ export function ProductCard({ product, className }: ProductCardProps) {
     "in-stock": "bg-emerald-100 text-emerald-800 border-emerald-200",
     "low-stock": "bg-amber-100 text-amber-800 border-amber-200",
     "sold-out": "bg-red-100 text-red-800 border-red-200",
+  };
+
+  const handleQuickAdd = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!singleVariant || isAdding) return;
+
+    setIsAdding(true);
+    try {
+      const success = await addItem(singleVariant.id, 1, {
+        name: product.name,
+        variant: singleVariant.name,
+      });
+
+      if (success) {
+        toast.success("Added to cart", {
+          description: `${product.name} - ${singleVariant.name}`,
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to add to cart");
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   return (
@@ -125,6 +162,55 @@ export function ProductCard({ product, className }: ProductCardProps) {
             <Badge className="font-body text-xs bg-primary/90 backdrop-blur-sm">
               Featured
             </Badge>
+          </div>
+        )}
+
+        {/* Quick Add Button */}
+        {!isSoldOut && (
+          <div
+            className={cn(
+              "absolute bottom-3 right-3 transition-all duration-200",
+              // Desktop: show on hover/focus
+              "md:opacity-0 md:translate-y-2 md:group-hover:opacity-100 md:group-hover:translate-y-0",
+              "md:group-focus-within:opacity-100 md:group-focus-within:translate-y-0",
+              // Mobile: always visible (smaller)
+              "opacity-100 translate-y-0"
+            )}
+          >
+            {canQuickAdd ? (
+              <Button
+                size="icon"
+                variant="secondary"
+                className={cn(
+                  "h-9 w-9 md:h-10 md:w-10 rounded-full shadow-md",
+                  "bg-white/90 hover:bg-white text-foreground",
+                  "backdrop-blur-sm"
+                )}
+                onClick={handleQuickAdd}
+                disabled={isAdding}
+                aria-label={`Add ${product.name} to cart`}
+              >
+                {isAdding ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+              </Button>
+            ) : (
+              // Multi-variant: show "+" that links to PDP (the Link wrapper handles it)
+              <div
+                className={cn(
+                  "h-9 w-9 md:h-10 md:w-10 rounded-full shadow-md",
+                  "bg-white/90 text-foreground",
+                  "backdrop-blur-sm",
+                  "flex items-center justify-center",
+                  "pointer-events-none" // Let the parent Link handle the click
+                )}
+                aria-label={`View ${product.name} options`}
+              >
+                <Plus className="h-4 w-4" />
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -1,9 +1,14 @@
 # E9: UX Improvements 🚧 IN PROGRESS
 
 > **Status**: IN PROGRESS
-> **Features**: Color swatches, related products, quick-add, recently viewed
-> **Completed**: US9.1 (Color hex column), US9.2 (Visual color swatches - on hold)
+> **Features**: Related products, quick-add, recently viewed
+> **Completed**: US9.1 (Color hex column), US9.2 (Visual color swatches - on hold), US9.3 (Related products), US9.4 (Quick-add button)
+> **Sidelined**: US9.5 (Quick-View Modal - variant-focused, not needed for unique products)
 > **Future**: US9.8 (Collection-level color swatches)
+
+**Note (Dec 2024):** Variant-heavy features have been sidelined. Hand-dyed yarns are unique
+products where variants (colorways) don't apply the same way as mass-produced goods.
+Focus shifted to collection management (see E14).
 
 **Priority**: P1 (High - Friction Points)
 **Complexity**: Medium
@@ -55,43 +60,48 @@ Implement high-impact UX improvements that reduce friction in the shopping journ
 
 ---
 
-### US9.3: Related Products Component
+### US9.3: Related Products Component ✅
 **As a** customer
 **I want to** see related products on the product detail page
 **So that** I can discover other yarns I might like
 
 **Acceptance Criteria:**
-- [ ] "You may also like" section on product detail page
-- [ ] Displays 4 related products
-- [ ] Algorithm: same category > same yarn weight > newest
-- [ ] Excludes current product from results
-- [ ] Horizontal scroll on mobile, grid on desktop
-- [ ] Uses existing ProductCard component
-- [ ] Lazy loaded (below the fold)
+- [x] "You may also like" section on product detail page
+- [x] Displays 4 related products
+- [x] Algorithm: same category > same yarn weight > newest
+- [x] Excludes current product from results
+- [x] Horizontal scroll on mobile, grid on desktop
+- [x] Uses existing ProductCard component
+- [x] Lazy loaded (below the fold)
 
 ---
 
-### US9.4: Quick-Add-to-Cart Button
+### US9.4: Quick-Add-to-Cart Button ✅
 **As a** customer
 **I want to** add products to cart from the listing page
 **So that** I don't have to visit each product page
 
 **Acceptance Criteria:**
-- [ ] "Add to Cart" or "+" button appears on product card hover
-- [ ] Single-variant products: add directly to cart
-- [ ] Multi-variant products: open quick-view modal or link to PDP
-- [ ] Button positioned at bottom of product image
-- [ ] Shows on keyboard focus for accessibility
-- [ ] Mobile: always visible as smaller button
-- [ ] Shows loading state during add
-- [ ] Triggers success toast on add
+- [x] "Add to Cart" or "+" button appears on product card hover
+- [x] Single-variant products: add directly to cart
+- [x] Multi-variant products: open quick-view modal or link to PDP (links to PDP until US9.5 implemented)
+- [x] Button positioned at bottom of product image
+- [x] Shows on keyboard focus for accessibility
+- [x] Mobile: always visible as smaller button
+- [x] Shows loading state during add
+- [x] Triggers success toast on add
 
 ---
 
-### US9.5: Quick-View Modal
+### US9.5: Quick-View Modal ⏸️ SIDELINED
 **As a** customer
 **I want to** see product details and select variants without leaving the listing
 **So that** I can quickly add items to my cart
+
+> **Sidelined (Dec 2024):** This feature is primarily useful for multi-variant products
+> where customers need to select options. Since Herbarium sells unique hand-dyed items
+> without meaningful variants, this feature adds complexity without proportional value.
+> Multi-variant products currently link to PDP which works well enough.
 
 **Acceptance Criteria:**
 - [ ] Modal opens from quick-add on multi-variant products
