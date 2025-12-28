@@ -175,13 +175,24 @@ async function getCollection(slug: string): Promise<{
     });
 
     // Filter to only active products
-    const activeProducts = categoryProducts.filter(
+    let filteredProducts = categoryProducts.filter(
       (p) => p.status === "active"
     ) as ProductWithRelations[];
 
+    // If hideOutOfStock is enabled, filter out products with no stock
+    if (category.hideOutOfStock) {
+      filteredProducts = filteredProducts.filter((product) => {
+        const totalStock = product.variants.reduce(
+          (sum, v) => sum + (v.stock ?? 0),
+          0
+        );
+        return totalStock > 0;
+      });
+    }
+
     return {
       collection: category as CollectionWithChildren,
-      products: activeProducts,
+      products: filteredProducts,
     };
   } catch (error) {
     console.warn("Could not fetch collection:", error);

@@ -103,17 +103,17 @@ Professional-grade collection management for the admin dashboard. Makes it easy 
 
 ---
 
-### US14.5: Collection Stock Filtering ✅ P1
+### US14.5: Collection Stock Filtering ✅ COMPLETE
 **As an** admin
 **I want to** configure how collections handle out-of-stock products
 **So that** I can show/hide sold-out items per collection
 
 **Acceptance Criteria:**
-- [ ] Collection setting: "Show out-of-stock products" (yes/no)
-- [ ] When "no": only in-stock products appear in collection
-- [ ] When "yes": all products appear, out-of-stock shown with badge
-- [ ] Default: show all (existing behavior)
-- [ ] Stock status updates in real-time (no cache issues)
+- [x] Collection setting: "Show out-of-stock products" (yes/no)
+- [x] When "no": only in-stock products appear in collection
+- [x] When "yes": all products appear, out-of-stock shown with badge
+- [x] Default: show all (existing behavior)
+- [x] Stock status updates in real-time (no cache issues)
 
 **Technical Notes:**
 - Add `hideOutOfStock` boolean to categories
