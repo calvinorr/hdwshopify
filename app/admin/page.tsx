@@ -1,59 +1,139 @@
 import { db } from "@/lib/db";
-import { products, productVariants, categories, orders } from "@/lib/db/schema";
-import { count, sum, eq, lt } from "drizzle-orm";
-import { Package, FolderTree, AlertTriangle, ShoppingCart } from "lucide-react";
+import { products, productVariants, orders } from "@/lib/db/schema";
+import { count, sum, eq, lt, and, gte, inArray, sql } from "drizzle-orm";
+import {
+  Package,
+  AlertTriangle,
+  ShoppingCart,
+  PoundSterling,
+  Clock,
+  TrendingUp,
+  Truck
+} from "lucide-react";
 import Link from "next/link";
 
 async function getStats() {
-  const [productCount] = await db
-    .select({ count: count() })
-    .from(products);
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [variantCount] = await db
-    .select({ count: count() })
-    .from(productVariants);
+  const [
+    todayOrders,
+    todayRevenue,
+    monthRevenue,
+    pendingOrders,
+    lowStockCount,
+  ] = await Promise.all([
+    // Today's orders (paid only)
+    db
+      .select({ count: count() })
+      .from(orders)
+      .where(
+        and(
+          gte(orders.createdAt, todayStart.toISOString()),
+          eq(orders.paymentStatus, "paid")
+        )
+      ),
 
-  const [categoryCount] = await db
-    .select({ count: count() })
-    .from(categories);
+    // Today's revenue
+    db
+      .select({ total: sum(orders.total) })
+      .from(orders)
+      .where(
+        and(
+          gte(orders.createdAt, todayStart.toISOString()),
+          eq(orders.paymentStatus, "paid")
+        )
+      ),
 
-  const [lowStockCount] = await db
-    .select({ count: count() })
-    .from(productVariants)
-    .where(lt(productVariants.stock, 5));
+    // Month's revenue
+    db
+      .select({ total: sum(orders.total) })
+      .from(orders)
+      .where(
+        and(
+          gte(orders.createdAt, monthStart.toISOString()),
+          eq(orders.paymentStatus, "paid")
+        )
+      ),
 
-  const [activeProductCount] = await db
-    .select({ count: count() })
-    .from(products)
-    .where(eq(products.status, "active"));
+    // Pending fulfillment (paid but not shipped)
+    db
+      .select({ count: count() })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.paymentStatus, "paid"),
+          inArray(orders.status, ["pending", "processing"])
+        )
+      ),
+
+    // Low stock variants
+    db
+      .select({ count: count() })
+      .from(productVariants)
+      .where(lt(productVariants.stock, 5)),
+  ]);
 
   return {
-    products: productCount.count,
-    variants: variantCount.count,
-    categories: categoryCount.count,
-    lowStock: lowStockCount.count,
-    activeProducts: activeProductCount.count,
+    todayOrders: todayOrders[0].count,
+    todayRevenue: Number(todayRevenue[0].total) || 0,
+    monthRevenue: Number(monthRevenue[0].total) || 0,
+    pendingOrders: pendingOrders[0].count,
+    lowStock: lowStockCount[0].count,
   };
 }
 
-async function getRecentProducts() {
-  const recentProducts = await db.query.products.findMany({
+async function getPendingOrders() {
+  const pendingOrders = await db.query.orders.findMany({
+    where: and(
+      eq(orders.paymentStatus, "paid"),
+      inArray(orders.status, ["pending", "processing"])
+    ),
+    orderBy: (orders, { asc }) => [asc(orders.createdAt)],
     limit: 5,
-    orderBy: (products, { desc }) => [desc(products.updatedAt)],
+  });
+
+  return pendingOrders;
+}
+
+async function getLowStockItems() {
+  const lowStockVariants = await db.query.productVariants.findMany({
+    where: lt(productVariants.stock, 5),
+    orderBy: (variants, { asc }) => [asc(variants.stock)],
+    limit: 5,
     with: {
-      variants: true,
-      images: {
-        limit: 1,
-      },
+      product: true,
     },
   });
 
-  return recentProducts;
+  return lowStockVariants;
+}
+
+function getOrderUrgency(createdAt: string): { level: "normal" | "warning" | "urgent"; days: number } {
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now.getTime() - created.getTime();
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (days >= 5) return { level: "urgent", days };
+  if (days >= 2) return { level: "warning", days };
+  return { level: "normal", days };
+}
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+  }).format(amount);
 }
 
 export default async function AdminDashboard() {
-  const stats = await getStats();
-  const recentProducts = await getRecentProducts();
+  const [stats, pendingOrders, lowStockItems] = await Promise.all([
+    getStats(),
+    getPendingOrders(),
+    getLowStockItems(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -63,117 +143,199 @@ export default async function AdminDashboard() {
           Dashboard
         </h1>
         <p className="text-stone-600 mt-1">
-          Welcome to your store admin
+          {new Date().toLocaleDateString("en-GB", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          })}
         </p>
       </div>
 
       {/* Stats grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
-          title="Total Products"
-          value={stats.products}
-          subtitle={`${stats.activeProducts} active`}
-          icon={Package}
-          href="/admin/products"
+          title="Orders Today"
+          value={stats.todayOrders.toString()}
+          icon={ShoppingCart}
+          href="/admin/orders"
         />
         <StatCard
-          title="Variants"
-          value={stats.variants}
-          subtitle="Across all products"
-          icon={Package}
-          href="/admin/products"
+          title="Revenue Today"
+          value={formatCurrency(stats.todayRevenue)}
+          icon={PoundSterling}
+          href="/admin/orders"
         />
         <StatCard
-          title="Collections"
-          value={stats.categories}
-          subtitle="Product categories"
-          icon={FolderTree}
-          href="/admin/collections"
+          title="Revenue This Month"
+          value={formatCurrency(stats.monthRevenue)}
+          icon={TrendingUp}
+          href="/admin/orders"
+        />
+        <StatCard
+          title="Pending Fulfillment"
+          value={stats.pendingOrders.toString()}
+          icon={Truck}
+          href="/admin/orders?status=pending"
+          alert={stats.pendingOrders > 0}
         />
         <StatCard
           title="Low Stock"
-          value={stats.lowStock}
-          subtitle="Items below 5 units"
+          value={stats.lowStock.toString()}
           icon={AlertTriangle}
           href="/admin/inventory"
           alert={stats.lowStock > 0}
         />
       </div>
 
-      {/* Recent products */}
-      <div className="bg-white rounded-lg border shadow-sm">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="font-heading font-medium text-stone-900">
-            Recent Products
-          </h2>
-          <Link
-            href="/admin/products"
-            className="text-sm text-primary hover:underline"
-          >
-            View all
-          </Link>
-        </div>
-        <div className="divide-y">
-          {recentProducts.length === 0 ? (
-            <div className="p-8 text-center text-stone-500">
-              No products yet.{" "}
-              <Link href="/admin/products/new" className="text-primary hover:underline">
-                Add your first product
-              </Link>
-            </div>
-          ) : (
-            recentProducts.map((product) => (
-              <Link
-                key={product.id}
-                href={`/admin/products/${product.id}`}
-                className="flex items-center gap-4 p-4 hover:bg-stone-50 transition-colors"
-              >
-                {/* Image */}
-                <div className="h-12 w-12 rounded-lg bg-stone-100 overflow-hidden flex-shrink-0">
-                  {product.images[0] ? (
-                    <img
-                      src={product.images[0].url}
-                      alt={product.name}
-                      className="h-full w-full object-cover"
+      {/* Main content grid */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Orders needing attention */}
+        <div className="bg-white rounded-lg border shadow-sm">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h2 className="font-heading font-medium text-stone-900">
+              Orders Needing Attention
+            </h2>
+            <Link
+              href="/admin/orders"
+              className="text-sm text-primary hover:underline"
+            >
+              View all
+            </Link>
+          </div>
+          <div className="divide-y">
+            {pendingOrders.length === 0 ? (
+              <div className="p-8 text-center text-stone-500">
+                <Truck className="h-8 w-8 mx-auto mb-2 text-stone-300" />
+                <p>All caught up! No orders pending.</p>
+              </div>
+            ) : (
+              pendingOrders.map((order) => {
+                const urgency = getOrderUrgency(order.createdAt!);
+                const shippingAddress = JSON.parse(order.shippingAddress);
+
+                return (
+                  <div
+                    key={order.id}
+                    className="flex items-center gap-4 p-4 hover:bg-stone-50 transition-colors"
+                  >
+                    {/* Urgency indicator */}
+                    <div
+                      className={`flex-shrink-0 w-1 h-12 rounded-full ${
+                        urgency.level === "urgent"
+                          ? "bg-red-500"
+                          : urgency.level === "warning"
+                          ? "bg-amber-500"
+                          : "bg-green-500"
+                      }`}
                     />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center">
-                      <Package className="h-5 w-5 text-stone-400" />
+
+                    {/* Order info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-stone-900">
+                          #{order.orderNumber}
+                        </p>
+                        <span className="text-stone-400">·</span>
+                        <p className="text-stone-600 truncate">
+                          {shippingAddress.firstName} {shippingAddress.lastName}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-stone-500">
+                        <span>{formatCurrency(order.total)}</span>
+                        <span className="text-stone-400">·</span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {urgency.days === 0
+                            ? "Today"
+                            : urgency.days === 1
+                            ? "1 day ago"
+                            : `${urgency.days} days ago`}
+                        </span>
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-stone-900 truncate">
-                    {product.name}
-                  </p>
-                  <p className="text-sm text-stone-500">
-                    {product.variants.length} variant{product.variants.length !== 1 ? "s" : ""} · £
-                    {product.basePrice.toFixed(2)}
-                  </p>
-                </div>
+                    {/* Action */}
+                    <Link
+                      href={`/admin/orders/${order.id}`}
+                      className="flex-shrink-0 px-3 py-1.5 text-sm font-medium bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
+                    >
+                      Ship
+                    </Link>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
 
-                {/* Status */}
-                <span
-                  className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    product.status === "active"
-                      ? "bg-green-100 text-green-700"
-                      : product.status === "draft"
-                      ? "bg-stone-100 text-stone-600"
-                      : "bg-red-100 text-red-700"
-                  }`}
+        {/* Low stock items */}
+        <div className="bg-white rounded-lg border shadow-sm">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h2 className="font-heading font-medium text-stone-900">
+              Low Stock Items
+            </h2>
+            <Link
+              href="/admin/inventory"
+              className="text-sm text-primary hover:underline"
+            >
+              View inventory
+            </Link>
+          </div>
+          <div className="divide-y">
+            {lowStockItems.length === 0 ? (
+              <div className="p-8 text-center text-stone-500">
+                <Package className="h-8 w-8 mx-auto mb-2 text-stone-300" />
+                <p>Stock levels looking good!</p>
+              </div>
+            ) : (
+              lowStockItems.map((variant) => (
+                <Link
+                  key={variant.id}
+                  href={`/admin/products/${variant.productId}`}
+                  className="flex items-center gap-4 p-4 hover:bg-stone-50 transition-colors"
                 >
-                  {product.status}
-                </span>
-              </Link>
-            ))
-          )}
+                  {/* Stock level indicator */}
+                  <div
+                    className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center font-semibold ${
+                      (variant.stock ?? 0) === 0
+                        ? "bg-red-100 text-red-700"
+                        : (variant.stock ?? 0) <= 2
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-stone-100 text-stone-700"
+                    }`}
+                  >
+                    {variant.stock ?? 0}
+                  </div>
+
+                  {/* Item info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-stone-900 truncate">
+                      {variant.product.name}
+                    </p>
+                    <p className="text-sm text-stone-500 truncate">
+                      {variant.name}
+                    </p>
+                  </div>
+
+                  {/* Status */}
+                  <span
+                    className={`flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full ${
+                      (variant.stock ?? 0) === 0
+                        ? "bg-red-100 text-red-700"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {(variant.stock ?? 0) === 0 ? "Out of stock" : "Low stock"}
+                  </span>
+                </Link>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
       {/* Quick actions */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3">
         <QuickAction
           title="Add Product"
           description="Create a new product listing"
@@ -181,16 +343,16 @@ export default async function AdminDashboard() {
           icon={Package}
         />
         <QuickAction
-          title="Import from Shopify"
-          description="Sync products from your Shopify store"
-          href="/admin/settings/import"
+          title="View All Orders"
+          description="Manage orders and fulfillment"
+          href="/admin/orders"
           icon={ShoppingCart}
         />
         <QuickAction
-          title="Manage Collections"
-          description="Organize products into collections"
-          href="/admin/collections"
-          icon={FolderTree}
+          title="Manage Inventory"
+          description="Check and update stock levels"
+          href="/admin/inventory"
+          icon={AlertTriangle}
         />
       </div>
     </div>
@@ -200,14 +362,12 @@ export default async function AdminDashboard() {
 function StatCard({
   title,
   value,
-  subtitle,
   icon: Icon,
   href,
   alert,
 }: {
   title: string;
-  value: number;
-  subtitle: string;
+  value: string;
   icon: React.ComponentType<{ className?: string }>;
   href: string;
   alert?: boolean;
@@ -221,7 +381,6 @@ function StatCard({
         <div>
           <p className="text-sm text-stone-600">{title}</p>
           <p className="text-2xl font-semibold text-stone-900 mt-1">{value}</p>
-          <p className="text-xs text-stone-500 mt-1">{subtitle}</p>
         </div>
         <div
           className={`p-2 rounded-lg ${

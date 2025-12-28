@@ -1,7 +1,7 @@
 # E6: Admin Dashboard ✅ MOSTLY COMPLETE
 
 > **Status**: MOSTLY COMPLETE
-> **Remaining**: Revenue stats on dashboard, bulk actions, image reordering
+> **Remaining**: Bulk actions
 
 **Priority**: P1
 **Complexity**: High
@@ -30,11 +30,11 @@ Admin access is controlled via Clerk organizations or a simple email allowlist. 
 **So that** I understand store status at a glance
 
 **Acceptance Criteria:**
-- [ ] Today's orders count and revenue
-- [ ] Orders pending fulfillment
-- [ ] Low stock alerts
-- [ ] Recent orders list
-- [ ] 7-day revenue chart (stretch)
+- [x] Today's orders count and revenue
+- [x] Orders pending fulfillment (with urgency indicators)
+- [x] Low stock alerts (with specific items)
+- [x] Recent orders list (pending orders needing attention)
+- [ ] 7-day revenue chart (stretch - deferred)
 
 ### US6.2: Product Management
 **As an** admin
@@ -69,12 +69,12 @@ Admin access is controlled via Clerk organizations or a simple email allowlist. 
 **So that** customers can see the products
 
 **Acceptance Criteria:**
-- [ ] Drag-and-drop image upload
-- [ ] Multiple images per product
+- [x] Drag-and-drop image upload
+- [x] Multiple images per product
 - [ ] Assign images to specific variants
-- [ ] Reorder images
+- [x] Reorder images (drag-drop with position indicators)
 - [ ] Set alt text
-- [ ] Delete images
+- [x] Delete images
 - [ ] Image optimization on upload
 
 ### US6.5: Order Management

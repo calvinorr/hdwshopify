@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ImageUpload } from "@/components/admin/image-upload";
+import { SortableImageGrid } from "@/components/admin/sortable-image-grid";
 
 // Client-side form schema
 const variantFormSchema = z.object({
@@ -595,43 +596,36 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
 
           {/* Images */}
           <div className="bg-white rounded-lg border p-6 space-y-4">
-            <h2 className="font-medium text-stone-900">Images</h2>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {imageFields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="relative aspect-square rounded-lg overflow-hidden bg-stone-100 group"
-                >
-                  <img
-                    src={watch(`images.${index}.url`)}
-                    alt={watch(`images.${index}.alt`) || "Product image"}
-                    className="h-full w-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    className="absolute top-2 right-2 p-1.5 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-                    onClick={() => removeImage(index)}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-
-              {/* Add new image */}
-              <ImageUpload
-                value={undefined}
-                onChange={(url) => {
-                  if (url) {
-                    setValue("images", [
-                      ...watch("images") || [],
-                      { url, alt: "", position: imageFields.length },
-                    ]);
-                  }
-                }}
-                aspectRatio="square"
-              />
+            <div className="flex items-center justify-between">
+              <h2 className="font-medium text-stone-900">Images</h2>
+              {imageFields.length > 1 && (
+                <p className="text-xs text-stone-500">
+                  Drag to reorder · First image is the main product photo
+                </p>
+              )}
             </div>
+
+            <SortableImageGrid
+              images={watch("images") || []}
+              onReorder={(reorderedImages) => {
+                setValue("images", reorderedImages);
+              }}
+              onRemove={(index) => removeImage(index)}
+              renderUploader={() => (
+                <ImageUpload
+                  value={undefined}
+                  onChange={(url) => {
+                    if (url) {
+                      setValue("images", [
+                        ...watch("images") || [],
+                        { url, alt: "", position: imageFields.length },
+                      ]);
+                    }
+                  }}
+                  aspectRatio="square"
+                />
+              )}
+            />
 
             {imageFields.length === 0 && (
               <p className="text-sm text-stone-500 text-center">
