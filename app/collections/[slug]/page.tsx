@@ -73,8 +73,10 @@ export async function generateMetadata({
       };
     }
 
-    const title = `${category.name} | Herbarium Dyeworks`;
+    // Use custom SEO fields if set, otherwise fall back to collection name/description
+    const title = category.metaTitle || `${category.name} | Herbarium Dyeworks`;
     const description =
+      category.metaDescription ||
       category.description ||
       `Shop our ${category.name} collection of naturally dyed yarns.`;
 
@@ -84,6 +86,9 @@ export async function generateMetadata({
       openGraph: {
         title,
         description,
+        ...(category.image && {
+          images: [{ url: category.image, alt: category.name }],
+        }),
       },
     };
   } catch {

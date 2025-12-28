@@ -84,17 +84,17 @@ Professional-grade collection management for the admin dashboard. Makes it easy 
 
 ---
 
-### US14.4: Collection SEO Fields ✅ P1
+### US14.4: Collection SEO Fields ✅ COMPLETE
 **As an** admin
 **I want to** set SEO meta tags for collections
 **So that** collection pages rank well in search engines
 
 **Acceptance Criteria:**
-- [ ] Meta title field (with character count)
-- [ ] Meta description field (with character count)
-- [ ] Preview of how it appears in Google
-- [ ] Auto-generate from collection name/description if empty
-- [ ] OG image uses collection image by default
+- [x] Meta title field (with character count)
+- [x] Meta description field (with character count)
+- [x] Preview of how it appears in Google
+- [x] Auto-generate from collection name/description if empty
+- [x] OG image uses collection image by default
 
 **Technical Notes:**
 - Add `metaTitle`, `metaDescription` columns to categories

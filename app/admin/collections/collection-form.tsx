@@ -426,6 +426,62 @@ export function CollectionForm({
             </div>
           </div>
 
+          {/* SEO */}
+          <div className="bg-white rounded-lg border p-6 space-y-4">
+            <h2 className="font-medium text-stone-900">Search Engine Listing</h2>
+
+            {/* Google Preview */}
+            <div className="bg-stone-50 rounded-lg p-4 space-y-1">
+              <p className="text-xs text-stone-400 mb-2">Preview</p>
+              <p className="text-blue-700 text-lg leading-tight truncate hover:underline cursor-pointer">
+                {metaTitle || name || "Collection Title"}
+              </p>
+              <p className="text-green-700 text-sm truncate">
+                herbarium-dyeworks.warmwetcircles.com › collections › {slug || "collection"}
+              </p>
+              <p className="text-stone-600 text-sm line-clamp-2">
+                {metaDescription || description || "Add a meta description to help your collection appear in search results."}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="metaTitle">Meta Title</Label>
+                <span className={`text-xs ${metaTitle.length > 60 ? "text-red-500" : "text-stone-400"}`}>
+                  {metaTitle.length}/60
+                </span>
+              </div>
+              <Input
+                id="metaTitle"
+                value={metaTitle}
+                onChange={(e) => setMetaTitle(e.target.value)}
+                placeholder={name || "Collection name"}
+              />
+              <p className="text-xs text-stone-500">
+                Leave blank to use collection name
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="metaDescription">Meta Description</Label>
+                <span className={`text-xs ${metaDescription.length > 160 ? "text-red-500" : "text-stone-400"}`}>
+                  {metaDescription.length}/160
+                </span>
+              </div>
+              <Textarea
+                id="metaDescription"
+                value={metaDescription}
+                onChange={(e) => setMetaDescription(e.target.value)}
+                placeholder={description || "Describe this collection for search engines..."}
+                rows={3}
+              />
+              <p className="text-xs text-stone-500">
+                Leave blank to use collection description
+              </p>
+            </div>
+          </div>
+
           {/* Quick stats */}
           {mode === "edit" && (
             <div className="bg-white rounded-lg border p-6 space-y-4">
