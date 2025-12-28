@@ -7,12 +7,11 @@ import {
   ArrowLeft,
   Save,
   Trash2,
-  Plus,
-  X,
   FolderTree,
   Search,
   Check,
 } from "lucide-react";
+import { ImageUpload } from "@/components/admin/image-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -255,22 +254,13 @@ export function CollectionForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="image">Collection Image URL</Label>
-              <Input
-                id="image"
-                value={image}
-                onChange={(e) => setImage(e.target.value)}
-                placeholder="https://..."
+              <Label>Collection Image</Label>
+              <ImageUpload
+                value={image || undefined}
+                onChange={(url) => setImage(url || "")}
+                aspectRatio="landscape"
+                disabled={saving}
               />
-              {image && (
-                <div className="mt-2 aspect-video max-w-xs rounded-lg overflow-hidden bg-stone-100">
-                  <img
-                    src={image}
-                    alt="Collection preview"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              )}
             </div>
           </div>
 

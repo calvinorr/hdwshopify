@@ -42,19 +42,19 @@ Professional-grade collection management for the admin dashboard. Makes it easy 
 
 ---
 
-### US14.2: Collection Image Upload ✅ P0
+### US14.2: Collection Image Upload ✅ COMPLETE
 **As an** admin
 **I want to** upload collection images directly
 **So that** I don't have to manually host images elsewhere
 
 **Acceptance Criteria:**
-- [ ] Drag-and-drop image upload zone
-- [ ] Click to browse file picker
-- [ ] Image preview after upload
-- [ ] Remove/replace image button
-- [ ] Loading state during upload
-- [ ] Error handling for failed uploads
-- [ ] Accepts common formats (jpg, png, webp)
+- [x] Drag-and-drop image upload zone
+- [x] Click to browse file picker
+- [x] Image preview after upload
+- [x] Remove/replace image button
+- [x] Loading state during upload
+- [x] Error handling for failed uploads
+- [x] Accepts common formats (jpg, png, webp)
 
 **Technical Notes:**
 - Use existing Vercel Blob upload infrastructure
