@@ -141,18 +141,18 @@ Professional-grade collection management for the admin dashboard. Makes it easy 
 
 ---
 
-### US14.7: Product Tag Management ✅ P2
+### US14.7: Product Tag Management ✅ COMPLETE
 **As an** admin
 **I want to** create and assign tags to products
 **So that** I can group products flexibly beyond collections
 
 **Acceptance Criteria:**
-- [ ] Tag management page in admin
-- [ ] Create new tags with name and optional color
-- [ ] Assign tags to products (multi-select)
-- [ ] Filter products by tag in admin
-- [ ] Tags visible on product cards (optional)
-- [ ] Delete tags (with confirmation)
+- [x] Tag management page in admin (Settings → Taxonomies → Tags tab)
+- [x] Create new tags with name and optional color
+- [x] Assign tags to products (multi-select in product form sidebar)
+- [x] Filter products by tag in admin
+- [x] Tags visible on product cards (in admin product list)
+- [x] Delete tags (with confirmation showing product count)
 
 **Technical Notes:**
 - Schema already exists: `productTags`, `productTagAssignments`
@@ -245,4 +245,5 @@ lib/actions/collections.ts          # Server actions for reordering
 - [x] No regressions in existing functionality
 
 **Completed:** 2025-12-28
-**Remaining:** US14.7 (P2 Tag Management) and US14.8 (Future Smart Collections) deferred
+**Update:** US14.7 (Tag Management) completed 2025-12-28
+**Remaining:** US14.8 (Future Smart Collections) deferred
