@@ -1,6 +1,6 @@
-# E14: Collection Management System 📋 TODO
+# E14: Collection Management System 🚧 IN PROGRESS
 
-> **Status**: TODO
+> **Status**: IN PROGRESS
 > **Priority**: P0 (High - Core Admin Feature)
 > **Features**: Collection status, image upload, drag-drop ordering, SEO, stock filtering, tagging
 
@@ -21,19 +21,19 @@ Professional-grade collection management for the admin dashboard. Makes it easy 
 
 ## User Stories
 
-### US14.1: Collection Status & Visibility ✅ P0
+### US14.1: Collection Status & Visibility ✅ COMPLETE
 **As an** admin
 **I want to** set collection status (draft/active/hidden)
 **So that** I can prepare collections before publishing and hide them when needed
 
 **Acceptance Criteria:**
-- [ ] Add `status` field to collections schema (draft/active/archived)
-- [ ] Status selector in collection form (dropdown)
-- [ ] Draft collections not visible on storefront
-- [ ] Archived/hidden collections not visible on storefront
-- [ ] Status badge shown in admin collection list
-- [ ] Filter collections by status in admin
-- [ ] Bulk status change (select multiple → change status)
+- [x] Add `status` field to collections schema (draft/active/archived)
+- [x] Status selector in collection form (dropdown)
+- [x] Draft collections not visible on storefront
+- [x] Archived/hidden collections not visible on storefront
+- [x] Status badge shown in admin collection list
+- [x] Filter collections by status in admin
+- [ ] Bulk status change (select multiple → change status) - deferred
 
 **Technical Notes:**
 - Add `status` column to `categories` table
