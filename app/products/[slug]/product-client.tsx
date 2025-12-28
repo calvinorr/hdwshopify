@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ProductGallery } from "@/components/products/product-gallery";
 import { ProductInfo } from "@/components/products/product-info";
 import { VariantSelector } from "@/components/products/variant-selector";
 import { AddToCart } from "@/components/products/add-to-cart";
 import { useCart } from "@/contexts/cart-context";
+import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
 import type { ProductWithRelations } from "@/types/product";
 
 interface ProductClientProps {
@@ -15,6 +16,23 @@ interface ProductClientProps {
 
 export function ProductClient({ product, availableStock }: ProductClientProps) {
   const { addItem } = useCart();
+  const { addProduct } = useRecentlyViewed();
+
+  // Track this product as viewed
+  useEffect(() => {
+    const firstImage = product.images[0];
+    const lowestPrice = product.variants.length
+      ? Math.min(...product.variants.map((v) => v.price))
+      : product.basePrice;
+
+    addProduct({
+      slug: product.slug,
+      name: product.name,
+      image: firstImage?.url ?? null,
+      price: lowestPrice,
+      category: product.category?.name,
+    });
+  }, [product, addProduct]);
 
   // Default to first variant if available
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(

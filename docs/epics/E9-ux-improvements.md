@@ -1,8 +1,8 @@
-# E9: UX Improvements 🚧 IN PROGRESS
+# E9: UX Improvements ✅ COMPLETE
 
-> **Status**: IN PROGRESS
+> **Status**: COMPLETE
 > **Features**: Related products, quick-add, recently viewed
-> **Completed**: US9.1 (Color hex column), US9.2 (Visual color swatches - on hold), US9.3 (Related products), US9.4 (Quick-add button)
+> **Completed**: US9.1, US9.2 (on hold), US9.3, US9.4, US9.6, US9.7
 > **Sidelined**: US9.5 (Quick-View Modal - variant-focused, not needed for unique products)
 > **Future**: US9.8 (Collection-level color swatches)
 
@@ -114,32 +114,32 @@ Implement high-impact UX improvements that reduce friction in the shopping journ
 
 ---
 
-### US9.6: Track Recently Viewed Products
+### US9.6: Track Recently Viewed Products ✅
 **As a** customer
 **I want to** my recently viewed products to be remembered
 **So that** I can easily find items I was looking at
 
 **Acceptance Criteria:**
-- [ ] Track last 10 viewed products in localStorage
-- [ ] Store: productSlug, productName, image, price, timestamp
-- [ ] Update on product detail page visit
-- [ ] Deduplicate (move to front if re-viewed)
-- [ ] Expire entries older than 30 days
+- [x] Track last 10 viewed products in localStorage
+- [x] Store: productSlug, productName, image, price, timestamp
+- [x] Update on product detail page visit
+- [x] Deduplicate (move to front if re-viewed)
+- [x] Expire entries older than 30 days
 
 ---
 
-### US9.7: Recently Viewed Section
+### US9.7: Recently Viewed Section ✅
 **As a** customer
 **I want to** see my recently viewed products
 **So that** I can return to items I was considering
 
 **Acceptance Criteria:**
-- [ ] "Recently Viewed" section displays on product detail pages
-- [ ] Shows up to 4 products
-- [ ] Hidden if no viewing history
-- [ ] Uses ProductCard component
-- [ ] Positioned below main product content
-- [ ] Optional: also show on homepage
+- [x] "Recently Viewed" section displays on product detail pages
+- [x] Shows up to 4 products
+- [x] Hidden if no viewing history
+- [x] Uses ProductCard component
+- [x] Positioned below main product content
+- [ ] Optional: also show on homepage (future enhancement)
 
 ---
 

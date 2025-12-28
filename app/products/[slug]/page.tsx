@@ -7,6 +7,7 @@ import { Header } from "@/components/shop/header";
 import { Footer } from "@/components/shop/footer";
 import { ProductClient } from "./product-client";
 import { RelatedProducts } from "@/components/products/related-products";
+import { RecentlyViewed } from "@/components/products/recently-viewed";
 import { getAvailableStockBatch } from "@/lib/db/stock";
 import type { ProductWithRelations } from "@/types/product";
 
@@ -213,6 +214,9 @@ export default async function ProductPage({ params }: PageProps) {
 
             {/* Related Products */}
             <RelatedProducts currentSlug={slug} />
+
+            {/* Recently Viewed */}
+            <RecentlyViewed currentSlug={slug} />
           </div>
         </main>
 
