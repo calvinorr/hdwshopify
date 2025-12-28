@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+// Collection status enum
+export const collectionStatusEnum = z.enum(["draft", "active", "archived"]);
+
 // Create collection (category) schema
 export const createCollectionSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
@@ -15,6 +18,12 @@ export const createCollectionSchema = z.object({
   image: z.string().url("Invalid image URL").optional().nullable(),
   parentId: z.number().int().positive().optional().nullable(),
   position: z.number().int().min(0).default(0),
+  // E14: Collection management fields
+  status: collectionStatusEnum.default("active"),
+  metaTitle: z.string().max(60, "Meta title should be under 60 characters").optional().nullable(),
+  metaDescription: z.string().max(160, "Meta description should be under 160 characters").optional().nullable(),
+  featured: z.boolean().default(false),
+  hideOutOfStock: z.boolean().default(false),
   // Product assignments
   productIds: z.array(z.number().int().positive()).optional(),
 });

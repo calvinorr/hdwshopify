@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, categories } from "@/lib/db";
+import { eq } from "drizzle-orm";
 
 export async function GET() {
   try {
-    // Fetch all categories with their parent/children hierarchy
+    // Fetch only active categories with their parent/children hierarchy
     const allCategories = await db.query.categories.findMany({
+      where: eq(categories.status, "active"),
       orderBy: (categories, { asc }) => [asc(categories.position)],
       with: {
         parent: true,
         children: {
+          where: eq(categories.status, "active"),
           orderBy: (categories, { asc }) => [asc(categories.position)],
         },
       },

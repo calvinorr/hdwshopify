@@ -2,8 +2,9 @@ import { db } from "@/lib/db";
 import { categories, products } from "@/lib/db/schema";
 import { desc, eq, count } from "drizzle-orm";
 import Link from "next/link";
-import { Plus, FolderTree, MoreHorizontal, Edit, Trash2, Image as ImageIcon } from "lucide-react";
+import { Plus, FolderTree, MoreHorizontal, Edit, Trash2, Image as ImageIcon, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,14 +13,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-async function getCollections() {
+const statusConfig = {
+  draft: { label: "Draft", className: "bg-yellow-100 text-yellow-800 border-yellow-200" },
+  active: { label: "Active", className: "bg-green-100 text-green-800 border-green-200" },
+  archived: { label: "Archived", className: "bg-stone-100 text-stone-600 border-stone-200" },
+} as const;
+
+async function getCollections(statusFilter?: string) {
   const collections = await db.query.categories.findMany({
     orderBy: [desc(categories.position), desc(categories.createdAt)],
   });
 
+  // Filter by status if specified
+  const filteredCollections = statusFilter && statusFilter !== "all"
+    ? collections.filter(c => c.status === statusFilter)
+    : collections;
+
   // Get product counts for each collection
   const collectionsWithCounts = await Promise.all(
-    collections.map(async (collection) => {
+    filteredCollections.map(async (collection) => {
       const [{ productCount }] = await db
         .select({ productCount: count() })
         .from(products)
@@ -32,11 +44,22 @@ async function getCollections() {
     })
   );
 
-  return collectionsWithCounts;
+  return {
+    collections: collectionsWithCounts,
+    allCount: collections.length,
+    draftCount: collections.filter(c => c.status === "draft").length,
+    activeCount: collections.filter(c => c.status === "active" || !c.status).length,
+    archivedCount: collections.filter(c => c.status === "archived").length,
+  };
 }
 
-export default async function CollectionsPage() {
-  const collections = await getCollections();
+interface PageProps {
+  searchParams: Promise<{ status?: string }>;
+}
+
+export default async function CollectionsPage({ searchParams }: PageProps) {
+  const { status } = await searchParams;
+  const { collections, allCount, draftCount, activeCount, archivedCount } = await getCollections(status);
 
   return (
     <div className="space-y-6">
@@ -56,6 +79,50 @@ export default async function CollectionsPage() {
             Add Collection
           </Link>
         </Button>
+      </div>
+
+      {/* Status Filter Tabs */}
+      <div className="flex gap-2 border-b pb-4">
+        <Link
+          href="/admin/collections"
+          className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+            !status || status === "all"
+              ? "bg-stone-900 text-white"
+              : "text-stone-600 hover:bg-stone-100"
+          }`}
+        >
+          All ({allCount})
+        </Link>
+        <Link
+          href="/admin/collections?status=active"
+          className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+            status === "active"
+              ? "bg-green-600 text-white"
+              : "text-stone-600 hover:bg-stone-100"
+          }`}
+        >
+          Active ({activeCount})
+        </Link>
+        <Link
+          href="/admin/collections?status=draft"
+          className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+            status === "draft"
+              ? "bg-yellow-600 text-white"
+              : "text-stone-600 hover:bg-stone-100"
+          }`}
+        >
+          Draft ({draftCount})
+        </Link>
+        <Link
+          href="/admin/collections?status=archived"
+          className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+            status === "archived"
+              ? "bg-stone-600 text-white"
+              : "text-stone-600 hover:bg-stone-100"
+          }`}
+        >
+          Archived ({archivedCount})
+        </Link>
       </div>
 
       {/* Collections grid */}
@@ -95,6 +162,22 @@ export default async function CollectionsPage() {
                     <FolderTree className="h-10 w-10 text-stone-300" />
                   </div>
                 )}
+
+                {/* Status Badge */}
+                <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                  <Badge
+                    variant="outline"
+                    className={statusConfig[collection.status as keyof typeof statusConfig]?.className || statusConfig.active.className}
+                  >
+                    {statusConfig[collection.status as keyof typeof statusConfig]?.label || "Active"}
+                  </Badge>
+                  {collection.featured && (
+                    <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
+                      <Star className="h-3 w-3 mr-1 fill-current" />
+                      Featured
+                    </Badge>
+                  )}
+                </div>
 
                 {/* Actions */}
                 <div className="absolute top-2 right-2">

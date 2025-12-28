@@ -76,7 +76,10 @@ export async function PATCH(request: Request, { params }: Props) {
       );
     }
 
-    const { name, slug, description, image, position, productIds } = parseResult.data;
+    const {
+      name, slug, description, image, position, productIds,
+      status, metaTitle, metaDescription, featured, hideOutOfStock
+    } = parseResult.data;
 
     // Use transaction to ensure data consistency
     const result = await db.transaction(async (tx) => {
@@ -89,6 +92,11 @@ export async function PATCH(request: Request, { params }: Props) {
           ...(description !== undefined && { description }),
           ...(image !== undefined && { image }),
           ...(position !== undefined && { position }),
+          ...(status !== undefined && { status }),
+          ...(metaTitle !== undefined && { metaTitle }),
+          ...(metaDescription !== undefined && { metaDescription }),
+          ...(featured !== undefined && { featured }),
+          ...(hideOutOfStock !== undefined && { hideOutOfStock }),
           updatedAt: new Date().toISOString(),
         })
         .where(eq(categories.id, parsedId))

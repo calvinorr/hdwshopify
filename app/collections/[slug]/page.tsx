@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { db, categories, products } from "@/lib/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { Header } from "@/components/shop/header";
 import { Footer } from "@/components/shop/footer";
 import { CollectionHeader, CollectionNav } from "@/components/collections";
@@ -135,12 +135,16 @@ async function getCollection(slug: string): Promise<{
       };
     }
 
-    // Fetch category with children
+    // Fetch category with children (only active collections)
     const category = await db.query.categories.findFirst({
-      where: eq(categories.slug, slug),
+      where: and(
+        eq(categories.slug, slug),
+        eq(categories.status, "active")
+      ),
       with: {
         parent: true,
         children: {
+          where: eq(categories.status, "active"),
           orderBy: (categories, { asc }) => [asc(categories.position)],
         },
       },
@@ -182,10 +186,13 @@ async function getCollection(slug: string): Promise<{
 
 async function getAllCollections(): Promise<CollectionWithChildren[]> {
   try {
+    // Only fetch active collections
     const allCategories = await db.query.categories.findMany({
+      where: eq(categories.status, "active"),
       orderBy: (categories, { asc }) => [asc(categories.position)],
       with: {
         children: {
+          where: eq(categories.status, "active"),
           orderBy: (categories, { asc }) => [asc(categories.position)],
         },
       },

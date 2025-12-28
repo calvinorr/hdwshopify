@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { db, products } from "@/lib/db";
+import { db, products, categories } from "@/lib/db";
 import { eq, count } from "drizzle-orm";
 import { Header } from "@/components/shop/header";
 import { Footer } from "@/components/shop/footer";
@@ -32,8 +32,9 @@ interface CategoryWithCount {
 
 async function getCollectionsWithCounts(): Promise<CategoryWithCount[]> {
   try {
-    // Get all categories
+    // Get only active categories (filter out draft and archived)
     const allCategories = await db.query.categories.findMany({
+      where: eq(categories.status, "active"),
       orderBy: (categories, { asc }) => [asc(categories.position)],
     });
 

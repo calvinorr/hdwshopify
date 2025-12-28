@@ -17,6 +17,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 interface Product {
   id: number;
@@ -32,6 +40,11 @@ interface Collection {
   description: string | null;
   image: string | null;
   position: number | null;
+  status: string | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  featured: boolean | null;
+  hideOutOfStock: boolean | null;
 }
 
 interface Props {
@@ -57,6 +70,11 @@ export function CollectionForm({
   const [description, setDescription] = useState(collection?.description || "");
   const [image, setImage] = useState(collection?.image || "");
   const [position, setPosition] = useState(collection?.position?.toString() || "0");
+  const [status, setStatus] = useState(collection?.status || "active");
+  const [metaTitle, setMetaTitle] = useState(collection?.metaTitle || "");
+  const [metaDescription, setMetaDescription] = useState(collection?.metaDescription || "");
+  const [featured, setFeatured] = useState(collection?.featured ?? false);
+  const [hideOutOfStock, setHideOutOfStock] = useState(collection?.hideOutOfStock ?? false);
 
   // Product assignment
   const [selectedProducts, setSelectedProducts] = useState<number[]>(assignedProductIds);
@@ -104,6 +122,11 @@ export function CollectionForm({
         description,
         image: image || null,
         position: parseInt(position) || 0,
+        status,
+        metaTitle: metaTitle || null,
+        metaDescription: metaDescription || null,
+        featured,
+        hideOutOfStock,
         productIds: selectedProducts,
       };
 
@@ -331,6 +354,69 @@ export function CollectionForm({
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Status */}
+          <div className="bg-white rounded-lg border p-6 space-y-4">
+            <h2 className="font-medium text-stone-900">Status</h2>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Visibility</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-yellow-500" />
+                      Draft
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="active">
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-green-500" />
+                      Active
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="archived">
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-stone-400" />
+                      Archived
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-stone-500">
+                {status === "draft" && "Not visible on storefront"}
+                {status === "active" && "Visible to customers"}
+                {status === "archived" && "Hidden from storefront"}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <div className="space-y-0.5">
+                <Label htmlFor="featured">Featured</Label>
+                <p className="text-xs text-stone-500">Show on homepage</p>
+              </div>
+              <Switch
+                id="featured"
+                checked={featured}
+                onCheckedChange={setFeatured}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="hideOutOfStock">Hide Out of Stock</Label>
+                <p className="text-xs text-stone-500">Only show available items</p>
+              </div>
+              <Switch
+                id="hideOutOfStock"
+                checked={hideOutOfStock}
+                onCheckedChange={setHideOutOfStock}
+              />
+            </div>
+          </div>
+
           {/* Position */}
           <div className="bg-white rounded-lg border p-6 space-y-4">
             <h2 className="font-medium text-stone-900">Display Order</h2>

@@ -10,6 +10,12 @@ export const categories = sqliteTable("categories", {
   image: text("image"),
   parentId: integer("parent_id"), // Self-reference handled via relations
   position: integer("position").default(0),
+  // E14: Collection Management fields
+  status: text("status").default("active"), // draft, active, archived
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  featured: integer("featured", { mode: "boolean" }).default(false),
+  hideOutOfStock: integer("hide_out_of_stock", { mode: "boolean" }).default(false),
   shopifyCollectionId: text("shopify_collection_id"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),

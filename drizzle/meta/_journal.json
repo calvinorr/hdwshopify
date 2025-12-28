@@ -22,6 +22,13 @@
       "when": 1766910776933,
       "tag": "0002_organic_shape",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1766920635027,
+      "tag": "0003_outgoing_spot",
+      "breakpoints": true
     }
   ]
 }

@@ -42,7 +42,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, slug, description, image, position, productIds } = parseResult.data;
+    const {
+      name, slug, description, image, position, productIds,
+      status, metaTitle, metaDescription, featured, hideOutOfStock
+    } = parseResult.data;
 
     // Use transaction to ensure data consistency
     const result = await db.transaction(async (tx) => {
@@ -55,6 +58,11 @@ export async function POST(request: Request) {
           description,
           image,
           position,
+          status,
+          metaTitle,
+          metaDescription,
+          featured,
+          hideOutOfStock,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
