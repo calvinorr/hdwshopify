@@ -67,7 +67,7 @@ This is a proof-of-concept to validate self-hosting as a viable alternative to S
 | Epic | Description | Status |
 |------|-------------|--------|
 | E9: UX Improvements | Related products, quick-add, recently viewed | ✅ Done |
-| E14: Collection Management | Status, image upload, ordering, SEO, tags | 📋 TODO |
+| E14: Collection Management | Status, image upload, ordering, SEO, tags | ✅ Done |
 
 > **Note (Dec 2024):** Variant-heavy features (color swatches, quick-view modal) have been
 > sidelined. Hand-dyed yarns are unique products - variants don't apply the same way.
