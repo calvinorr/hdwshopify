@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { products, productVariants, productImages, orderItems } from "@/lib/db/schema";
+import { products, productVariants, productImages, orderItems, productTagAssignments } from "@/lib/db/schema";
 import { eq, inArray, and, isNotNull } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth/admin";
 import { updateProductSchema } from "@/lib/validations/product";
@@ -86,6 +86,7 @@ export async function PATCH(request: Request, { params }: Props) {
       metaDescription,
       variants,
       images,
+      tagIds,
     } = parseResult.data;
 
     // Use transaction to ensure data consistency
@@ -213,6 +214,20 @@ export async function PATCH(request: Request, { params }: Props) {
               variantId: img.variantId,
               position: index,
               createdAt: new Date().toISOString(),
+            }))
+          );
+        }
+      }
+
+      // Update tag assignments - delete existing and recreate
+      if (tagIds !== undefined) {
+        await tx.delete(productTagAssignments).where(eq(productTagAssignments.productId, parsedId));
+
+        if (tagIds.length > 0) {
+          await tx.insert(productTagAssignments).values(
+            tagIds.map((tagId) => ({
+              productId: parsedId,
+              tagId,
             }))
           );
         }

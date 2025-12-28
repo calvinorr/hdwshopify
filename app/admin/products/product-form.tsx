@@ -69,6 +69,7 @@ const productFormSchema = z.object({
   metaDescription: z.string().max(160).optional(),
   variants: z.array(variantFormSchema).min(1, "At least one variant is required"),
   images: z.array(imageFormSchema).optional(),
+  tagIds: z.array(z.number()).optional(),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -126,14 +127,27 @@ interface WeightType {
   active: boolean | null;
 }
 
+interface Tag {
+  id: number;
+  name: string;
+  slug: string;
+  color: string | null;
+}
+
+interface TagAssignment {
+  tagId: number;
+  tag: Tag;
+}
+
 interface Props {
-  product?: Product;
+  product?: Product & { tagAssignments?: TagAssignment[] };
   categories: Category[];
   weightTypes: WeightType[];
+  tags: Tag[];
   mode: "create" | "edit";
 }
 
-export function ProductForm({ product, categories, weightTypes, mode }: Props) {
+export function ProductForm({ product, categories, weightTypes, tags, mode }: Props) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -147,6 +161,9 @@ export function ProductForm({ product, categories, weightTypes, mode }: Props) {
     weightGrams: 100,
     colorHex: null,
   };
+
+  // Extract existing tag IDs from product's tag assignments
+  const existingTagIds = product?.tagAssignments?.map((ta) => ta.tagId) || [];
 
   const {
     register,
@@ -174,6 +191,7 @@ export function ProductForm({ product, categories, weightTypes, mode }: Props) {
       metaDescription: product?.metaDescription || "",
       variants: product?.variants?.length ? product.variants : [defaultVariant],
       images: product?.images || [],
+      tagIds: existingTagIds,
     },
   });
 
@@ -276,6 +294,7 @@ export function ProductForm({ product, categories, weightTypes, mode }: Props) {
           colorHex: v.colorHex || null,
         })),
         images: data.images,
+        tagIds: data.tagIds || [],
       };
 
       const url =
@@ -754,6 +773,61 @@ export function ProductForm({ product, categories, weightTypes, mode }: Props) {
                 </Select>
               )}
             />
+          </div>
+
+          {/* Tags */}
+          <div className="bg-white rounded-lg border p-6 space-y-4">
+            <h2 className="font-medium text-stone-900">Tags</h2>
+
+            {tags.length === 0 ? (
+              <p className="text-sm text-stone-500">
+                No tags defined.{" "}
+                <Link href="/admin/settings/taxonomies" className="text-emerald-600 hover:underline">
+                  Create tags
+                </Link>{" "}
+                in Settings.
+              </p>
+            ) : (
+              <Controller
+                name="tagIds"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag) => {
+                      const isSelected = field.value?.includes(tag.id) || false;
+                      return (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => {
+                            const current = field.value || [];
+                            if (isSelected) {
+                              field.onChange(current.filter((id) => id !== tag.id));
+                            } else {
+                              field.onChange([...current, tag.id]);
+                            }
+                          }}
+                          className={`
+                            inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm
+                            transition-colors cursor-pointer
+                            ${isSelected
+                              ? "bg-stone-800 text-white"
+                              : "bg-stone-100 text-stone-700 hover:bg-stone-200"
+                            }
+                          `}
+                        >
+                          <span
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: tag.color || "#6b7280" }}
+                          />
+                          {tag.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              />
+            )}
           </div>
 
           {/* Delete */}

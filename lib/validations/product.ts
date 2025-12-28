@@ -48,6 +48,7 @@ export const createProductSchema = z.object({
   // Related data
   variants: z.array(variantSchema).optional(),
   images: z.array(imageSchema).optional(),
+  tagIds: z.array(z.number().int().positive()).optional(),
 });
 
 // Update product schema (all fields optional)

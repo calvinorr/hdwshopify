@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { products, productVariants, productImages, categories } from "@/lib/db/schema";
+import { products, productVariants, productImages, categories, productTagAssignments } from "@/lib/db/schema";
 import { eq, like, desc, sql, and, or } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createProductSchema, productQuerySchema } from "@/lib/validations/product";
@@ -120,6 +120,7 @@ export async function POST(request: Request) {
       metaDescription,
       variants,
       images,
+      tagIds,
     } = parseResult.data;
 
     // Use transaction to ensure data consistency
@@ -176,6 +177,16 @@ export async function POST(request: Request) {
             variantId: img.variantId,
             position: index,
             createdAt: new Date().toISOString(),
+          }))
+        );
+      }
+
+      // Create tag assignments
+      if (tagIds && tagIds.length > 0) {
+        await tx.insert(productTagAssignments).values(
+          tagIds.map((tagId) => ({
+            productId: product.id,
+            tagId,
           }))
         );
       }
