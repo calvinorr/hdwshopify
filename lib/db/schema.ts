@@ -54,6 +54,7 @@ export const productVariants = sqliteTable("product_variants", {
   compareAtPrice: real("compare_at_price"),
   stock: integer("stock").default(0),
   weightGrams: integer("weight_grams").default(100), // For shipping calculation
+  colorHex: text("color_hex"), // Hex color for swatch display, e.g., "#8B4513"
   position: integer("position").default(0),
   shopifyVariantId: text("shopify_variant_id"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),

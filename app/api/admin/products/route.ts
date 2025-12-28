@@ -158,6 +158,7 @@ export async function POST(request: Request) {
             compareAtPrice: v.compareAtPrice,
             stock: v.stock,
             weightGrams: v.weightGrams,
+            colorHex: v.colorHex || null,
             position: index,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),

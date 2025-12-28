@@ -9,6 +9,7 @@ const variantSchema = z.object({
   compareAtPrice: z.number().positive().optional().nullable(),
   stock: z.number().int().min(0, "Stock cannot be negative").default(0),
   weightGrams: z.number().int().positive().default(100),
+  colorHex: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").optional().nullable(),
 });
 
 // Image schema

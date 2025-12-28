@@ -8,6 +8,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { ProductVariant } from "@/types/product";
@@ -16,7 +22,7 @@ interface VariantSelectorProps {
   variants: ProductVariant[];
   selectedVariantId: number | null;
   onVariantChange: (variantId: number) => void;
-  displayMode?: "dropdown" | "swatches";
+  displayMode?: "dropdown" | "swatches" | "color-swatches";
 }
 
 function formatPrice(price: number): string {
@@ -40,17 +46,87 @@ function getStockStatus(stock: number | null): {
   return { label: "In Stock", variant: "secondary" };
 }
 
+interface ColorSwatchProps {
+  variant: ProductVariant;
+  isSelected: boolean;
+  isOutOfStock: boolean;
+  onSelect: () => void;
+}
+
+function ColorSwatch({ variant, isSelected, isOutOfStock, onSelect }: ColorSwatchProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={onSelect}
+          disabled={isOutOfStock}
+          role="radio"
+          aria-checked={isSelected}
+          aria-label={`${variant.name}${isOutOfStock ? " - Sold out" : ""}`}
+          className={cn(
+            "relative h-10 w-10 rounded-full transition-all duration-200",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            isSelected && "ring-2 ring-primary ring-offset-2",
+            isOutOfStock && "cursor-not-allowed opacity-40"
+          )}
+          style={{ backgroundColor: variant.colorHex || "#e5e5e5" }}
+        >
+          {isSelected && (
+            <span className="absolute inset-0 flex items-center justify-center">
+              <Check
+                className={cn(
+                  "h-5 w-5",
+                  // Use white or dark check based on color brightness
+                  isLightColor(variant.colorHex) ? "text-stone-800" : "text-white"
+                )}
+              />
+            </span>
+          )}
+          {isOutOfStock && (
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="h-[2px] w-8 rotate-45 bg-destructive" />
+            </span>
+          )}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="font-body">
+        <p className="font-medium">{variant.name}</p>
+        <p className="text-xs text-muted-foreground">
+          {formatPrice(variant.price)}
+          {isOutOfStock && " • Sold out"}
+        </p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+// Determine if a hex color is light (for contrast purposes)
+function isLightColor(hex: string | null): boolean {
+  if (!hex) return true;
+  const color = hex.replace("#", "");
+  const r = parseInt(color.substring(0, 2), 16);
+  const g = parseInt(color.substring(2, 4), 16);
+  const b = parseInt(color.substring(4, 6), 16);
+  // Using relative luminance formula
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5;
+}
+
 export function VariantSelector({
   variants,
   selectedVariantId,
   onVariantChange,
-  displayMode = "swatches",
+  displayMode: explicitDisplayMode,
 }: VariantSelectorProps) {
   const sortedVariants = [...variants].sort(
     (a, b) => (a.position ?? 0) - (b.position ?? 0)
   );
 
   const selectedVariant = sortedVariants.find((v) => v.id === selectedVariantId);
+
+  // Auto-detect display mode: use color swatches if any variant has a colorHex set
+  const hasColorSwatches = sortedVariants.some((v) => v.colorHex);
+  const displayMode = explicitDisplayMode ?? (hasColorSwatches ? "color-swatches" : "swatches");
 
   if (sortedVariants.length === 0) {
     return null;
@@ -123,7 +199,54 @@ export function VariantSelector({
     );
   }
 
-  // Swatches display mode
+  // Color swatches display mode (compact circular swatches)
+  if (displayMode === "color-swatches") {
+    return (
+      <TooltipProvider delayDuration={200}>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-body text-muted-foreground">
+              Colorway:{" "}
+              {selectedVariant && (
+                <span className="font-medium text-foreground">{selectedVariant.name}</span>
+              )}
+            </p>
+            {selectedVariant && (
+              <Badge
+                variant={getStockStatus(selectedVariant.stock).variant}
+                className="font-body"
+              >
+                {getStockStatus(selectedVariant.stock).label}
+              </Badge>
+            )}
+          </div>
+
+          <div
+            className="flex flex-wrap gap-3"
+            role="radiogroup"
+            aria-label="Select colorway"
+          >
+            {sortedVariants.map((variant) => {
+              const isSelected = variant.id === selectedVariantId;
+              const isOutOfStock = (variant.stock ?? 0) === 0;
+
+              return (
+                <ColorSwatch
+                  key={variant.id}
+                  variant={variant}
+                  isSelected={isSelected}
+                  isOutOfStock={isOutOfStock}
+                  onSelect={() => onVariantChange(variant.id)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      </TooltipProvider>
+    );
+  }
+
+  // Swatches display mode (card-style buttons)
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">

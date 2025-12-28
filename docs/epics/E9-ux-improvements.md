@@ -1,7 +1,9 @@
-# E9: UX Improvements 📋 TODO
+# E9: UX Improvements 🚧 IN PROGRESS
 
-> **Status**: NOT STARTED
+> **Status**: IN PROGRESS
 > **Features**: Color swatches, related products, quick-add, recently viewed
+> **Completed**: US9.1 (Color hex column), US9.2 (Visual color swatches - on hold)
+> **Future**: US9.8 (Collection-level color swatches)
 
 **Priority**: P1 (High - Friction Points)
 **Complexity**: Medium
@@ -20,31 +22,36 @@ Implement high-impact UX improvements that reduce friction in the shopping journ
 
 ## User Stories
 
-### US9.1: Add Color Hex to Variants
+### US9.1: Add Color Hex to Variants ✅
 **As an** admin
 **I want to** specify a hex color for each variant
 **So that** customers see accurate color swatches
 
 **Acceptance Criteria:**
-- [ ] Add `colorHex` column to `productVariants` table (nullable)
-- [ ] Color picker input in admin product form
-- [ ] Drizzle migration preserves existing data
-- [ ] Hex validation (6-character format)
+- [x] Add `colorHex` column to `productVariants` table (nullable)
+- [x] Color picker input in admin product form
+- [x] Drizzle migration preserves existing data
+- [x] Hex validation (6-character format)
 
 ---
 
-### US9.2: Visual Color Swatches
+### US9.2: Visual Color Swatches ✅ (On Hold)
 **As a** customer
 **I want to** see color swatches for yarn colorways
 **So that** I can quickly compare colors without clicking each option
 
 **Acceptance Criteria:**
-- [ ] Round swatch circles display variant color
-- [ ] Selected state shown with ring/border
-- [ ] Tooltip shows colorway name on hover
-- [ ] Falls back to variant image thumbnail if no hex set
-- [ ] Keyboard navigable with ARIA labels
-- [ ] Works on both product detail and quick-view
+- [x] Round swatch circles display variant color
+- [x] Selected state shown with ring/border
+- [x] Tooltip shows colorway name on hover
+- [x] Falls back to card-style selector if no hex set (auto-detection)
+- [x] Keyboard navigable with ARIA labels
+- [ ] Works on both product detail and quick-view (quick-view not yet implemented)
+
+> **Note (Dec 2024):** Feature implemented but **on hold for business validation**.
+> Hand-dyed yarns are unique - each skein varies naturally, so per-variant hex colors
+> may not accurately represent the product. The swatch infrastructure could be
+> repurposed for **collection-level color theming** instead (see US9.8 below).
 
 ---
 
@@ -123,6 +130,34 @@ Implement high-impact UX improvements that reduce friction in the shopping journ
 - [ ] Uses ProductCard component
 - [ ] Positioned below main product content
 - [ ] Optional: also show on homepage
+
+---
+
+### US9.8: Collection Color Swatches 📋 FUTURE
+**As a** customer
+**I want to** filter or browse products by color family/mood
+**So that** I can find yarns that match my project palette
+
+> **Background:** The per-variant `colorHex` swatch feature (US9.1/9.2) was implemented
+> but may not suit hand-dyed products where each skein is unique. This story explores
+> using swatches at the **collection level** instead.
+
+**Possible Approaches:**
+1. **Collection-level swatch**: Add `colorHex` to collections (e.g., "Warm Tones" = #8B4513)
+2. **Color family tags**: Tag products with color families (warm, cool, neutral, earth)
+3. **Mood/palette filtering**: Filter products by color mood on shop page
+4. **Dye source grouping**: Group by botanical dye (indigo = blues, madder = reds/oranges)
+
+**Acceptance Criteria (TBD):**
+- [ ] Define color families or moods relevant to natural dyes
+- [ ] Assign swatches/colors to collections or tags
+- [ ] Display visual swatches on collection pages or filters
+- [ ] Customers can browse by color mood
+
+**Technical Notes:**
+- Existing `colorHex` column on variants can remain for future use
+- Could add `colorHex` to `categories` or create new `colorFamilies` table
+- Swatch component already built and can be reused
 
 ---
 

@@ -38,6 +38,7 @@ const variantFormSchema = z.object({
   compareAtPrice: z.number().positive().optional().nullable(),
   stock: z.number().int().min(0, "Stock cannot be negative").nullable(),
   weightGrams: z.number().int().positive().nullable(),
+  colorHex: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").optional().nullable(),
 });
 
 const imageFormSchema = z.object({
@@ -86,6 +87,7 @@ interface Variant {
   compareAtPrice: number | null;
   stock: number | null;
   weightGrams: number | null;
+  colorHex: string | null;
   position: number | null;
 }
 
@@ -143,6 +145,7 @@ export function ProductForm({ product, categories, weightTypes, mode }: Props) {
     compareAtPrice: null,
     stock: 0,
     weightGrams: 100,
+    colorHex: null,
   };
 
   const {
@@ -221,6 +224,7 @@ export function ProductForm({ product, categories, weightTypes, mode }: Props) {
       compareAtPrice: null,
       stock: 0,
       weightGrams: 100,
+      colorHex: null,
     });
   };
 
@@ -269,6 +273,7 @@ export function ProductForm({ product, categories, weightTypes, mode }: Props) {
           position: i,
           sku: v.sku || null,
           compareAtPrice: v.compareAtPrice || null,
+          colorHex: v.colorHex || null,
         })),
         images: data.images,
       };
@@ -522,6 +527,35 @@ export function ProductForm({ product, categories, weightTypes, mode }: Props) {
                         {...register(`variants.${index}.weightGrams`, { valueAsNumber: true })}
                         className="mt-1"
                       />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Color Swatch</Label>
+                      <Controller
+                        name={`variants.${index}.colorHex`}
+                        control={control}
+                        render={({ field }) => (
+                          <div className="flex items-center gap-2 mt-1">
+                            <Input
+                              type="color"
+                              value={field.value || "#000000"}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              className="w-10 h-9 p-1 cursor-pointer"
+                            />
+                            <Input
+                              type="text"
+                              value={field.value || ""}
+                              onChange={(e) => field.onChange(e.target.value || null)}
+                              placeholder="#RRGGBB"
+                              className="flex-1 font-mono text-xs"
+                            />
+                          </div>
+                        )}
+                      />
+                      {errors.variants?.[index]?.colorHex && (
+                        <p className="text-xs text-red-600 mt-1">
+                          {errors.variants[index]?.colorHex?.message}
+                        </p>
+                      )}
                     </div>
                   </div>
 

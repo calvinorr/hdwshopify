@@ -1,0 +1,1 @@
+ALTER TABLE `product_variants` ADD `color_hex` text;

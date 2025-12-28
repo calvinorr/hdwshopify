@@ -173,6 +173,7 @@ export async function PATCH(request: Request, { params }: Props) {
               compareAtPrice: v.compareAtPrice,
               stock: v.stock,
               weightGrams: v.weightGrams,
+              colorHex: v.colorHex || null,
               position: variants.findIndex((variant) => variant.id === v.id),
               updatedAt: new Date().toISOString(),
             })
@@ -190,6 +191,7 @@ export async function PATCH(request: Request, { params }: Props) {
               compareAtPrice: v.compareAtPrice,
               stock: v.stock,
               weightGrams: v.weightGrams,
+              colorHex: v.colorHex || null,
               position: variantsToUpdate.length + index,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),

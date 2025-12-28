@@ -15,6 +15,13 @@
       "when": 1766870976235,
       "tag": "0001_large_santa_claus",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1766910776933,
+      "tag": "0002_organic_shape",
+      "breakpoints": true
     }
   ]
 }
