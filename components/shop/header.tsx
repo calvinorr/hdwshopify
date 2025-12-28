@@ -17,7 +17,7 @@ import { SearchInput } from "@/components/search";
 import { UserMenu } from "./user-menu";
 import { useCart } from "@/contexts/cart-context";
 
-const collections = [
+const defaultCollections = [
   { name: "All Collections", href: "/collections" },
   { name: "Laceweight", href: "/collections/laceweight" },
   { name: "4 Ply", href: "/collections/4ply" },
@@ -25,6 +25,12 @@ const collections = [
   { name: "Aran", href: "/collections/aran" },
   { name: "Mini Skeins", href: "/collections/mini-skeins" },
 ];
+
+interface CollectionLink {
+  name: string;
+  href: string;
+  featured?: boolean;
+}
 
 const infoLinks = [
   { name: "About", href: "/about" },
@@ -37,13 +43,19 @@ interface HeaderProps {
   transparent?: boolean;
   announcementText?: string;
   announcementEnabled?: boolean;
+  collections?: CollectionLink[];
 }
 
 export function Header({
   transparent: propTransparent,
   announcementText = "Free UK shipping on orders over £50",
   announcementEnabled = true,
+  collections: propCollections,
 }: HeaderProps) {
+  // Use provided collections or fall back to defaults
+  const collections: CollectionLink[] = propCollections?.length
+    ? [{ name: "All Collections", href: "/collections" }, ...propCollections]
+    : defaultCollections;
   const router = useRouter();
   const pathname = usePathname();
   const { itemCount } = useCart();

@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { categories, products } from "@/lib/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, count, and, ne } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth/admin";
 import { updateCollectionSchema } from "@/lib/validations/collection";
 import { logError } from "@/lib/logger";
+
+const MAX_FEATURED_COLLECTIONS = 6;
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -80,6 +82,22 @@ export async function PATCH(request: Request, { params }: Props) {
       name, slug, description, image, position, productIds,
       status, metaTitle, metaDescription, featured, hideOutOfStock
     } = parseResult.data;
+
+    // Check featured limit if trying to set as featured
+    if (featured) {
+      // Count other featured collections (excluding this one)
+      const [{ featuredCount }] = await db
+        .select({ featuredCount: count() })
+        .from(categories)
+        .where(and(eq(categories.featured, true), ne(categories.id, parsedId)));
+
+      if (featuredCount >= MAX_FEATURED_COLLECTIONS) {
+        return NextResponse.json(
+          { error: `Maximum of ${MAX_FEATURED_COLLECTIONS} featured collections allowed` },
+          { status: 400 }
+        );
+      }
+    }
 
     // Use transaction to ensure data consistency
     const result = await db.transaction(async (tx) => {

@@ -1,8 +1,10 @@
 import { db } from "@/lib/db";
 import { categories, products } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, ne, count } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { CollectionForm } from "../collection-form";
+
+const MAX_FEATURED_COLLECTIONS = 6;
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -34,6 +36,14 @@ async function getAssignedProductIds(collectionId: number) {
   return assigned.map((p) => p.id);
 }
 
+async function getFeaturedCount(excludeId: number) {
+  const [{ featuredCount }] = await db
+    .select({ featuredCount: count() })
+    .from(categories)
+    .where(and(eq(categories.featured, true), ne(categories.id, excludeId)));
+  return featuredCount;
+}
+
 export default async function EditCollectionPage({ params }: Props) {
   const { id } = await params;
   const collectionId = parseInt(id, 10);
@@ -42,10 +52,11 @@ export default async function EditCollectionPage({ params }: Props) {
     notFound();
   }
 
-  const [collection, allProducts, assignedProductIds] = await Promise.all([
+  const [collection, allProducts, assignedProductIds, featuredCount] = await Promise.all([
     getCollection(collectionId),
     getProducts(),
     getAssignedProductIds(collectionId),
+    getFeaturedCount(collectionId),
   ]);
 
   if (!collection) {
@@ -58,6 +69,8 @@ export default async function EditCollectionPage({ params }: Props) {
       products={allProducts}
       assignedProductIds={assignedProductIds}
       mode="edit"
+      featuredCount={featuredCount}
+      maxFeatured={MAX_FEATURED_COLLECTIONS}
     />
   );
 }

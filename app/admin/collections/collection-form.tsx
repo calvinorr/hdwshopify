@@ -51,6 +51,8 @@ interface Props {
   products: Product[];
   assignedProductIds: number[];
   mode: "create" | "edit";
+  featuredCount?: number;
+  maxFeatured?: number;
 }
 
 export function CollectionForm({
@@ -58,6 +60,8 @@ export function CollectionForm({
   products,
   assignedProductIds,
   mode,
+  featuredCount = 0,
+  maxFeatured = 6,
 }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -385,12 +389,17 @@ export function CollectionForm({
             <div className="flex items-center justify-between pt-2">
               <div className="space-y-0.5">
                 <Label htmlFor="featured">Featured</Label>
-                <p className="text-xs text-stone-500">Show on homepage</p>
+                <p className="text-xs text-stone-500">
+                  {featuredCount >= maxFeatured && !featured
+                    ? `Limit reached (${featuredCount}/${maxFeatured})`
+                    : `Show on homepage (${featured ? featuredCount : featuredCount}/${maxFeatured})`}
+                </p>
               </div>
               <Switch
                 id="featured"
                 checked={featured}
                 onCheckedChange={setFeatured}
+                disabled={featuredCount >= maxFeatured && !featured}
               />
             </div>
 

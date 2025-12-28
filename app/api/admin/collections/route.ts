@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { categories, products } from "@/lib/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, count } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createCollectionSchema } from "@/lib/validations/collection";
 import { logError } from "@/lib/logger";
+
+const MAX_FEATURED_COLLECTIONS = 6;
 
 export async function GET() {
   const authResult = await requireAdmin();
@@ -46,6 +48,21 @@ export async function POST(request: Request) {
       name, slug, description, image, position, productIds,
       status, metaTitle, metaDescription, featured, hideOutOfStock
     } = parseResult.data;
+
+    // Check featured limit if trying to set as featured
+    if (featured) {
+      const [{ featuredCount }] = await db
+        .select({ featuredCount: count() })
+        .from(categories)
+        .where(eq(categories.featured, true));
+
+      if (featuredCount >= MAX_FEATURED_COLLECTIONS) {
+        return NextResponse.json(
+          { error: `Maximum of ${MAX_FEATURED_COLLECTIONS} featured collections allowed` },
+          { status: 400 }
+        );
+      }
+    }
 
     // Use transaction to ensure data consistency
     const result = await db.transaction(async (tx) => {

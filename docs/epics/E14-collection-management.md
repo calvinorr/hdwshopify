@@ -122,17 +122,17 @@ Professional-grade collection management for the admin dashboard. Makes it easy 
 
 ---
 
-### US14.6: Featured Collections ✅ P2
+### US14.6: Featured Collections ✅ COMPLETE
 **As an** admin
 **I want to** mark collections as featured
 **So that** they appear prominently on the homepage and navigation
 
 **Acceptance Criteria:**
-- [ ] "Featured" toggle on collection form
-- [ ] Featured collections shown on homepage
-- [ ] Featured collections prioritized in navigation
-- [ ] Limit featured count (e.g., max 6)
-- [ ] Visual indicator in admin list
+- [x] "Featured" toggle on collection form
+- [x] Featured collections shown on homepage
+- [x] Featured collections prioritized in navigation
+- [x] Limit featured count (e.g., max 6)
+- [x] Visual indicator in admin list
 
 **Technical Notes:**
 - Add `featured` boolean to categories

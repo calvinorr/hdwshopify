@@ -30,12 +30,23 @@ async function getFeaturedProducts(): Promise<ProductWithRelations[]> {
   }
 }
 
-async function getCategories() {
+async function getFeaturedCollections() {
   try {
-    return await db.query.categories.findMany({
+    // Get featured collections first, then other active collections
+    const allActive = await db.query.categories.findMany({
+      where: eq(categories.status, "active"),
       orderBy: [categories.position],
-      limit: 4,
     });
+
+    // Sort: featured first, then by position
+    const sorted = allActive.sort((a, b) => {
+      if (a.featured && !b.featured) return -1;
+      if (!a.featured && b.featured) return 1;
+      return (a.position || 0) - (b.position || 0);
+    });
+
+    // Limit to 6 for homepage display
+    return sorted.slice(0, 6);
   } catch {
     return [];
   }
@@ -106,7 +117,7 @@ const defaultHeroSlides: CarouselSlide[] = [
 export default async function HomePage() {
   const [featuredProducts, categoryList, heroSlides, settings] = await Promise.all([
     getFeaturedProducts(),
-    getCategories(),
+    getFeaturedCollections(),
     getHeroSlides(),
     getSettings(),
   ]);
@@ -125,6 +136,13 @@ export default async function HomePage() {
         { name: "Aran", slug: "aran", description: "Chunky comfort" },
       ];
 
+  // Format collections for header navigation (featured first)
+  const navCollections = categoryList.map((c) => ({
+    name: c.name,
+    href: `/collections/${c.slug}`,
+    featured: c.featured ?? false,
+  }));
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Floating Header - overlays the carousel */}
@@ -132,6 +150,7 @@ export default async function HomePage() {
         <Header
           announcementText={announcementText}
           announcementEnabled={announcementEnabled}
+          collections={navCollections}
         />
       </div>
 
