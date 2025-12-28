@@ -1,7 +1,25 @@
 # Test Progress
 
-Last run: 2025-12-27 20:56 GMT
-Total: 2 tests | Passed: 1 | Failed: 1
+Last run: 2025-12-28 21:15 GMT
+Total: 2 tests | Passed: 2 | Failed: 0
+
+---
+
+## 2025-12-28 21:15
+
+### Checkout Shipping Country Selector
+- **File:** tests/checkout-shipping-country.md
+- **Status:** PASS
+- **Steps:** 7/7 completed
+
+Verified:
+- [x] Country selector dropdown is visible
+- [x] Dropdown shows grouped countries (UK, Ireland, Europe, International)
+- [x] Button disabled state: "Select shipping destination to continue"
+- [x] After selecting country: "Proceed to Payment" button enabled
+- [x] No console errors
+
+**Resolution:** Fixed client-side import error by moving `formatPrice` utility to separate `lib/format-price.ts` file (was failing because `lib/stripe.ts` checks for server-only env vars at module load time).
 
 ---
 
@@ -19,32 +37,9 @@ Verified:
 
 ---
 
-### Checkout Shipping Country Selector
-- **File:** tests/checkout-shipping-country.md
-- **Status:** FAIL
-- **Steps:** 2/7 completed
-
-#### Failure Details
-- **Failed Step:** Step 2: Navigate to /checkout
-- **Expected:** Checkout page loads with country selector
-- **Actual:** Runtime error - Missing STRIPE_SECRET_KEY environment variable
-- **Console Errors:** `Error: Missing STRIPE_SECRET_KEY environment variable`
-- **Root Cause:** Environment configuration issue - Stripe keys not set in .env.local
-
-#### Resolution Required
-Add to `.env.local`:
-```
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
-```
-
----
-
 ## Summary
 
 | Test | Status | Notes |
 |------|--------|-------|
 | vibe-check.md | PASS | Homepage loads correctly |
-| checkout-shipping-country.md | FAIL | Needs Stripe env vars |
-
-Run `/test failed` after configuring Stripe keys to re-run failed tests.
+| checkout-shipping-country.md | PASS | Country selector and button states work |

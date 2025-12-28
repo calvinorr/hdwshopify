@@ -6,7 +6,7 @@ import { CheckCircle, Package, Mail, ArrowRight } from "lucide-react";
 import { stripe } from "@/lib/stripe";
 import { db, orders, orderItems } from "@/lib/db";
 import { Button } from "@/components/ui/button";
-import { formatPrice } from "@/lib/stripe";
+import { formatPrice } from "@/lib/format-price";
 
 interface Props {
   searchParams: Promise<{ session_id?: string }>;

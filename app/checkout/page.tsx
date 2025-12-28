@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCart } from "@/contexts/cart-context";
-import { formatPrice } from "@/lib/stripe";
+import { formatPrice } from "@/lib/format-price";
 
 // Countries we ship to, with display names
 const SHIPPING_COUNTRIES = [
