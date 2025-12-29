@@ -1,149 +1,153 @@
 # Herbarium Dyeworks - Project Plan
 
-## Executive Summary
-
-Self-hosted e-commerce platform replacing Shopify for Herbarium Dyeworks, a small-batch naturally dyed yarn business based in Northern Ireland.
-
-**Status**: Core platform complete. Ready for production configuration and launch.
-
-## Project Philosophy
-
-This is a proof-of-concept to validate self-hosting as a viable alternative to Shopify. The goal is a **fully operational store** that can be managed without developer intervention, not a pixel-perfect replica.
-
-**Core principle**: Build what you need to *run* the business, not just *display* it.
+> **Goal**: Low-cost Shopify replacement for a small yarn business
+> **Savings**: ~£280/year (from £300 Shopify → ~£20 domain only)
+> **User**: Artist who wants simplicity - easy workflows, beautiful photos, no tech headaches
 
 ---
 
-## Technical Stack
+## Guiding Principles
 
-| Layer | Technology | Rationale |
-|-------|------------|-----------|
-| Framework | Next.js 16 (App Router) | SSR/SSG for SEO, React ecosystem |
-| Database | Turso (SQLite edge) | Low latency, cost-effective |
-| ORM | Drizzle | Type-safe, lightweight |
-| Payments | Stripe Checkout | PCI compliance offloaded |
-| Auth | Clerk (optional) | Admin access control |
-| Images | Vercel Blob | Simple image hosting |
-| Email | Resend | Transactional email |
-| Hosting | Vercel | Seamless Next.js integration |
+1. **Keep it simple** - She should be able to add a product in 5 minutes
+2. **Photos sell** - The site showcases her photography, doesn't fight it
+3. **SEO just works** - She doesn't think about meta descriptions
+4. **Clear daily actions** - Admin shows what needs doing today
+5. **Costs almost nothing** - No monthly fee anxiety
 
 ---
 
-## Completion Status
+## Current Status
 
-### Phase 0: Stabilization ✅ COMPLETE
+**What's Built**: Full e-commerce platform with 198 products imported
+- Shop: Browse, search, cart, checkout with Stripe
+- Customer accounts: Login, order history, addresses
+- Admin: Products, collections, orders, inventory, discounts
+- Content pages: About, shipping, returns, etc.
 
-| Epic | Description | Status |
-|------|-------------|--------|
-| E12: Core Reliability | Transactional integrity, shipping accuracy, admin security | ✅ Done |
-| E13: Operations & Resilience | Inventory reservation, exports, backups, notifications | ✅ Done |
+**What's Not Deployed**: Code is on a feature branch, needs merging
 
-### Phase 1: Operational Foundation ✅ COMPLETE
-
-| Epic | Description | Status |
-|------|-------------|--------|
-| E1: Product Catalog | Display products & collections | ✅ Done |
-| E2: Shopping Cart | Add/remove items, persist cart | ✅ Done |
-| E3: Checkout & Payments | Stripe integration | ✅ Done |
-| E4: Shipping & Fulfillment | Rate calculation, fulfillment workflow | ✅ Done |
-| E6: Admin Dashboard | Full store management | ✅ Done |
-| E7: Data Migration | Import from Shopify | ✅ Done |
-
-### Phase 2: Customer Experience ✅ COMPLETE
-
-| Epic | Description | Status |
-|------|-------------|--------|
-| E5: Customer Accounts | Login, order history | ✅ Done |
-| Email Notifications | Order confirmation, shipping updates | ✅ Done |
-
-### Phase 3: Polish & Admin Excellence ✅ COMPLETE
-
-| Epic | Description | Status |
-|------|-------------|--------|
-| E9: UX Improvements | Related products, quick-add, recently viewed | ✅ Done |
-| E14: Collection Management | Status, image upload, ordering, SEO, tags | ✅ Done |
+**Test URL**: `herbarium-dyeworks.warmwetcircles.com` (after E1)
+**Production URL**: `herbariumdyeworks.com` (after E9 - DO NOT TOUCH until then)
 
 ---
 
-## What's Next
+## Epic Overview
 
-### Immediate: Stripe Test Validation (CRITICAL)
-See **[epics/E15-stripe-testing.md](./epics/E15-stripe-testing.md)** for:
-- Complete payment flow testing with test cards
-- Decline handling, 3D Secure, webhooks
-- Client demo script
-- Pre-launch confidence checklist
+| Epic | Name | Status | Sessions |
+|------|------|--------|----------|
+| E1 | Go Live (Test) | TODO | 1 |
+| E2 | Test Customer Journey | TODO | 1-2 |
+| E3 | Test Admin Journey | TODO | 1-2 |
+| E4 | Search Enhancement | TODO | 1 |
+| E5 | Email Notifications | TODO | 1 |
+| E6 | Customer Import | TODO | 1 |
+| E7 | Security & GDPR | TODO | 1-2 |
+| E8 | Polish & Social | TODO | 1 |
+| E9 | Go Live (Production) | TODO | 1 |
 
-### Then: Launch Preparation
-See **[LAUNCH_CHECKLIST.md](./LAUNCH_CHECKLIST.md)** for:
-- Stripe production configuration
-- Resend domain verification
-- Final testing checklist
-- Go-live steps
-
-### Post-Launch: Optional Enhancements
-See **[epics/BACKLOG.md](./epics/BACKLOG.md)** for:
-- Product reviews & ratings
-- Wishlist functionality
-- Search autocomplete
-- Cloudflare migration (~$250/yr savings)
+**Total**: ~10-12 sessions of focused work
 
 ---
 
-## Directory Structure
+## Epic Summaries
 
-```
-docs/
-├── PROJECT_PLAN.md          # This file - project overview
-├── LAUNCH_CHECKLIST.md      # Pre-launch tasks
-├── epics/
-│   ├── archive/             # Completed epics (E3-E7, E9, E12-E14)
-│   ├── E1-product-catalog.md    # Minor remaining (accessibility)
-│   ├── E6-admin-dashboard.md    # Minor remaining (bulk actions)
-│   ├── E8-cloudflare-migration.md  # Post-launch optimization
-│   └── BACKLOG.md           # Future enhancements
-└── archive/
-    ├── CODEBASE_REVIEW.md   # Senior engineer review
-    └── STABILIZATION_ROADMAP.md
-```
+### E1: Go Live (Test)
+Get the app running on the test URL so we can see it working.
+- Merge feature branch to main
+- Deploy to Vercel
+- Verify it loads with real data
+
+### E2: Test Customer Journey
+Walk through everything a customer would do. Document what breaks.
+- Browse and search for products
+- Add to cart, apply discount, checkout
+- Create account, view order history
+- Track an order
+
+### E3: Test Admin Journey
+Walk through everything your wife would do. Document what breaks.
+- Add a new product with photos
+- Edit a collection
+- Process an order (fulfill, add tracking)
+- Check inventory and stock levels
+
+### E4: Search Enhancement
+Make search actually useful for finding yarn.
+- Search by fiber content (merino, silk, etc.)
+- Search by weight (DK, 4ply, laceweight)
+- Better results display
+
+### E5: Email Notifications
+Get order confirmation and shipping emails working.
+- Fix Resend setup OR switch to Gmail SMTP
+- Test order confirmation email
+- Test shipping notification email
+
+### E6: Customer Import
+Bring existing customers from Shopify.
+- Update Shopify API access for customer data
+- Import customer emails and names
+- Handle GDPR consent properly
+
+### E7: Security & GDPR
+Make sure the site is compliant and secure.
+- Cookie consent banner
+- Privacy policy accuracy
+- Secure data handling
+- Admin access review
+
+### E8: Polish & Social
+Final touches before going live.
+- Add social media links to footer
+- Fix any issues found during testing
+- Review mobile experience
+
+### E9: Go Live (Production)
+Safely switch the real domain.
+- Final checklist review
+- Point herbariumdyeworks.com to new site
+- Monitor for issues
+- Celebrate!
 
 ---
 
-## Success Criteria ✅
+## Definition of Done (Per Epic)
 
-**Minimum Viable Store** - All complete:
-- [x] Customers can browse, add to cart, checkout with Stripe
-- [x] Orders are recorded and visible in admin
-- [x] Admin can add/edit products without touching code
-- [x] Admin can manage collections and homepage
-- [x] Shipping rates calculate correctly by zone/weight
-- [x] Admin can fulfill orders and add tracking
+Each epic is complete when:
+- [ ] All stories are done
+- [ ] Issues found are logged (either fixed or added to backlog)
+- [ ] Epic doc is updated with completion status
+- [ ] Jarvis state is updated
 
 ---
 
-## What This Is NOT
+## Files
 
-To keep scope manageable, we're **not** building:
-- Multi-currency (GBP only)
-- Gift cards
-- Subscriptions
-- Advanced analytics (use Plausible/Fathom)
-- Customer reviews (backlog)
-- Wishlist (backlog)
-- Complex promotions (BOGO, bundles)
-- Multi-user admin with roles
+| File | Purpose |
+|------|---------|
+| `docs/PROJECT_PLAN.md` | This file - overview |
+| `docs/CODEBASE.md` | What's built, tech details |
+| `docs/epics/E1-*.md` through `E9-*.md` | Individual epic details |
+| `docs/epics/archive/` | Old completed/abandoned epics |
+| `docs/ISSUES.md` | Issues found during testing |
 
 ---
 
-## Environment Strategy
+## Session Workflow
 
-| Environment | Purpose | Database |
-|-------------|---------|----------|
-| Development | Local dev | Turso (dev branch) |
-| Preview | PR previews | Turso (preview) |
-| Production | Live site | Turso (production) |
+1. **Start**: Run `/jarvis` → option 1 (Starting session)
+2. **Work**: Focus on current epic's next story
+3. **Issues**: Log any bugs/problems found to `docs/ISSUES.md`
+4. **End**: Run `/jarvis` → option 2 (Ending session)
+5. **Stuck**: Run `/jarvis` → option 4 (Senior engineer consult)
 
-## Domain
+---
 
-- **Current**: `herbarium-dyeworks.warmwetcircles.com`
-- **Future**: Custom domain when ready for public launch
+## Future Enhancements (Post-Launch)
+
+Not for now, but ideas for later:
+- AI-assisted SEO (auto-generate meta descriptions)
+- Themes (let her change colors/fonts)
+- Customer reviews
+- Wishlist
+- Newsletter integration
