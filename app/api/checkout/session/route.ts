@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq, and, inArray, gt, sql } from "drizzle-orm";
 import Stripe from "stripe";
 import { db, carts, shippingZones, discountCodes, products, productImages, stockReservations } from "@/lib/db";
-import { getCartSession, CartItemData } from "@/lib/cart";
+import { getCartSession, getCustomerId, CartItemData } from "@/lib/cart";
 
 // Lazy-initialize Stripe with fetch-based HTTP client for Vercel serverless compatibility
 let _stripe: Stripe | null = null;
@@ -55,17 +55,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get cart identifier - check customerId first (for logged-in users), then sessionId
+    const customerId = await getCustomerId();
     const sessionId = await getCartSession();
-    if (!sessionId) {
+
+    if (!customerId && !sessionId) {
       return NextResponse.json(
         { error: "No cart found" },
         { status: 400 }
       );
     }
 
-    const cart = await db.query.carts.findFirst({
-      where: eq(carts.sessionId, sessionId),
-    });
+    // Look up cart - prefer customerId, fallback to sessionId
+    // This matches cart route logic and handles merged carts correctly
+    let cart;
+    if (customerId) {
+      cart = await db.query.carts.findFirst({
+        where: eq(carts.customerId, customerId),
+      });
+    }
+    if (!cart && sessionId) {
+      cart = await db.query.carts.findFirst({
+        where: eq(carts.sessionId, sessionId),
+      });
+    }
 
     if (!cart) {
       return NextResponse.json(
