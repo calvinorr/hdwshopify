@@ -1,8 +1,10 @@
 # E16: Remove Product Variants - Simplify to Single Product Model
 
-> **Status**: ✅ COMPLETE
+> **Status**: ✅ COMPLETE (code done, NOT deployed)
 > **Priority**: HIGH - Blocking checkout testing
 > **Completed**: 2025-12-29
+> **Branch**: `e16-remove-variants` (not yet merged to main)
+> **Deployment**: ⚠️ Requires database migration before deploying to production
 > **Goal**: Remove the productVariants table and simplify to a single-product model where all inventory data lives directly on the product
 
 ## Overview
