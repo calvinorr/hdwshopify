@@ -105,18 +105,18 @@ turso db shell herbarium-dyeworks-db < /tmp/backup.sql
 ---
 
 ### US17.2: Create Database Management Skill
-**Status**: TODO
+**Status**: ✅ COMPLETE (2025-12-29)
 
 Create `/db` skill that can:
-- [ ] Connect to any environment (local, preview, production)
-- [ ] Run schema comparisons between environments
-- [ ] Execute migrations safely with rollback capability
-- [ ] Backup/restore database snapshots
-- [ ] Seed test data from Shopify export
+- [x] Connect to any environment (local, preview, production)
+- [x] Run schema comparisons between environments
+- [x] Execute migrations safely with rollback capability
+- [x] Backup/restore database snapshots
+- [x] Seed test data from Shopify export
 
 **Skill location**: `~/.claude/commands/db.md`
 
-**Commands the skill should support**:
+**Commands the skill supports**:
 ```
 /db status          - Show current DB connection and table counts
 /db compare         - Compare local vs production schema
@@ -124,7 +124,10 @@ Create `/db` skill that can:
 /db restore [name]  - Restore from backup
 /db migrate [name]  - Run a migration script
 /db seed            - Seed from Shopify data
+/db reset           - Reset dev DB from golden backup
 ```
+
+**Note**: Skill will be available in next Claude Code session (skills load at startup).
 
 ---
 
