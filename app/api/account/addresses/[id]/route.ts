@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db, addresses, customers } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
 // Check if Clerk is configured
 const clerkPubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -10,20 +10,42 @@ const isClerkConfigured =
   clerkPubKey.startsWith("pk_") &&
   !clerkPubKey.includes("placeholder");
 
-async function getCustomerId(): Promise<number | null> {
+async function getOrCreateCustomerId(): Promise<number | null> {
   if (!isClerkConfigured) return null;
 
   try {
     const { userId } = await auth();
     if (!userId) return null;
 
-    const customer = await db.query.customers.findFirst({
+    // Try to find existing customer
+    const existing = await db.query.customers.findFirst({
       where: eq(customers.clerkId, userId),
       columns: { id: true },
     });
 
-    return customer?.id ?? null;
-  } catch {
+    if (existing) return existing.id;
+
+    // No customer exists - create one using Clerk user data
+    const user = await currentUser();
+    if (!user) return null;
+
+    const email = user.emailAddresses[0]?.emailAddress;
+    if (!email) return null;
+
+    // Create new customer record
+    const [newCustomer] = await db
+      .insert(customers)
+      .values({
+        email,
+        clerkId: userId,
+        firstName: user.firstName || null,
+        lastName: user.lastName || null,
+      })
+      .returning({ id: customers.id });
+
+    return newCustomer?.id ?? null;
+  } catch (error) {
+    console.error("Failed to get/create customer:", error);
     return null;
   }
 }
@@ -33,7 +55,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const customerId = await getCustomerId();
+  const customerId = await getOrCreateCustomerId();
 
   if (!customerId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -114,7 +136,7 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const customerId = await getCustomerId();
+  const customerId = await getOrCreateCustomerId();
 
   if (!customerId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

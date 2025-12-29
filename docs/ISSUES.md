@@ -35,7 +35,23 @@ _None yet_
 
 ### High
 
-_None yet_
+#### Account features return "Unauthorized" for new users
+**Severity**: High
+**Found in**: E2 (S2.3 Customer Account)
+**Steps to reproduce**:
+1. Sign up with a new Clerk account
+2. Go to /account/addresses
+3. Try to add an address
+4. See "Unauthorized" error
+
+**Expected**: Address should save successfully
+**Actual**: API returns 401 Unauthorized
+
+**Root cause**: `app/api/account/addresses/route.ts` looks up customer by `clerkId`, but no customer record exists for new Clerk users. The `customers` table only gets populated during checkout, not on Clerk signup.
+
+**Fix needed**: Auto-create customer record when:
+- User first accesses account features, OR
+- Via Clerk webhook on signup
 
 ### Medium
 

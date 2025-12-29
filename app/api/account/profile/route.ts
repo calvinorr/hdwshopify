@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db, customers } from "@/lib/db";
 import { eq } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
 // Check if Clerk is configured
 const clerkPubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -10,26 +10,48 @@ const isClerkConfigured =
   clerkPubKey.startsWith("pk_") &&
   !clerkPubKey.includes("placeholder");
 
-async function getCustomer() {
+async function getOrCreateCustomer() {
   if (!isClerkConfigured) return null;
 
   try {
     const { userId } = await auth();
     if (!userId) return null;
 
-    const customer = await db.query.customers.findFirst({
+    // Try to find existing customer
+    const existing = await db.query.customers.findFirst({
       where: eq(customers.clerkId, userId),
     });
 
-    return customer ?? null;
-  } catch {
+    if (existing) return existing;
+
+    // No customer exists - create one using Clerk user data
+    const user = await currentUser();
+    if (!user) return null;
+
+    const email = user.emailAddresses[0]?.emailAddress;
+    if (!email) return null;
+
+    // Create new customer record
+    const [newCustomer] = await db
+      .insert(customers)
+      .values({
+        email,
+        clerkId: userId,
+        firstName: user.firstName || null,
+        lastName: user.lastName || null,
+      })
+      .returning();
+
+    return newCustomer ?? null;
+  } catch (error) {
+    console.error("Failed to get/create customer:", error);
     return null;
   }
 }
 
 // GET /api/account/profile - Get current profile
 export async function GET() {
-  const customer = await getCustomer();
+  const customer = await getOrCreateCustomer();
 
   if (!customer) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -45,7 +67,7 @@ export async function GET() {
 
 // PATCH /api/account/profile - Update profile
 export async function PATCH(request: Request) {
-  const customer = await getCustomer();
+  const customer = await getOrCreateCustomer();
 
   if (!customer) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
