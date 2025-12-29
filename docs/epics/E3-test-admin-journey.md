@@ -1,6 +1,6 @@
 # E3: Test Admin Journey
 
-> **Status**: TODO
+> **Status**: IN PROGRESS (S3.1-S3.3 tested)
 > **Goal**: Walk through everything your wife would do as a shop owner. Document what breaks.
 > **Sessions**: 1-2
 > **Depends on**: E1 (deployed to test URL)
@@ -17,15 +17,15 @@ Pretend you're your wife running the shop. Add a new product. Edit a collection.
 
 ## Stories
 
-### S3.1: Dashboard Review
+### S3.1: Dashboard Review ✅
 **Goal**: Does the admin dashboard give a clear picture?
 
-- [ ] Admin dashboard loads
-- [ ] Shows today's stats (orders, revenue)
-- [ ] Shows pending orders that need attention
-- [ ] Shows low stock alerts
-- [ ] Can click through to orders from dashboard
-- [ ] Navigation sidebar works
+- [x] Admin dashboard loads
+- [x] Shows today's stats (orders, revenue)
+- [x] Shows pending orders that need attention
+- [x] Shows low stock alerts
+- [x] Can click through to orders from dashboard
+- [x] Navigation sidebar works
 
 **Log issues to**: `docs/ISSUES.md`
 
@@ -33,28 +33,30 @@ Pretend you're your wife running the shop. Add a new product. Edit a collection.
 
 ---
 
-### S3.2: Product Management
+### S3.2: Product Management (partial)
 **Goal**: Can she add and edit products easily?
 
 **Create a new product:**
-- [ ] Go to Products → New
-- [ ] Fill in name, slug auto-generates?
-- [ ] Add description
-- [ ] Set price, stock, weight
-- [ ] Select fiber content, yarn weight
-- [ ] Upload images (test with 2-3 images)
-- [ ] Reorder images by dragging
-- [ ] Delete an image
-- [ ] Add tags
-- [ ] Set to "Active" status
-- [ ] Save product
-- [ ] Product appears on frontend?
+- [x] Go to Products → New
+- [x] Fill in name, slug auto-generates?
+- [x] Add description
+- [x] Set price, stock, weight
+- [x] Select fiber content, yarn weight (⚠️ weight dropdown empty - needs taxonomies)
+- [ ] Upload images (test with 2-3 images) - skipped (requires file picker)
+- [ ] Reorder images by dragging - skipped
+- [ ] Delete an image - skipped
+- [ ] Add tags - not tested
+- [x] Set to "Active" status
+- [x] Save product
+- [x] Product appears on frontend? (✅ after bug fix for products without images)
 
 **Edit existing product:**
 - [ ] Find a product in the list
 - [ ] Edit some fields
 - [ ] Save changes
 - [ ] Changes reflected on frontend?
+
+**Bug Fixed**: Product detail page 500 error for products without images (RESOLVED)
 
 **Time check**: How long did creating a product take? Target is < 5 minutes.
 
@@ -64,15 +66,17 @@ Pretend you're your wife running the shop. Add a new product. Edit a collection.
 
 ---
 
-### S3.3: Collection Management
+### S3.3: Collection Management (partial)
 **Goal**: Can she organize products into collections?
 
-- [ ] View collections list
-- [ ] Reorder collections by dragging
-- [ ] Edit a collection (name, description, image)
-- [ ] Add/remove products from a collection
-- [ ] Create a new collection
-- [ ] Changes reflected on frontend?
+- [x] View collections list
+- [ ] Reorder collections by dragging - not tested
+- [ ] Edit a collection (name, description, image) - not fully tested
+- [x] Add/remove products from a collection
+- [x] Create a new collection
+- [ ] Changes reflected on frontend? (⚠️ 500 error on new collections - see ISSUES.md)
+
+**Issue Found**: New collections show 500 error on production (works locally) - logged to ISSUES.md
 
 **Log issues to**: `docs/ISSUES.md`
 
