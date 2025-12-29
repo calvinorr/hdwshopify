@@ -215,7 +215,14 @@ export async function POST(request: NextRequest) {
 }
 
 function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
+  // Priority: explicit URL > Vercel URL > localhost
+  if (process.env.NEXT_PUBLIC_URL) {
+    return process.env.NEXT_PUBLIC_URL;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return "http://localhost:3000";
 }
 
 async function getAvailableStock(productId: number, currentStock: number): Promise<number> {
