@@ -11,7 +11,7 @@ import type { Category } from "@/lib/db/schema";
 import type { ProductWithRelations } from "@/types/product";
 import { CollectionProducts } from "./collection-products";
 
-export const revalidate = 3600; // Revalidate every hour (ISR)
+export const revalidate = 60; // Revalidate every minute while testing
 
 interface CollectionWithChildren extends Category {
   children?: Category[];
