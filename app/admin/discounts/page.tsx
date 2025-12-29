@@ -10,7 +10,6 @@ import {
   Tag,
   MoreHorizontal,
   Edit,
-  Trash2,
   Percent,
   PoundSterling,
   Copy,
@@ -23,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DeleteDiscountButton } from "./delete-button";
 
 async function getDiscountCodes() {
   return db.query.discountCodes.findMany({
@@ -215,10 +215,10 @@ export default async function DiscountsPage() {
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
+                          <DeleteDiscountButton
+                            discountId={discount.id}
+                            discountCode={discount.code}
+                          />
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
