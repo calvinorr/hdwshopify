@@ -1,6 +1,6 @@
 # E2: Test Customer Journey
 
-> **Status**: IN_PROGRESS
+> **Status**: ✅ COMPLETE
 > **Goal**: Walk through everything a customer would do. Document what breaks.
 > **Sessions**: 1-2
 > **Depends on**: E1 (deployed to test URL)
@@ -85,21 +85,19 @@ Pretend you're a customer visiting the shop for the first time. Try to buy somet
 
 ---
 
-### S2.4: Edge Cases
+### S2.4: Edge Cases ✅
 **Goal**: What happens when things go wrong?
 
 - [x] Try to checkout with empty cart
 - [x] Try to add out-of-stock item (if any exist)
 - [x] Try invalid discount code
 - [x] Try expired discount code (code verified)
-- [ ] Use declined card `4000 0000 0000 0002` - BLOCKED by cart bug
-- [x] Abandon checkout halfway - does cart persist? - **BUG FOUND**
+- [x] Use declined card `4000 0000 0000 0002` - shows "Your credit card was declined" error
+- [x] Abandon checkout halfway - does cart persist? - **BUG FOUND & FIXED**
 - [x] Visit a non-existent product URL - 404 page?
 - [x] Visit a non-existent collection URL - 404 page?
 
-**Verified**: 2025-12-29 (partial) | **BLOCKED**: Cart session mismatch bug prevents Stripe testing
-
-**Bug logged**: `docs/ISSUES.md` - Critical: Cart session mismatch blocks checkout
+**Verified**: 2025-12-29 | Bug fixed: Cart session mismatch - checkout now checks customerId before sessionId
 
 **Log issues to**: `docs/ISSUES.md`
 
@@ -126,6 +124,6 @@ _Quick notes during testing. Move to `docs/ISSUES.md` for tracking._
 
 ## Completion
 
-- [ ] All stories complete
-- [ ] Issues logged to ISSUES.md
-- [ ] PROJECT_PLAN.md updated
+- [x] All stories complete
+- [x] Issues logged to ISSUES.md
+- [x] PROJECT_PLAN.md updated

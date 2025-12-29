@@ -36,7 +36,7 @@
 | Epic | Name | Status | Sessions |
 |------|------|--------|----------|
 | E1 | Go Live (Test) | ✅ COMPLETE | 1 |
-| E2 | Test Customer Journey | TODO | 1-2 |
+| E2 | Test Customer Journey | ✅ COMPLETE | 1-2 |
 | E3 | Test Admin Journey | TODO | 1-2 |
 | E4 | Search Enhancement | TODO | 1 |
 | E5 | Email Notifications | TODO | 1 |
