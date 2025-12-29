@@ -35,7 +35,20 @@ _None currently_
 
 ### High
 
-_None yet_
+### New collections show 500 error on frontend (production only)
+**Severity**: High
+**Found in**: E3 S3.3
+**Steps to reproduce**:
+1. Create a new collection in admin (e.g., "Test Collection - Spring Greens")
+2. Add products to it
+3. Save as Active
+4. Navigate to /collections/test-collection-spring-greens
+5. See 500 Internal Server Error
+
+**Expected**: Collection page should display with products
+**Actual**: 500 error on production (works locally!)
+
+**Note**: API returns data correctly, local dev works, only production page fails. May be related to ISR/caching or deployment propagation. Existing collections work fine.
 
 ### Medium
 
