@@ -1,6 +1,6 @@
 # E2: Test Customer Journey
 
-> **Status**: TODO
+> **Status**: IN_PROGRESS
 > **Goal**: Walk through everything a customer would do. Document what breaks.
 > **Sessions**: 1-2
 > **Depends on**: E1 (deployed to test URL)
@@ -17,17 +17,19 @@ Pretend you're a customer visiting the shop for the first time. Try to buy somet
 
 ## Stories
 
-### S2.1: Browsing & Discovery
+### S2.1: Browsing & Discovery ✅
 **Goal**: Can a customer find what they want?
 
-- [ ] Visit homepage - does it look right? Hero carousel working?
-- [ ] Click through to a collection (e.g., "DK" or "In Stock")
-- [ ] Use filters (by weight, by fiber, by availability)
-- [ ] Use sorting (price low-high, newest)
-- [ ] Try the search - search for "merino", "blue", a product name
-- [ ] View a product detail page - images, description, price visible?
-- [ ] Image zoom works?
-- [ ] Related products showing?
+- [x] Visit homepage - does it look right? Hero carousel working?
+- [x] Click through to a collection (e.g., "DK" or "In Stock")
+- [x] Use filters (by weight, by fiber, by availability)
+- [x] Use sorting (price low-high, newest)
+- [x] Try the search - search for "merino", "blue", a product name
+- [x] View a product detail page - images, description, price visible?
+- [x] Image zoom works?
+- [x] Related products showing?
+
+**Verified**: 2025-12-29 | Bug found & fixed: collections showing 0 products (categoryId was NULL)
 
 **Log issues to**: `docs/ISSUES.md`
 
