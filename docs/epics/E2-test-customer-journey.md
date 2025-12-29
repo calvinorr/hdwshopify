@@ -88,14 +88,18 @@ Pretend you're a customer visiting the shop for the first time. Try to buy somet
 ### S2.4: Edge Cases
 **Goal**: What happens when things go wrong?
 
-- [ ] Try to checkout with empty cart
-- [ ] Try to add out-of-stock item (if any exist)
-- [ ] Try invalid discount code
-- [ ] Try expired discount code
-- [ ] Use declined card `4000 0000 0000 0002`
-- [ ] Abandon checkout halfway - does cart persist?
-- [ ] Visit a non-existent product URL - 404 page?
-- [ ] Visit a non-existent collection URL - 404 page?
+- [x] Try to checkout with empty cart
+- [x] Try to add out-of-stock item (if any exist)
+- [x] Try invalid discount code
+- [x] Try expired discount code (code verified)
+- [ ] Use declined card `4000 0000 0000 0002` - BLOCKED by cart bug
+- [x] Abandon checkout halfway - does cart persist? - **BUG FOUND**
+- [x] Visit a non-existent product URL - 404 page?
+- [x] Visit a non-existent collection URL - 404 page?
+
+**Verified**: 2025-12-29 (partial) | **BLOCKED**: Cart session mismatch bug prevents Stripe testing
+
+**Bug logged**: `docs/ISSUES.md` - Critical: Cart session mismatch blocks checkout
 
 **Log issues to**: `docs/ISSUES.md`
 

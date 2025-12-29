@@ -31,7 +31,31 @@ When you find an issue during testing:
 
 ### Critical
 
-_None yet_
+### Cart session mismatch blocks checkout
+**Severity**: Critical
+**Found in**: E2 S2.4 (Edge Cases)
+**Steps to reproduce**:
+1. Add item to cart (cart badge shows count)
+2. Go to /checkout - order summary shows item
+3. Select shipping country (UK)
+4. Click "Proceed to Payment"
+5. See "Cart is empty" error
+
+**Expected**: Redirect to Stripe checkout
+**Actual**: API returns 400 "Cart is empty" despite UI showing cart items
+
+**Technical details**:
+- `/api/checkout/session` returns 400
+- `getCartSession()` returns a session ID that doesn't match DB cart
+- Frontend cart state is cached/stale while backend cart is different
+- Reproducible after multiple add-to-cart operations
+
+**Impact**: Blocks ALL customer purchases
+
+**Files to investigate**:
+- `lib/cart.ts` - `getCartSession()` function
+- `app/api/checkout/session/route.ts` - lines 58-74
+- `app/api/cart/route.ts` - cart creation/session handling
 
 ### High
 
