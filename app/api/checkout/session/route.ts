@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq, and, inArray, gt, sql } from "drizzle-orm";
-// Using fetch-based HTTP client for Vercel serverless compatibility
-import { stripe } from "@/lib/stripe";
+import Stripe from "stripe";
 import { db, carts, shippingZones, discountCodes, products, productImages, stockReservations } from "@/lib/db";
 import { getCartSession, CartItemData } from "@/lib/cart";
-import type Stripe from "stripe";
+
+// Create Stripe instance with fetch-based HTTP client for Vercel serverless compatibility
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  typescript: true,
+  httpClient: Stripe.createFetchHttpClient(),
+});
 
 const RESERVATION_DURATION_MINUTES = 30;
 
