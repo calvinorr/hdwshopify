@@ -4,11 +4,20 @@ import Stripe from "stripe";
 import { db, carts, shippingZones, discountCodes, products, productImages, stockReservations } from "@/lib/db";
 import { getCartSession, CartItemData } from "@/lib/cart";
 
-// Create Stripe instance with fetch-based HTTP client for Vercel serverless compatibility
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  typescript: true,
-  httpClient: Stripe.createFetchHttpClient(),
-});
+// Lazy-initialize Stripe with fetch-based HTTP client for Vercel serverless compatibility
+let _stripe: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!_stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error("STRIPE_SECRET_KEY not configured");
+    }
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      typescript: true,
+      httpClient: Stripe.createFetchHttpClient(),
+    });
+  }
+  return _stripe;
+}
 
 const RESERVATION_DURATION_MINUTES = 30;
 
@@ -179,7 +188,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const session = await stripe.checkout.sessions.create(sessionParams);
+    const session = await getStripe().checkout.sessions.create(sessionParams);
 
     // Create stock reservations for all items
     await createReservations(cartItems, session.id);
@@ -335,7 +344,7 @@ async function getOrCreateStripeCoupon(discount: typeof discountCodes.$inferSele
     const couponId = `hd_${discount.code.toLowerCase()}`;
 
     try {
-      const existingCoupon = await stripe.coupons.retrieve(couponId);
+      const existingCoupon = await getStripe().coupons.retrieve(couponId);
       return existingCoupon;
     } catch {
       // Coupon doesn't exist, create it
@@ -353,7 +362,7 @@ async function getOrCreateStripeCoupon(discount: typeof discountCodes.$inferSele
       couponParams.amount_off = Math.round(discount.value * 100);
     }
 
-    const coupon = await stripe.coupons.create(couponParams);
+    const coupon = await getStripe().coupons.create(couponParams);
     return coupon;
   } catch (error) {
     console.error("Error creating Stripe coupon:", error);
