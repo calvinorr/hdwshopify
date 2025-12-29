@@ -54,7 +54,19 @@ _None yet_
 
 ### Low
 
-_None yet_
+### Toast notifications using browser console/modal instead of app toasts
+**Severity**: Low
+**Found in**: E3 S3.2
+**Description**: Some user feedback messages appear as browser console messages or native browser modals instead of the app's styled toast notifications. This creates an inconsistent UX.
+**Expected**: All user feedback should use the app's Sonner toast system
+**Actual**: Mix of console messages, native alerts, and toast notifications
+
+### Toast/popup text difficult to read
+**Severity**: Low
+**Found in**: E3 S3.2
+**Description**: When toast notifications do appear correctly, the text contrast or styling makes them difficult to read.
+**Expected**: Clear, readable text with good contrast
+**Actual**: Text is hard to read in some toast popups
 
 ---
 
