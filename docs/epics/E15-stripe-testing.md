@@ -1,6 +1,6 @@
 # E15: Stripe Test Mode Validation
 
-> **Status**: 🔄 IN PROGRESS (US15.1-15.4 verified)
+> **Status**: 🔄 IN PROGRESS (US15.1-15.6 verified)
 > **Priority**: CRITICAL - Client Demo Readiness
 > **Goal**: Demonstrate complete payment flow using Stripe test mode before going live
 
@@ -178,51 +178,55 @@ stripe trigger payment_intent.payment_failed
 
 ---
 
-## US15.5: Discount Codes
+## US15.5: Discount Codes ✅
 
 **Goal**: Verify discount codes apply correctly through checkout
+**Verified**: 2025-12-28
 
 ### Percentage Discount
-- [ ] Create a test discount code in admin (e.g., TEST20 for 20% off)
-- [ ] Add product to cart
-- [ ] Apply discount code
-- [ ] Verify discount appears in cart total
-- [ ] Complete checkout with test card
-- [ ] Verify Stripe shows discounted amount
-- [ ] Verify order total in admin reflects discount
-- [ ] Verify discount code usage count incremented
+- [x] Create a test discount code in admin (e.g., TEST20 for 20% off)
+- [x] Add product to cart
+- [x] Apply discount code
+- [x] Verify discount appears in cart total
+- [x] Complete checkout with test card
+- [x] Verify Stripe shows discounted amount
+- [x] Verify order total in admin reflects discount (Order HD-20251228-003: £19.55)
+- [x] Verify discount code usage count incremented
 
 ### Fixed Amount Discount
-- [ ] Create fixed discount (e.g., SAVE5 for £5 off)
-- [ ] Repeat test, verify £5 deducted
+- [x] Create fixed discount (e.g., SAVE5 for £5 off)
+- [x] Repeat test, verify £5 deducted (Order HD-20251228-004: £18.95)
 
 ### Minimum Order Value
-- [ ] Create discount with minimum order value
-- [ ] Test with order below minimum (should reject)
-- [ ] Test with order above minimum (should apply)
+- [x] Create discount with minimum order value (MIN30: 10% off orders over £30)
+- [x] Test with order below minimum (should reject) - ✓ Shows "Minimum order of £30.00 required"
+- [x] Test with order above minimum (should apply) - ✓ Applied 10% off (£44 → £39.60)
 
 ---
 
-## US15.6: Shipping Zones
+## US15.6: Shipping Zones ✅
 
 **Goal**: Verify correct shipping rates for different countries
+**Verified**: 2025-12-29 (browser + code review)
 
 ### UK Shipping
-- [ ] Checkout with UK address
-- [ ] Verify UK shipping rates shown
-- [ ] Complete purchase, verify shipping cost correct
+- [x] Checkout with UK address
+- [x] Verify UK shipping rates shown (£3.95 Standard Shipping)
+- [x] Complete purchase, verify shipping cost correct
 
 ### Ireland
-- [ ] Checkout with IE address
-- [ ] Verify Ireland shipping rates shown
+- [x] Checkout with IE address
+- [x] Verify Ireland shipping rates shown (£6.95 Standard Shipping)
 
 ### EU (e.g., France, Germany)
-- [ ] Checkout with EU address
-- [ ] Verify Europe shipping rates shown
+- [x] Checkout with EU address (France tested)
+- [x] Verify Europe shipping rates shown (code verified: zone matching works)
 
 ### International (e.g., US, Australia)
-- [ ] Checkout with international address
-- [ ] Verify international shipping rates shown
+- [x] Checkout with international address
+- [x] Verify international shipping rates shown (code verified: US/CA/AU/NZ/JP/CH/NO in zone)
+
+**Note**: Free shipping (UK only, orders over £50) logic verified in code but not triggered in browser test (cart was under £50 at test time).
 
 ---
 
