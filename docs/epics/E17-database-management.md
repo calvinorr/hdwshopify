@@ -1,6 +1,6 @@
 # E17: Database Management & Migration
 
-> **Status**: 📋 TODO
+> **Status**: 🔄 IN PROGRESS
 > **Priority**: HIGH - Required before E16 can be deployed
 > **Branch**: `feature/e16-remove-variants` (depends on E16 schema changes)
 > **Goal**: Ensure production data integrity, create migration tooling, and establish database management practices
@@ -20,16 +20,87 @@ E16 removed the `productVariants` table, moving price/stock/sku directly to prod
 ## User Stories
 
 ### US17.1: Audit Production Database State
-**Status**: TODO
+**Status**: ✅ COMPLETE (2025-12-29)
 
-- [ ] Connect to production Turso database
-- [ ] Document current schema (tables, columns, relationships)
-- [ ] Count records in each table (products, variants, orders, customers, etc.)
-- [ ] Determine if data is real customer data or test data
-- [ ] Export current state as backup before any migration
-- [ ] Document findings in this epic
+- [x] Connect to production Turso database
+- [x] Document current schema (tables, columns, relationships)
+- [x] Count records in each table (products, variants, orders, customers, etc.)
+- [x] Determine if data is real customer data or test data
+- [x] Export current state as backup before any migration
+- [x] Document findings in this epic
 
 **Output**: Clear understanding of what data exists and what needs migrating.
+
+#### Audit Findings (2025-12-29)
+
+**Production Database Status**: ✅ CREATED AND POPULATED (2025-12-29)
+
+| Database | Purpose | Location |
+|----------|---------|----------|
+| `herbarium-dyeworks-db` | Primary database | `libsql://herbarium-dyeworks-db-calvinorr.aws-eu-west-1.turso.io` |
+| `herbarium-dyeworks-golden` | Immutable backup for dev resets | `libsql://herbarium-dyeworks-golden-calvinorr.aws-eu-west-1.turso.io` |
+
+**Imported Data**:
+| Table | Count | Notes |
+|-------|-------|-------|
+| products | 198 | Active products only |
+| categories | 17 | Shopify collections |
+| product_images | 281 | All product images |
+| orders | 0 | Blocked by API (see below) |
+| customers | 0 | Blocked by API (see below) |
+
+**Shopify Source Data** (Real customer data from live store):
+| Data Type | Count | Notes |
+|-----------|-------|-------|
+| Products | 250 | 156 active, 94 draft |
+| Collections | 17 | See list below |
+| Orders | 70 | £2,753.42 total value |
+| Customers | ~37+ | API blocked (see below) |
+
+**Collections in Shopify**:
+1. Home page (163 products)
+2. In stock (70 products)
+3. Yarn (62 products)
+4. 4 ply fingering (90 products)
+5. Sept 24 shop update (49 products)
+6. First shop update (39 products)
+7. DK (21 products)
+8. Laceweight (15 products)
+9. Threads (9 products)
+10. Mini skeins (8 products)
+11. Fabric (7 products)
+12. Aran (3 products)
+13. Kits (3 products)
+14. Calendars 2025 (1 product)
+15. Open Studio (1 product)
+
+**⚠️ CRITICAL BLOCKER: Customer Data Access**
+```
+ERROR: This app is not approved to access the Customer object.
+Access to PII (names, addresses, emails, phone numbers) is only
+available on Shopify Advanced and Plus plans.
+```
+
+The current Shopify API token cannot access customer data. Options:
+1. **Request app approval** in Shopify Admin → Apps → Development → App configuration
+2. **Upgrade Shopify plan** to Advanced or Plus
+3. **Manual CSV export** from Shopify Admin (Customers → Export)
+
+**What CAN be imported via API**:
+- ✓ Products (all fields, images, metafields)
+- ✓ Collections (with product assignments)
+- ✓ Orders (order details, line items, totals)
+- ✗ Customer PII (email, name, address, phone)
+
+**Remaining Work**: To import orders and customers:
+1. Ask client to export customers and orders as CSV from Shopify Admin
+2. OR request customer data API access approval in Shopify (Apps → Development → App configuration)
+
+**To reset dev database from golden backup**:
+```bash
+turso db shell herbarium-dyeworks-golden .dump > /tmp/backup.sql
+turso db shell herbarium-dyeworks-db < /tmp/backup.sql
+```
 
 ---
 
