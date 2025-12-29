@@ -216,11 +216,12 @@ export async function POST(request: NextRequest) {
 
 function getBaseUrl(): string {
   // Priority: explicit URL > Vercel URL > localhost
+  // Trim to handle any whitespace/newlines in env vars
   if (process.env.NEXT_PUBLIC_URL) {
-    return process.env.NEXT_PUBLIC_URL;
+    return process.env.NEXT_PUBLIC_URL.trim();
   }
   if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
+    return `https://${process.env.VERCEL_URL.trim()}`;
   }
   return "http://localhost:3000";
 }
