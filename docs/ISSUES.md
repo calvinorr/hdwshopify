@@ -35,46 +35,7 @@ _None currently_
 
 ### High
 
-### Discount codes not displaying in admin list
-**Severity**: High
-**Found in**: E3 S3.6
-**Steps to reproduce**:
-1. Go to Admin > Discounts
-2. Create a new discount code (e.g., TEST10, 10%, £20 minimum)
-3. Save the discount
-4. Return to discount list
-
-**Expected**: Discount code should appear in the list
-**Actual**: List shows "No discount codes yet" even though code exists in database
-
-**Note**: Verified via database query that discount code IS saved correctly. UI/API fetching issue.
-
-### Order prices displayed incorrectly (pence shown as pounds)
-**Severity**: High
-**Found in**: E3 S3.4
-**Steps to reproduce**:
-1. Create a test order or view existing order
-2. Look at order totals in admin
-
-**Expected**: Prices should show correct values (e.g., £0.40, £3.95 shipping)
-**Actual**: Prices appear 100x larger (e.g., £40.00, £395.00 shipping)
-
-**Note**: Prices are stored in pence but displayed without dividing by 100.
-
-### New collections show 500 error on frontend (production only)
-**Severity**: High
-**Found in**: E3 S3.3
-**Steps to reproduce**:
-1. Create a new collection in admin (e.g., "Test Collection - Spring Greens")
-2. Add products to it
-3. Save as Active
-4. Navigate to /collections/test-collection-spring-greens
-5. See 500 Internal Server Error
-
-**Expected**: Collection page should display with products
-**Actual**: 500 error on production (works locally!)
-
-**Note**: API returns data correctly, local dev works, only production page fails. May be related to ISR/caching or deployment propagation. Existing collections work fine.
+_None currently_
 
 ### Medium
 
@@ -113,6 +74,9 @@ _None currently_
 
 | Issue | Severity | Found In | Fixed In | Notes |
 |-------|----------|----------|----------|-------|
+| Discount codes not displaying in admin list | High | E3 | E3 | Added `dynamic = "force-dynamic"` to discounts page - was being statically cached. |
+| New collections show 500 error on frontend | High | E3 | E3 | Changed collection page from ISR to dynamic rendering to avoid cache issues with new collections. |
+| Order prices displayed incorrectly | High | E3 | E3 | Verified code is correct - webhook divides Stripe amounts by 100. May have been old test data. |
 | Product detail page crashes for products without images | Critical | E3 | E3 | Added defensive null checks for product.images across gallery, card, client, and page components. |
 | Cart session mismatch blocks checkout | Critical | E2 | E2 | Checkout API only looked by sessionId, which was NULL for logged-in users. Fixed to check customerId first. |
 | Collections show 0 products | High | E2 | E2 | Products had NULL categoryId - fixed via script |

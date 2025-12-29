@@ -11,7 +11,9 @@ import type { Category } from "@/lib/db/schema";
 import type { ProductWithRelations } from "@/types/product";
 import { CollectionProducts } from "./collection-products";
 
-export const revalidate = 3600; // Revalidate hourly
+// Force dynamic rendering to ensure new collections work immediately
+// (ISR was causing 500 errors for newly created collections)
+export const dynamic = "force-dynamic";
 
 interface CollectionWithChildren extends Category {
   children?: Category[];

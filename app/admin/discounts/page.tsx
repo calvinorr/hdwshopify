@@ -1,6 +1,9 @@
 import { db } from "@/lib/db";
 import { discountCodes } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
+
+// Force dynamic rendering to always show fresh data
+export const dynamic = "force-dynamic";
 import Link from "next/link";
 import {
   Plus,
