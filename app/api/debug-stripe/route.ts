@@ -43,6 +43,16 @@ export async function GET() {
     }
   }
 
+  // Check base URL config
+  const nextPublicUrl = process.env.NEXT_PUBLIC_URL || "NOT_SET";
+  const vercelUrl = process.env.VERCEL_URL || "NOT_SET";
+  let baseUrl = "localhost";
+  if (process.env.NEXT_PUBLIC_URL) {
+    baseUrl = process.env.NEXT_PUBLIC_URL;
+  } else if (process.env.VERCEL_URL) {
+    baseUrl = `https://${process.env.VERCEL_URL}`;
+  }
+
   return NextResponse.json({
     keyExists,
     keyPrefix,
@@ -51,5 +61,8 @@ export async function GET() {
     sdkTest,
     nodeEnv: process.env.NODE_ENV,
     region: process.env.VERCEL_REGION || "unknown",
+    nextPublicUrl,
+    vercelUrl,
+    baseUrl,
   });
 }
