@@ -28,13 +28,12 @@ export async function GET() {
       fetchTest = `FETCH ERROR: ${error instanceof Error ? error.message : "Unknown"}`;
     }
 
-    // Test 2: Stripe SDK with explicit timeout
+    // Test 2: Stripe SDK with fetch-based HTTP client
     try {
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(key, {
         typescript: true,
-        timeout: 30000, // 30 seconds explicit timeout
-        maxNetworkRetries: 0, // No retries to see raw error
+        httpClient: Stripe.createFetchHttpClient(),
       });
 
       const balance = await stripe.balance.retrieve();

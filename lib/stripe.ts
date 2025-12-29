@@ -8,6 +8,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  // Let SDK use its default API version
   typescript: true,
+  // Use fetch-based HTTP client for Vercel serverless compatibility
+  httpClient: Stripe.createFetchHttpClient(),
 });
