@@ -70,7 +70,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     product.metaDescription ||
     product.description?.replace(/<[^>]*>/g, "").slice(0, 160) ||
     `${product.name} - Naturally dyed yarn from Herbarium Dyeworks`;
-  const firstImage = product.images[0];
+  // Defensive: ensure images is always an array
+  const safeImages = product.images ?? [];
+  const firstImage = safeImages[0];
 
   return {
     title: `${title} | Herbarium Dyeworks`,
@@ -102,7 +104,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 // Generate JSON-LD structured data for Product schema
 function generateProductJsonLd(product: ProductWithRelations) {
-  const firstImage = product.images[0];
+  // Defensive: ensure images is always an array
+  const safeImages = product.images ?? [];
+  const firstImage = safeImages[0];
   const availability =
     (product.stock ?? 0) > 0
       ? "https://schema.org/InStock"

@@ -31,7 +31,20 @@ When you find an issue during testing:
 
 ### Critical
 
-_None_
+### Product detail page crashes for products without images
+**Severity**: Critical
+**Found in**: E3 S3.2
+**Steps to reproduce**:
+1. Create a new product in admin
+2. Fill in all fields but don't upload any images
+3. Set status to Active and save
+4. Navigate to the product page on frontend (e.g., /products/test-yarn-meadow-green)
+5. See 500 Internal Server Error
+
+**Expected**: Product page should display with a placeholder image
+**Actual**: 500 Internal Server Error - page crashes
+
+**Note**: Product appears correctly in search results and listings with "No image" placeholder, only the detail page crashes.
 
 ### High
 
@@ -39,7 +52,18 @@ _None yet_
 
 ### Medium
 
-_None yet_
+### Weight dropdown has no options configured
+**Severity**: Medium
+**Found in**: E3 S3.2
+**Steps to reproduce**:
+1. Go to Admin > Products > Add Product
+2. Scroll to "Yarn Details" section
+3. Click "Weight" dropdown
+
+**Expected**: Should show options like Laceweight, 4ply, DK, Aran
+**Actual**: Dropdown opens but has no options to select
+
+**Note**: Message says "Add weight types in Settings → Taxonomies" - needs taxonomies configured.
 
 ### Low
 

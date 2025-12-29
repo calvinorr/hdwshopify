@@ -39,7 +39,9 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const isSoldOut = stockInfo.status === "sold-out";
 
   // Get primary and secondary images (sorted by position)
-  const sortedImages = [...product.images].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  // Defensive: ensure images is always an array
+  const safeImages = product.images ?? [];
+  const sortedImages = [...safeImages].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const primaryImage = sortedImages[0];
   const secondaryImage = sortedImages[1];
 

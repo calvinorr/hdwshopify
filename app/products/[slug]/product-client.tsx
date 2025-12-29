@@ -19,7 +19,9 @@ export function ProductClient({ product, availableStock }: ProductClientProps) {
 
   // Track this product as viewed
   useEffect(() => {
-    const firstImage = product.images[0];
+    // Defensive: ensure images is always an array
+    const safeImages = product.images ?? [];
+    const firstImage = safeImages[0];
 
     addProduct({
       slug: product.slug,

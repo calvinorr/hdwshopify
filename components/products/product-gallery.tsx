@@ -17,7 +17,9 @@ interface ProductGalleryProps {
 }
 
 export function ProductGallery({ images }: ProductGalleryProps) {
-  const sortedImages = [...images].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  // Defensive: ensure images is always an array
+  const safeImages = images ?? [];
+  const sortedImages = [...safeImages].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
