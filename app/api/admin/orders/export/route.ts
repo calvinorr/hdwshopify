@@ -107,8 +107,8 @@ function generateOrdersCsv(orderList: any[]): string {
     // Format items as "Product (Variant) x Qty; ..."
     const items = order.items
       .map((item: any) => {
-        const name = item.variantName
-          ? `${item.productName} (${item.variantName})`
+        const name = item.colorway
+          ? `${item.productName} (${item.colorway})`
           : item.productName;
         return `${name} x${item.quantity}`;
       })

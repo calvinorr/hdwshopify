@@ -246,10 +246,10 @@ export default async function GuestOrderPage({ params, searchParams }: PageProps
                           <p className="font-medium text-stone-900">
                             {item.productName}
                           </p>
-                          {item.variantName &&
-                            item.variantName !== item.productName && (
+                          {item.colorway &&
+                            item.colorway !== item.productName && (
                               <p className="text-sm text-stone-500">
-                                {item.variantName}
+                                {item.colorway}
                               </p>
                             )}
                           <p className="text-sm text-stone-500 mt-1">

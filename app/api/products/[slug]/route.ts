@@ -12,14 +12,6 @@ export async function GET(
     const product = await db.query.products.findFirst({
       where: and(eq(products.slug, slug), eq(products.status, "active")),
       with: {
-        variants: {
-          orderBy: (variants, { asc }) => [asc(variants.position)],
-          with: {
-            images: {
-              orderBy: (images, { asc }) => [asc(images.position)],
-            },
-          },
-        },
         images: {
           orderBy: (images, { asc }) => [asc(images.position)],
         },

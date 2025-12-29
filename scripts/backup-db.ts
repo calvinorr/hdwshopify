@@ -12,7 +12,6 @@ import { db } from "../lib/db";
 import {
   categories,
   products,
-  productVariants,
   productImages,
   customers,
   addresses,
@@ -54,7 +53,6 @@ async function backup() {
       tables: {
         categories: await db.select().from(categories),
         products: await db.select().from(products),
-        productVariants: await db.select().from(productVariants),
         productImages: await db.select().from(productImages),
         customers: await db.select().from(customers),
         addresses: await db.select().from(addresses),

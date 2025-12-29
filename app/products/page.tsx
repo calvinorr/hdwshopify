@@ -24,9 +24,6 @@ async function getProducts(): Promise<ProductWithRelations[]> {
     const result = await db.query.products.findMany({
       where: eq(products.status, "active"),
       with: {
-        variants: {
-          orderBy: (variants, { asc }) => [asc(variants.position)],
-        },
         images: {
           orderBy: (images, { asc }) => [asc(images.position)],
         },

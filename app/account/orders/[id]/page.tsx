@@ -214,8 +214,8 @@ export default async function OrderDetailPage({ params }: PageProps) {
               <div key={item.id} className="p-4 flex gap-4">
                 <div className="flex-1">
                   <p className="font-medium text-stone-900">{item.productName}</p>
-                  {item.variantName && item.variantName !== item.productName && (
-                    <p className="text-sm text-stone-500">{item.variantName}</p>
+                  {item.colorway && item.colorway !== item.productName && (
+                    <p className="text-sm text-stone-500">{item.colorway}</p>
                   )}
                   <p className="text-sm text-stone-500 mt-1">
                     Qty: {item.quantity}

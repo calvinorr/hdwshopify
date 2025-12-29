@@ -55,7 +55,7 @@ export async function sendOrderConfirmationEmail(
         customerName,
         items: items.map((item) => ({
           productName: item.productName,
-          variantName: item.variantName,
+          colorway: item.colorway,
           quantity: item.quantity,
           price: item.price,
         })),

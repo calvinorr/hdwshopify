@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq, and, inArray, gt, sql } from "drizzle-orm";
 import { stripe } from "@/lib/stripe";
-import { db, carts, shippingZones, shippingRates, discountCodes, productVariants, productImages, stockReservations } from "@/lib/db";
+import { db, carts, shippingZones, discountCodes, products, productImages, stockReservations } from "@/lib/db";
 import { getCartSession, CartItemData } from "@/lib/cart";
 import type Stripe from "stripe";
 
-// Reservation duration in minutes
 const RESERVATION_DURATION_MINUTES = 30;
 
-// Countries we ship to, grouped by zone
 const SHIPPING_COUNTRIES: Record<string, string[]> = {
   UK: ["GB"],
   Ireland: ["IE"],
@@ -21,17 +19,14 @@ const SHIPPING_COUNTRIES: Record<string, string[]> = {
 };
 
 const ALL_SHIPPING_COUNTRIES = Object.values(SHIPPING_COUNTRIES).flat();
-
-// Free shipping threshold (in pounds)
 const FREE_SHIPPING_THRESHOLD = 50;
-const FREE_SHIPPING_ZONES = ["UK"]; // Only UK gets free shipping
+const FREE_SHIPPING_ZONES = ["UK"];
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { discountCode, shippingCountry } = body;
 
-    // Validate shipping country is provided
     if (!shippingCountry) {
       return NextResponse.json(
         { error: "Please select your shipping destination" },
@@ -39,7 +34,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate country is in our allowed list
     if (!ALL_SHIPPING_COUNTRIES.includes(shippingCountry)) {
       return NextResponse.json(
         { error: "Sorry, we don't currently ship to your selected country" },
@@ -47,7 +41,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get cart
     const sessionId = await getCartSession();
     if (!sessionId) {
       return NextResponse.json(
@@ -75,26 +68,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Batch load all variants with their products (1 query instead of N)
-    const variantIds = cartItems.map((item) => item.variantId);
-    const variants = await db.query.productVariants.findMany({
-      where: inArray(productVariants.id, variantIds),
-      with: {
-        product: true,
-      },
+    // Batch load all products
+    const productIds = cartItems.map((item) => item.productId);
+    const productList = await db.query.products.findMany({
+      where: inArray(products.id, productIds),
     });
 
-    // Create lookup map
-    const variantMap = new Map(variants.map((v) => [v.id, v]));
+    const productMap = new Map(productList.map((p) => [p.id, p]));
 
-    // Batch load all product images (1 query instead of N)
-    const productIds = [...new Set(variants.map((v) => v.productId))];
+    // Batch load all product images
     const allImages = await db.query.productImages.findMany({
       where: inArray(productImages.productId, productIds),
       orderBy: (images, { asc }) => [asc(images.position)],
     });
 
-    // Create image lookup map (productId -> first image URL)
     const productImageMap = new Map<number, string>();
     for (const image of allImages) {
       if (!productImageMap.has(image.productId)) {
@@ -108,53 +95,49 @@ export async function POST(request: NextRequest) {
     let subtotal = 0;
 
     for (const item of cartItems) {
-      const variant = variantMap.get(item.variantId);
+      const product = productMap.get(item.productId);
 
-      if (!variant || variant.product.status !== "active") {
+      if (!product || product.status !== "active") {
         return NextResponse.json(
-          { error: `Product "${variant?.product?.name || "Unknown"}" is no longer available` },
+          { error: `Product "${product?.name || "Unknown"}" is no longer available` },
           { status: 400 }
         );
       }
 
       // Check available stock (accounting for active reservations)
-      const physicalStock = variant.stock ?? 0;
-      const availableStock = await getAvailableStock(variant.id, physicalStock);
+      const physicalStock = product.stock ?? 0;
+      const availableStock = await getAvailableStock(product.id, physicalStock);
 
       if (item.quantity > availableStock) {
         return NextResponse.json(
           {
             error: availableStock === 0
-              ? `"${variant.product.name} - ${variant.name}" is out of stock`
-              : `Only ${availableStock} of "${variant.product.name} - ${variant.name}" available`,
+              ? `"${product.name}" is out of stock`
+              : `Only ${availableStock} of "${product.name}" available`,
           },
           { status: 400 }
         );
       }
 
-      // Calculate weight and subtotal
-      const itemWeight = (variant.weightGrams ?? 100) * item.quantity;
+      const itemWeight = (product.weightGrams ?? 100) * item.quantity;
       totalWeightGrams += itemWeight;
-      subtotal += variant.price * item.quantity;
+      subtotal += product.price * item.quantity;
 
-      // Build Stripe line item
-      const imageUrl = productImageMap.get(variant.productId);
+      const imageUrl = productImageMap.get(product.id);
 
       lineItems.push({
         price_data: {
           currency: "gbp",
           product_data: {
-            name: variant.product.name,
-            description: variant.name !== variant.product.name ? variant.name : undefined,
+            name: product.name,
             images: imageUrl ? [imageUrl] : undefined,
           },
-          unit_amount: Math.round(variant.price * 100), // Convert pounds to pence
+          unit_amount: Math.round(product.price * 100),
         },
         quantity: item.quantity,
       });
     }
 
-    // Get shipping options filtered by customer's country
     const shippingOptions = await getShippingOptions(totalWeightGrams, subtotal, shippingCountry);
 
     if (shippingOptions.length === 0) {
@@ -164,13 +147,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build checkout session params
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: "payment",
       payment_method_types: ["card"],
       line_items: lineItems,
       shipping_address_collection: {
-        // Only allow the country the customer selected - prevents mismatch
         allowed_countries: [shippingCountry] as Stripe.Checkout.SessionCreateParams.ShippingAddressCollection.AllowedCountry[],
       },
       shipping_options: shippingOptions,
@@ -180,15 +161,11 @@ export async function POST(request: NextRequest) {
         cartId: cart.id.toString(),
         sessionId: sessionId,
       },
-      // Disable adaptive pricing - always charge in GBP
-      // adaptive_pricing: { enabled: true },
     };
 
-    // Handle discount code
     if (discountCode) {
       const discount = await validateAndGetDiscount(discountCode, subtotal);
       if (discount) {
-        // Create or get Stripe coupon
         const stripeCoupon = await getOrCreateStripeCoupon(discount);
         if (stripeCoupon) {
           sessionParams.discounts = [{ coupon: stripeCoupon.id }];
@@ -197,10 +174,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create(sessionParams);
 
-    // Create stock reservations for all items in this session
+    // Create stock reservations for all items
     await createReservations(cartItems, session.id);
 
     return NextResponse.json({
@@ -220,19 +196,15 @@ function getBaseUrl(): string {
   return process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
 }
 
-/**
- * Get the available stock for a variant, accounting for active reservations
- */
-async function getAvailableStock(variantId: number, currentStock: number): Promise<number> {
+async function getAvailableStock(productId: number, currentStock: number): Promise<number> {
   const now = new Date().toISOString();
 
-  // Sum up all non-expired reservations for this variant
   const reservations = await db
     .select({ totalReserved: sql<number>`COALESCE(SUM(${stockReservations.quantity}), 0)` })
     .from(stockReservations)
     .where(
       and(
-        eq(stockReservations.variantId, variantId),
+        eq(stockReservations.productId, productId),
         gt(stockReservations.expiresAt, now)
       )
     );
@@ -241,18 +213,15 @@ async function getAvailableStock(variantId: number, currentStock: number): Promi
   return Math.max(0, currentStock - reserved);
 }
 
-/**
- * Create stock reservations for all cart items
- */
 async function createReservations(
-  cartItems: { variantId: number; quantity: number }[],
+  cartItems: CartItemData[],
   stripeSessionId: string
 ): Promise<void> {
   const expiresAt = new Date(Date.now() + RESERVATION_DURATION_MINUTES * 60 * 1000).toISOString();
 
   await db.insert(stockReservations).values(
     cartItems.map((item) => ({
-      variantId: item.variantId,
+      productId: item.productId,
       quantity: item.quantity,
       stripeSessionId,
       expiresAt,
@@ -274,12 +243,10 @@ async function getShippingOptions(
   for (const zone of zones) {
     const countries: string[] = JSON.parse(zone.countries || "[]");
 
-    // Only include rates for zones that include the customer's country
     if (!countries.includes(customerCountry)) {
       continue;
     }
 
-    // Find applicable rates for this weight
     const applicableRates = zone.rates.filter(
       (rate) =>
         weightGrams >= (rate.minWeightGrams ?? 0) &&
@@ -287,15 +254,13 @@ async function getShippingOptions(
     );
 
     for (const rate of applicableRates) {
-      // Check for free shipping eligibility
       const isFreeShippingEligible =
         FREE_SHIPPING_ZONES.includes(zone.name) &&
         subtotal >= FREE_SHIPPING_THRESHOLD &&
-        !rate.tracked; // Free shipping only on standard (non-tracked)
+        !rate.tracked;
 
       const priceInPence = isFreeShippingEligible ? 0 : Math.round(rate.price * 100);
 
-      // Parse delivery estimate
       const [minDays, maxDays] = (rate.estimatedDays || "3-7")
         .split("-")
         .map((d) => parseInt(d.trim(), 10));
@@ -324,7 +289,6 @@ async function getShippingOptions(
     }
   }
 
-  // No fallback - if no rates match, caller should return error
   return options;
 }
 
@@ -338,17 +302,14 @@ async function validateAndGetDiscount(code: string, subtotal: number) {
 
   if (!discount) return null;
 
-  // Check expiry
   if (discount.expiresAt && new Date(discount.expiresAt) < new Date()) {
     return null;
   }
 
-  // Check minimum order value
   if (discount.minOrderValue && subtotal < discount.minOrderValue) {
     return null;
   }
 
-  // Check usage limit
   if (discount.maxUses && (discount.usesCount ?? 0) >= discount.maxUses) {
     return null;
   }
@@ -358,7 +319,6 @@ async function validateAndGetDiscount(code: string, subtotal: number) {
 
 async function getOrCreateStripeCoupon(discount: typeof discountCodes.$inferSelect) {
   try {
-    // Try to retrieve existing coupon
     const couponId = `hd_${discount.code.toLowerCase()}`;
 
     try {
@@ -368,7 +328,6 @@ async function getOrCreateStripeCoupon(discount: typeof discountCodes.$inferSele
       // Coupon doesn't exist, create it
     }
 
-    // Create new coupon
     const couponParams: Stripe.CouponCreateParams = {
       id: couponId,
       name: discount.code,
@@ -378,7 +337,7 @@ async function getOrCreateStripeCoupon(discount: typeof discountCodes.$inferSele
     if (discount.type === "percentage") {
       couponParams.percent_off = discount.value;
     } else {
-      couponParams.amount_off = Math.round(discount.value * 100); // Convert to pence
+      couponParams.amount_off = Math.round(discount.value * 100);
     }
 
     const coupon = await stripe.coupons.create(couponParams);

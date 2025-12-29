@@ -19,22 +19,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-interface Variant {
+interface Product {
   id: number;
   name: string;
+  slug: string;
   sku: string | null;
   stock: number | null;
   price: number;
-  product: {
-    id: number;
-    name: string;
-    slug: string;
-    images: { url: string }[];
-  };
+  images: { url: string }[];
 }
 
 interface Props {
-  variants: Variant[];
+  products: Product[];
 }
 
 const LOW_STOCK_THRESHOLD = 2;
@@ -56,7 +52,7 @@ function formatCurrency(amount: number) {
   }).format(amount);
 }
 
-export function InventoryTable({ variants }: Props) {
+export function InventoryTable({ products }: Props) {
   const router = useRouter();
 
   // Individual edit state
@@ -86,10 +82,10 @@ export function InventoryTable({ variants }: Props) {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === variants.length) {
+    if (selectedIds.size === products.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(variants.map((v) => v.id)));
+      setSelectedIds(new Set(products.map((p) => p.id)));
     }
   };
 
@@ -98,9 +94,9 @@ export function InventoryTable({ variants }: Props) {
   };
 
   // Individual edit handlers
-  const startEdit = (variant: Variant) => {
-    setEditingId(variant.id);
-    setEditValue(variant.stock?.toString() || "0");
+  const startEdit = (product: Product) => {
+    setEditingId(product.id);
+    setEditValue(product.stock?.toString() || "0");
     setError(null);
   };
 
@@ -110,7 +106,7 @@ export function InventoryTable({ variants }: Props) {
     setError(null);
   };
 
-  const saveStock = async (variantId: number) => {
+  const saveStock = async (productId: number) => {
     setSaving(true);
     setError(null);
 
@@ -119,7 +115,7 @@ export function InventoryTable({ variants }: Props) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          variantId,
+          productId,
           stock: parseInt(editValue) || 0,
         }),
       });
@@ -138,9 +134,9 @@ export function InventoryTable({ variants }: Props) {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent, variantId: number) => {
+  const handleKeyDown = (e: React.KeyboardEvent, productId: number) => {
     if (e.key === "Enter") {
-      saveStock(variantId);
+      saveStock(productId);
     } else if (e.key === "Escape") {
       cancelEdit();
     }
@@ -165,7 +161,7 @@ export function InventoryTable({ variants }: Props) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          variantIds: Array.from(selectedIds),
+          productIds: Array.from(selectedIds),
           operation: bulkOperation,
           value: parseInt(bulkValue) || 0,
         }),
@@ -186,8 +182,8 @@ export function InventoryTable({ variants }: Props) {
     }
   };
 
-  // Get selected variants for confirmation
-  const selectedVariants = variants.filter((v) => selectedIds.has(v.id));
+  // Get selected products for confirmation
+  const selectedProducts = products.filter((p) => selectedIds.has(p.id));
 
   return (
     <div className="space-y-4">
@@ -196,7 +192,7 @@ export function InventoryTable({ variants }: Props) {
         <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium text-primary">
-              {selectedIds.size} variant{selectedIds.size !== 1 ? "s" : ""} selected
+              {selectedIds.size} product{selectedIds.size !== 1 ? "s" : ""} selected
             </span>
             <Button
               size="sm"
@@ -282,23 +278,23 @@ export function InventoryTable({ variants }: Props) {
               </div>
             </div>
 
-            {/* Affected variants preview */}
+            {/* Affected products preview */}
             <div className="mb-6">
               <p className="text-sm font-medium text-stone-700 mb-2">
-                Affected variants ({selectedVariants.length}):
+                Affected products ({selectedProducts.length}):
               </p>
               <div className="max-h-40 overflow-y-auto bg-stone-50 rounded-lg p-3">
-                {selectedVariants.slice(0, 10).map((v) => (
-                  <div key={v.id} className="text-sm text-stone-600 py-1">
-                    {v.product.name} - {v.name}
+                {selectedProducts.slice(0, 10).map((p) => (
+                  <div key={p.id} className="text-sm text-stone-600 py-1">
+                    {p.name}
                     <span className="text-stone-400 ml-2">
-                      (current: {v.stock ?? 0})
+                      (current: {p.stock ?? 0})
                     </span>
                   </div>
                 ))}
-                {selectedVariants.length > 10 && (
+                {selectedProducts.length > 10 && (
                   <div className="text-sm text-stone-400 py-1">
-                    ... and {selectedVariants.length - 10} more
+                    ... and {selectedProducts.length - 10} more
                   </div>
                 )}
               </div>
@@ -342,13 +338,13 @@ export function InventoryTable({ variants }: Props) {
               <th className="w-10 px-4 py-3">
                 <input
                   type="checkbox"
-                  checked={selectedIds.size === variants.length && variants.length > 0}
+                  checked={selectedIds.size === products.length && products.length > 0}
                   onChange={toggleSelectAll}
                   className="h-4 w-4 rounded border-stone-300 text-primary focus:ring-primary"
                 />
               </th>
               <th className="text-left text-xs font-medium text-stone-500 uppercase tracking-wider px-4 py-3">
-                Product / Variant
+                Product
               </th>
               <th className="text-left text-xs font-medium text-stone-500 uppercase tracking-wider px-4 py-3 hidden md:table-cell">
                 SKU
@@ -366,15 +362,15 @@ export function InventoryTable({ variants }: Props) {
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-200">
-            {variants.map((variant) => {
-              const status = getStockStatus(variant.stock);
+            {products.map((product) => {
+              const status = getStockStatus(product.stock);
               const StatusIcon = status.icon;
-              const isEditing = editingId === variant.id;
-              const isSelected = selectedIds.has(variant.id);
+              const isEditing = editingId === product.id;
+              const isSelected = selectedIds.has(product.id);
 
               return (
                 <tr
-                  key={variant.id}
+                  key={product.id}
                   className={`hover:bg-stone-50 ${isSelected ? "bg-primary/5" : ""}`}
                 >
                   {/* Checkbox */}
@@ -382,18 +378,18 @@ export function InventoryTable({ variants }: Props) {
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={() => toggleSelect(variant.id)}
+                      onChange={() => toggleSelect(product.id)}
                       className="h-4 w-4 rounded border-stone-300 text-primary focus:ring-primary"
                     />
                   </td>
 
-                  {/* Product / Variant */}
+                  {/* Product */}
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
-                        {variant.product.images[0] ? (
+                        {product.images[0] ? (
                           <img
-                            src={variant.product.images[0].url}
+                            src={product.images[0].url}
                             alt=""
                             className="h-full w-full object-cover"
                           />
@@ -405,21 +401,20 @@ export function InventoryTable({ variants }: Props) {
                       </div>
                       <div>
                         <Link
-                          href={`/admin/products/${variant.product.id}`}
+                          href={`/admin/products/${product.id}`}
                           className="font-medium text-stone-900 hover:text-primary"
                         >
-                          {variant.product.name}
+                          {product.name}
                         </Link>
-                        <p className="text-sm text-stone-500">{variant.name}</p>
                       </div>
                     </div>
                   </td>
 
                   {/* SKU */}
                   <td className="px-4 py-4 hidden md:table-cell">
-                    {variant.sku ? (
+                    {product.sku ? (
                       <code className="text-xs bg-stone-100 px-2 py-1 rounded font-mono">
-                        {variant.sku}
+                        {product.sku}
                       </code>
                     ) : (
                       <span className="text-stone-400 text-sm">-</span>
@@ -429,7 +424,7 @@ export function InventoryTable({ variants }: Props) {
                   {/* Price */}
                   <td className="px-4 py-4 hidden sm:table-cell">
                     <span className="text-sm text-stone-900">
-                      {formatCurrency(variant.price)}
+                      {formatCurrency(product.price)}
                     </span>
                   </td>
 
@@ -442,7 +437,7 @@ export function InventoryTable({ variants }: Props) {
                           min="0"
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(e, variant.id)}
+                          onKeyDown={(e) => handleKeyDown(e, product.id)}
                           className="w-20 h-8 text-sm"
                           autoFocus
                         />
@@ -451,7 +446,7 @@ export function InventoryTable({ variants }: Props) {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                          onClick={() => saveStock(variant.id)}
+                          onClick={() => saveStock(product.id)}
                           disabled={saving}
                         >
                           {saving ? (
@@ -473,7 +468,7 @@ export function InventoryTable({ variants }: Props) {
                       </div>
                     ) : (
                       <span className="text-sm font-medium text-stone-900">
-                        {variant.stock ?? 0}
+                        {product.stock ?? 0}
                       </span>
                     )}
                     {isEditing && error && (
@@ -499,7 +494,7 @@ export function InventoryTable({ variants }: Props) {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => startEdit(variant)}
+                        onClick={() => startEdit(product)}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>

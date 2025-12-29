@@ -5,7 +5,7 @@ import { useEffect } from "react";
 interface OrderItem {
   id: number;
   productName: string;
-  variantName: string | null;
+  colorway: string | null;
   sku: string | null;
   quantity: number;
   price: number;
@@ -175,8 +175,8 @@ export function PackingSlip({ order }: PackingSlipProps) {
               <tr key={item.id} className="border-b border-stone-100">
                 <td className="py-4">
                   <p className="font-medium text-stone-900">{item.productName}</p>
-                  {item.variantName && item.variantName !== item.productName && (
-                    <p className="text-sm text-stone-500">{item.variantName}</p>
+                  {item.colorway && item.colorway !== item.productName && (
+                    <p className="text-sm text-stone-500">{item.colorway}</p>
                   )}
                 </td>
                 <td className="py-4 text-sm text-stone-500 font-mono">

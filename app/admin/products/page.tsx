@@ -75,7 +75,6 @@ async function getProducts(search?: string, status?: string, tagId?: number, pag
       offset,
       orderBy: [desc(products.updatedAt)],
       with: {
-        variants: true,
         images: {
           limit: 1,
           orderBy: (images, { asc }) => [asc(images.position)],

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { products, productVariants, orders } from "@/lib/db/schema";
-import { count, sum, eq, lt, and, gte, inArray, sql } from "drizzle-orm";
+import { products, orders } from "@/lib/db/schema";
+import { count, sum, eq, lt, and, gte, inArray } from "drizzle-orm";
 import {
   Package,
   AlertTriangle,
@@ -24,7 +24,6 @@ async function getStats() {
     pendingOrders,
     lowStockCount,
   ] = await Promise.all([
-    // Today's orders (paid only)
     db
       .select({ count: count() })
       .from(orders)
@@ -35,7 +34,6 @@ async function getStats() {
         )
       ),
 
-    // Today's revenue
     db
       .select({ total: sum(orders.total) })
       .from(orders)
@@ -46,7 +44,6 @@ async function getStats() {
         )
       ),
 
-    // Month's revenue
     db
       .select({ total: sum(orders.total) })
       .from(orders)
@@ -57,7 +54,6 @@ async function getStats() {
         )
       ),
 
-    // Pending fulfillment (paid but not shipped)
     db
       .select({ count: count() })
       .from(orders)
@@ -68,11 +64,10 @@ async function getStats() {
         )
       ),
 
-    // Low stock variants
     db
       .select({ count: count() })
-      .from(productVariants)
-      .where(lt(productVariants.stock, 5)),
+      .from(products)
+      .where(lt(products.stock, 5)),
   ]);
 
   return {
@@ -98,16 +93,13 @@ async function getPendingOrders() {
 }
 
 async function getLowStockItems() {
-  const lowStockVariants = await db.query.productVariants.findMany({
-    where: lt(productVariants.stock, 5),
-    orderBy: (variants, { asc }) => [asc(variants.stock)],
+  const lowStockProducts = await db.query.products.findMany({
+    where: lt(products.stock, 5),
+    orderBy: (p, { asc }) => [asc(p.stock)],
     limit: 5,
-    with: {
-      product: true,
-    },
   });
 
-  return lowStockVariants;
+  return lowStockProducts;
 }
 
 function getOrderUrgency(createdAt: string): { level: "normal" | "warning" | "urgent"; days: number } {
@@ -137,7 +129,6 @@ export default async function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-heading font-semibold text-stone-900">
           Dashboard
@@ -151,7 +142,6 @@ export default async function AdminDashboard() {
         </p>
       </div>
 
-      {/* Stats grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           title="Orders Today"
@@ -187,9 +177,7 @@ export default async function AdminDashboard() {
         />
       </div>
 
-      {/* Main content grid */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Orders needing attention */}
         <div className="bg-white rounded-lg border shadow-sm">
           <div className="flex items-center justify-between p-4 border-b">
             <h2 className="font-heading font-medium text-stone-900">
@@ -218,7 +206,6 @@ export default async function AdminDashboard() {
                     key={order.id}
                     className="flex items-center gap-4 p-4 hover:bg-stone-50 transition-colors"
                   >
-                    {/* Urgency indicator */}
                     <div
                       className={`flex-shrink-0 w-1 h-12 rounded-full ${
                         urgency.level === "urgent"
@@ -229,7 +216,6 @@ export default async function AdminDashboard() {
                       }`}
                     />
 
-                    {/* Order info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-stone-900">
@@ -254,7 +240,6 @@ export default async function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* Action */}
                     <Link
                       href={`/admin/orders/${order.id}`}
                       className="flex-shrink-0 px-3 py-1.5 text-sm font-medium bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
@@ -268,7 +253,6 @@ export default async function AdminDashboard() {
           </div>
         </div>
 
-        {/* Low stock items */}
         <div className="bg-white rounded-lg border shadow-sm">
           <div className="flex items-center justify-between p-4 border-b">
             <h2 className="font-heading font-medium text-stone-900">
@@ -288,44 +272,41 @@ export default async function AdminDashboard() {
                 <p>Stock levels looking good!</p>
               </div>
             ) : (
-              lowStockItems.map((variant) => (
+              lowStockItems.map((product) => (
                 <Link
-                  key={variant.id}
-                  href={`/admin/products/${variant.productId}`}
+                  key={product.id}
+                  href={`/admin/products/${product.id}`}
                   className="flex items-center gap-4 p-4 hover:bg-stone-50 transition-colors"
                 >
-                  {/* Stock level indicator */}
                   <div
                     className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center font-semibold ${
-                      (variant.stock ?? 0) === 0
+                      (product.stock ?? 0) === 0
                         ? "bg-red-100 text-red-700"
-                        : (variant.stock ?? 0) <= 2
+                        : (product.stock ?? 0) <= 2
                         ? "bg-amber-100 text-amber-700"
                         : "bg-stone-100 text-stone-700"
                     }`}
                   >
-                    {variant.stock ?? 0}
+                    {product.stock ?? 0}
                   </div>
 
-                  {/* Item info */}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-stone-900 truncate">
-                      {variant.product.name}
+                      {product.name}
                     </p>
                     <p className="text-sm text-stone-500 truncate">
-                      {variant.name}
+                      {product.sku || "No SKU"}
                     </p>
                   </div>
 
-                  {/* Status */}
                   <span
                     className={`flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full ${
-                      (variant.stock ?? 0) === 0
+                      (product.stock ?? 0) === 0
                         ? "bg-red-100 text-red-700"
                         : "bg-amber-100 text-amber-700"
                     }`}
                   >
-                    {(variant.stock ?? 0) === 0 ? "Out of stock" : "Low stock"}
+                    {(product.stock ?? 0) === 0 ? "Out of stock" : "Low stock"}
                   </span>
                 </Link>
               ))
@@ -334,7 +315,6 @@ export default async function AdminDashboard() {
         </div>
       </div>
 
-      {/* Quick actions */}
       <div className="grid gap-4 sm:grid-cols-3">
         <QuickAction
           title="Add Product"

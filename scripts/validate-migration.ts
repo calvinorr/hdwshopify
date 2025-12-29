@@ -18,7 +18,6 @@ import { db } from "../lib/db";
 import {
   categories,
   products,
-  productVariants,
   productImages,
   customers,
   addresses,
@@ -50,7 +49,6 @@ async function validateRecordCounts() {
   const counts = {
     categories: await db.select({ count: sql<number>`count(*)` }).from(categories),
     products: await db.select({ count: sql<number>`count(*)` }).from(products),
-    productVariants: await db.select({ count: sql<number>`count(*)` }).from(productVariants),
     productImages: await db.select({ count: sql<number>`count(*)` }).from(productImages),
     customers: await db.select({ count: sql<number>`count(*)` }).from(customers),
     addresses: await db.select({ count: sql<number>`count(*)` }).from(addresses),
@@ -74,24 +72,6 @@ async function validateRecordCounts() {
 
 async function validateProductIntegrity() {
   console.log("\n🛍️ Validating Product Integrity...\n");
-
-  // Check for products without variants
-  const productsWithoutVariants = await db
-    .select({ id: products.id, name: products.name })
-    .from(products)
-    .leftJoin(productVariants, eq(products.id, productVariants.productId))
-    .where(isNull(productVariants.id));
-
-  log({
-    category: "Products",
-    check: "Products without variants",
-    status: productsWithoutVariants.length === 0 ? "pass" : "fail",
-    message:
-      productsWithoutVariants.length === 0
-        ? "All products have at least one variant"
-        : `${productsWithoutVariants.length} products have no variants`,
-    details: productsWithoutVariants.slice(0, 5),
-  });
 
   // Check for products without images
   const productsWithoutImages = await db
@@ -128,25 +108,25 @@ async function validateProductIntegrity() {
     details: productsWithoutSlugs.slice(0, 5),
   });
 
-  // Check for variants with zero or negative prices
-  const invalidPriceVariants = await db
+  // Check for products with zero or negative prices
+  const invalidPriceProducts = await db
     .select({
-      id: productVariants.id,
-      name: productVariants.name,
-      price: productVariants.price,
+      id: products.id,
+      name: products.name,
+      price: products.price,
     })
-    .from(productVariants)
-    .where(sql`${productVariants.price} <= 0`);
+    .from(products)
+    .where(sql`${products.price} <= 0`);
 
   log({
     category: "Products",
-    check: "Variants with invalid prices",
-    status: invalidPriceVariants.length === 0 ? "pass" : "warning",
+    check: "Products with invalid prices",
+    status: invalidPriceProducts.length === 0 ? "pass" : "warning",
     message:
-      invalidPriceVariants.length === 0
-        ? "All variants have valid prices"
-        : `${invalidPriceVariants.length} variants have zero or negative prices`,
-    details: invalidPriceVariants.slice(0, 5),
+      invalidPriceProducts.length === 0
+        ? "All products have valid prices"
+        : `${invalidPriceProducts.length} products have zero or negative prices`,
+    details: invalidPriceProducts.slice(0, 5),
   });
 }
 

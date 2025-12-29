@@ -95,9 +95,9 @@ async function SuccessContent({ searchParams }: Props) {
                     >
                       <div>
                         <p className="font-body">{item.productName}</p>
-                        {item.variantName && item.variantName !== item.productName && (
+                        {item.colorway && item.colorway !== item.productName && (
                           <p className="text-sm text-muted-foreground font-body">
-                            {item.variantName}
+                            {item.colorway}
                           </p>
                         )}
                       </div>

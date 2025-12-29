@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { productVariants } from "@/lib/db/schema";
-import { eq, inArray, sql } from "drizzle-orm";
+import { products } from "@/lib/db/schema";
+import { inArray, sql } from "drizzle-orm";
 
 interface BulkAdjustmentRequest {
-  variantIds: number[];
+  productIds: number[];
   operation: "increment" | "decrement" | "set";
   value: number;
 }
@@ -20,12 +20,11 @@ interface BulkAdjustmentRequest {
 export async function PATCH(request: NextRequest) {
   try {
     const body: BulkAdjustmentRequest = await request.json();
-    const { variantIds, operation, value } = body;
+    const { productIds, operation, value } = body;
 
-    // Validate input
-    if (!variantIds || !Array.isArray(variantIds) || variantIds.length === 0) {
+    if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
       return NextResponse.json(
-        { error: "No variants selected" },
+        { error: "No products selected" },
         { status: 400 }
       );
     }
@@ -47,43 +46,39 @@ export async function PATCH(request: NextRequest) {
     const now = new Date().toISOString();
     let updatedCount = 0;
 
-    // Perform the bulk update based on operation
     if (operation === "set") {
-      // Set all variants to exact value
-      const result = await db
-        .update(productVariants)
+      await db
+        .update(products)
         .set({
           stock: value,
           updatedAt: now,
         })
-        .where(inArray(productVariants.id, variantIds));
+        .where(inArray(products.id, productIds));
 
-      updatedCount = variantIds.length;
+      updatedCount = productIds.length;
     } else if (operation === "increment") {
-      // Increment all variants by value
-      const result = await db
-        .update(productVariants)
+      await db
+        .update(products)
         .set({
-          stock: sql`${productVariants.stock} + ${value}`,
+          stock: sql`${products.stock} + ${value}`,
           updatedAt: now,
         })
-        .where(inArray(productVariants.id, variantIds));
+        .where(inArray(products.id, productIds));
 
-      updatedCount = variantIds.length;
+      updatedCount = productIds.length;
     } else if (operation === "decrement") {
-      // Decrement all variants by value (minimum 0)
-      const result = await db
-        .update(productVariants)
+      await db
+        .update(products)
         .set({
-          stock: sql`MAX(0, COALESCE(${productVariants.stock}, 0) - ${value})`,
+          stock: sql`MAX(0, COALESCE(${products.stock}, 0) - ${value})`,
           updatedAt: now,
         })
-        .where(inArray(productVariants.id, variantIds));
+        .where(inArray(products.id, productIds));
 
-      updatedCount = variantIds.length;
+      updatedCount = productIds.length;
     }
 
-    console.log(`Bulk stock adjustment: ${operation} ${value} on ${updatedCount} variants`);
+    console.log(`Bulk stock adjustment: ${operation} ${value} on ${updatedCount} products`);
 
     return NextResponse.json({
       success: true,

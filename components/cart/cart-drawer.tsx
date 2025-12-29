@@ -151,7 +151,7 @@ export function CartDrawer({ isTransparent }: CartDrawerProps) {
                       {item.image ? (
                         <Image
                           src={item.image}
-                          alt={`${item.productName} - ${item.variantName}`}
+                          alt={`${item.productName} - ${item.colorway}`}
                           width={80}
                           height={80}
                           className="h-20 w-20 object-cover"
@@ -173,7 +173,7 @@ export function CartDrawer({ isTransparent }: CartDrawerProps) {
                         {item.productName}
                       </Link>
                       <p className="font-body text-xs text-muted-foreground mt-0.5">
-                        {item.variantName}
+                        {item.colorway}
                       </p>
                       <p className="font-body text-sm text-foreground mt-1">
                         £{item.price.toFixed(2)}

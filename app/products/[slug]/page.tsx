@@ -21,9 +21,6 @@ async function getProduct(slug: string): Promise<ProductWithRelations | null> {
     const product = await db.query.products.findFirst({
       where: and(eq(products.slug, slug), eq(products.status, "active")),
       with: {
-        variants: {
-          orderBy: (variants, { asc }) => [asc(variants.position)],
-        },
         images: {
           orderBy: (images, { asc }) => [asc(images.position)],
         },
@@ -106,17 +103,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 // Generate JSON-LD structured data for Product schema
 function generateProductJsonLd(product: ProductWithRelations) {
   const firstImage = product.images[0];
-  const lowestPrice = product.variants.length
-    ? Math.min(...product.variants.map((v) => v.price))
-    : product.basePrice;
-  const highestPrice = product.variants.length
-    ? Math.max(...product.variants.map((v) => v.price))
-    : product.basePrice;
-
-  // Check stock availability across variants
-  const totalStock = product.variants.reduce((sum, v) => sum + (v.stock ?? 0), 0);
   const availability =
-    totalStock > 0
+    (product.stock ?? 0) > 0
       ? "https://schema.org/InStock"
       : "https://schema.org/OutOfStock";
 
@@ -131,12 +119,10 @@ function generateProductJsonLd(product: ProductWithRelations) {
       name: "Herbarium Dyeworks",
     },
     offers: {
-      "@type": "AggregateOffer",
+      "@type": "Offer",
       priceCurrency: "GBP",
-      lowPrice: lowestPrice.toFixed(2),
-      highPrice: highestPrice.toFixed(2),
+      price: product.price.toFixed(2),
       availability,
-      offerCount: product.variants.length || 1,
     },
     ...(product.fiberContent && {
       material: product.fiberContent,
@@ -158,15 +144,9 @@ export default async function ProductPage({ params }: PageProps) {
     notFound();
   }
 
-  // Fetch available stock (accounting for reservations) for all variants
-  const variantIds = product.variants.map((v) => v.id);
-  const availableStockMap = await getAvailableStockBatch(variantIds);
-
-  // Convert Map to plain object for serialization
-  const availableStock: Record<number, number> = {};
-  for (const [id, stock] of availableStockMap) {
-    availableStock[id] = stock;
-  }
+  // Fetch available stock (accounting for reservations) for this product
+  const availableStockMap = await getAvailableStockBatch([product.id]);
+  const availableStock = availableStockMap.get(product.id) ?? (product.stock ?? 0);
 
   const jsonLd = generateProductJsonLd(product);
 

@@ -44,7 +44,7 @@ export function CartItem({
         {item.image ? (
           <Image
             src={item.image}
-            alt={`${item.productName} - ${item.variantName}`}
+            alt={`${item.productName} - ${item.colorway}`}
             width={100}
             height={100}
             className="h-24 w-24 object-cover transition-transform hover:scale-105"
@@ -67,7 +67,7 @@ export function CartItem({
               {item.productName}
             </Link>
             <p className="font-body text-sm text-muted-foreground mt-0.5">
-              {item.variantName}
+              {item.colorway}
             </p>
             <p className="font-body text-sm text-foreground mt-1">
               £{item.price.toFixed(2)}

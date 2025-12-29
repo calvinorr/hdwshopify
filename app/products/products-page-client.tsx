@@ -90,18 +90,18 @@ export function ProductsPageClient({
 
     if (filters.availability.length > 0) {
       result = result.filter((p) => {
-        const totalStock = p.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
-        if (filters.availability.includes("in-stock") && totalStock > 5) {
+        const stock = p.stock ?? 0;
+        if (filters.availability.includes("in-stock") && stock > 5) {
           return true;
         }
         if (
           filters.availability.includes("low-stock") &&
-          totalStock > 0 &&
-          totalStock <= 5
+          stock > 0 &&
+          stock <= 5
         ) {
           return true;
         }
-        if (filters.availability.includes("sold-out") && totalStock === 0) {
+        if (filters.availability.includes("sold-out") && stock === 0) {
           return true;
         }
         return false;
@@ -111,10 +111,10 @@ export function ProductsPageClient({
     // Apply sorting
     switch (currentSort) {
       case "price-asc":
-        result.sort((a, b) => a.basePrice - b.basePrice);
+        result.sort((a, b) => a.price - b.price);
         break;
       case "price-desc":
-        result.sort((a, b) => b.basePrice - a.basePrice);
+        result.sort((a, b) => b.price - a.price);
         break;
       case "newest":
         result.sort((a, b) => {

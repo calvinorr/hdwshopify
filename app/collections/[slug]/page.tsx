@@ -108,9 +108,6 @@ async function getCollection(slug: string): Promise<{
       const allProducts = await db.query.products.findMany({
         orderBy: [desc(products.featured), desc(products.createdAt)],
         with: {
-          variants: {
-            orderBy: (variants, { asc }) => [asc(variants.position)],
-          },
           images: {
             orderBy: (images, { asc }) => [asc(images.position)],
           },
@@ -159,14 +156,11 @@ async function getCollection(slug: string): Promise<{
       return null;
     }
 
-    // Fetch products in this category with all variants and images
+    // Fetch products in this category with images
     const categoryProducts = await db.query.products.findMany({
       where: eq(products.categoryId, category.id),
       orderBy: [desc(products.featured), desc(products.createdAt)],
       with: {
-        variants: {
-          orderBy: (variants, { asc }) => [asc(variants.position)],
-        },
         images: {
           orderBy: (images, { asc }) => [asc(images.position)],
         },
@@ -182,11 +176,7 @@ async function getCollection(slug: string): Promise<{
     // If hideOutOfStock is enabled, filter out products with no stock
     if (category.hideOutOfStock) {
       filteredProducts = filteredProducts.filter((product) => {
-        const totalStock = product.variants.reduce(
-          (sum, v) => sum + (v.stock ?? 0),
-          0
-        );
-        return totalStock > 0;
+        return (product.stock ?? 0) > 0;
       });
     }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { db, carts, productVariants } from "@/lib/db";
+import { db, carts, products } from "@/lib/db";
 import {
   ensureCartLinkedToCustomer,
   CartItemData,
@@ -37,7 +37,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Look up cart - prefer customerId
+    // Look up cart
     let cart;
     if (customerId) {
       cart = await db.query.carts.findFirst({
@@ -59,10 +59,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     let storedItems: CartItemData[] = JSON.parse(cart.items || "[]");
 
-    // Find item by ID (format: cart_item_{variantId})
-    const variantId = parseInt(itemId.replace("cart_item_", ""), 10);
+    // Find item by ID (format: cart_item_{productId})
+    const productId = parseInt(itemId.replace("cart_item_", ""), 10);
     const itemIndex = storedItems.findIndex(
-      (item) => item.variantId === variantId
+      (item) => item.productId === productId
     );
 
     if (itemIndex === -1) {
@@ -73,22 +73,21 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     if (quantity === 0) {
-      // Remove item
       storedItems.splice(itemIndex, 1);
     } else {
       // Validate stock
-      const variant = await db.query.productVariants.findFirst({
-        where: eq(productVariants.id, variantId),
+      const product = await db.query.products.findFirst({
+        where: eq(products.id, productId),
       });
 
-      if (!variant) {
+      if (!product) {
         return NextResponse.json(
-          { error: "Product variant not found" },
+          { error: "Product not found" },
           { status: 404 }
         );
       }
 
-      const stock = variant.stock ?? 0;
+      const stock = product.stock ?? 0;
       if (quantity > stock) {
         return NextResponse.json(
           {
@@ -102,14 +101,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       storedItems[itemIndex].quantity = quantity;
     }
 
-    // Update cart
     const now = new Date().toISOString();
     await db
       .update(carts)
       .set({ items: JSON.stringify(storedItems), updatedAt: now })
       .where(eq(carts.id, cart.id));
 
-    // Return updated cart
     const populatedItems = await populateCartItems(storedItems);
 
     return NextResponse.json<CartResponse>({
@@ -139,7 +136,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Look up cart - prefer customerId
     let cart;
     if (customerId) {
       cart = await db.query.carts.findFirst({
@@ -161,10 +157,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     let storedItems: CartItemData[] = JSON.parse(cart.items || "[]");
 
-    // Find item by ID (format: cart_item_{variantId})
-    const variantId = parseInt(itemId.replace("cart_item_", ""), 10);
+    const productId = parseInt(itemId.replace("cart_item_", ""), 10);
     const itemIndex = storedItems.findIndex(
-      (item) => item.variantId === variantId
+      (item) => item.productId === productId
     );
 
     if (itemIndex === -1) {
@@ -174,17 +169,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Remove item
     storedItems.splice(itemIndex, 1);
 
-    // Update cart
     const now = new Date().toISOString();
     await db
       .update(carts)
       .set({ items: JSON.stringify(storedItems), updatedAt: now })
       .where(eq(carts.id, cart.id));
 
-    // Return updated cart
     const populatedItems = await populateCartItems(storedItems);
 
     return NextResponse.json<CartResponse>({
@@ -208,36 +200,30 @@ async function populateCartItems(items: CartItemData[]): Promise<CartItem[]> {
   const populatedItems: CartItem[] = [];
 
   for (const item of items) {
-    const variant = await db.query.productVariants.findFirst({
-      where: eq(productVariants.id, item.variantId),
+    const product = await db.query.products.findFirst({
+      where: eq(products.id, item.productId),
       with: {
-        product: {
-          with: {
-            images: {
-              limit: 1,
-              orderBy: (images, { asc }) => [asc(images.position)],
-            },
-          },
+        images: {
+          limit: 1,
+          orderBy: (images, { asc }) => [asc(images.position)],
         },
       },
     });
 
-    if (!variant || variant.product.status !== "active") {
+    if (!product || product.status !== "active") {
       continue;
     }
 
     populatedItems.push({
-      id: generateCartItemId(item.variantId),
-      variantId: item.variantId,
-      productId: variant.productId,
-      productName: variant.product.name,
-      productSlug: variant.product.slug,
-      variantName: variant.name,
-      price: variant.price,
+      id: generateCartItemId(item.productId),
+      productId: item.productId,
+      productName: product.name,
+      productSlug: product.slug,
+      price: product.price,
       quantity: item.quantity,
-      stock: variant.stock ?? 0,
-      image: variant.product.images[0]?.url,
-      weightGrams: variant.weightGrams ?? 100,
+      stock: product.stock ?? 0,
+      image: product.images[0]?.url,
+      weightGrams: product.weightGrams ?? 100,
     });
   }
 

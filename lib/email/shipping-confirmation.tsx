@@ -17,7 +17,7 @@ import * as React from "react";
 
 interface OrderItem {
   productName: string;
-  variantName: string | null;
+  colorway: string | null;
   quantity: number;
 }
 
@@ -125,8 +125,8 @@ export function ShippingConfirmationEmail({
               <Row key={index} style={itemRow}>
                 <Column style={itemDetails}>
                   <Text style={itemName}>{item.productName}</Text>
-                  {item.variantName && item.variantName !== item.productName && (
-                    <Text style={itemVariant}>{item.variantName}</Text>
+                  {item.colorway && item.colorway !== item.productName && (
+                    <Text style={itemVariant}>{item.colorway}</Text>
                   )}
                 </Column>
                 <Column style={itemQuantityCol}>

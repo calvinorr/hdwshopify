@@ -30,10 +30,10 @@ export async function GET(request: NextRequest) {
     let orderBy;
     switch (sort) {
       case "price-asc":
-        orderBy = asc(products.basePrice);
+        orderBy = asc(products.price);
         break;
       case "price-desc":
-        orderBy = desc(products.basePrice);
+        orderBy = desc(products.price);
         break;
       case "featured":
         orderBy = desc(products.featured);
@@ -58,9 +58,6 @@ export async function GET(request: NextRequest) {
       limit,
       offset,
       with: {
-        variants: {
-          orderBy: (variants, { asc }) => [asc(variants.position)],
-        },
         images: {
           orderBy: (images, { asc }) => [asc(images.position)],
           limit: 1,

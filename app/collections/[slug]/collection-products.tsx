@@ -40,12 +40,9 @@ function deriveFilterOptions(products: ProductWithRelations[]): FilterOptions {
 function getAvailability(
   product: ProductWithRelations
 ): "in-stock" | "low-stock" | "sold-out" {
-  const totalStock = product.variants.reduce(
-    (sum, variant) => sum + (variant.stock || 0),
-    0
-  );
-  if (totalStock === 0) return "sold-out";
-  if (totalStock <= 3) return "low-stock";
+  const stock = product.stock ?? 0;
+  if (stock === 0) return "sold-out";
+  if (stock <= 3) return "low-stock";
   return "in-stock";
 }
 
@@ -93,17 +90,9 @@ function applySort(
 
   switch (sort) {
     case "price-asc":
-      return sorted.sort((a, b) => {
-        const priceA = a.variants[0]?.price || a.basePrice;
-        const priceB = b.variants[0]?.price || b.basePrice;
-        return priceA - priceB;
-      });
+      return sorted.sort((a, b) => a.price - b.price);
     case "price-desc":
-      return sorted.sort((a, b) => {
-        const priceA = a.variants[0]?.price || a.basePrice;
-        const priceB = b.variants[0]?.price || b.basePrice;
-        return priceB - priceA;
-      });
+      return sorted.sort((a, b) => b.price - a.price);
     case "newest":
       return sorted.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { productVariants } from "@/lib/db/schema";
+import { products } from "@/lib/db/schema";
 import { eq, desc, lte, gt, and, or, isNull, sql } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth/admin";
 import { logError } from "@/lib/logger";
@@ -18,59 +18,54 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get("limit") || "30");
     const offset = (page - 1) * limit;
 
-    // Build conditions
     const conditions = [];
 
     if (status === "out") {
-      conditions.push(or(eq(productVariants.stock, 0), isNull(productVariants.stock)));
+      conditions.push(or(eq(products.stock, 0), isNull(products.stock)));
     } else if (status === "low") {
       conditions.push(
         and(
-          gt(productVariants.stock, 0),
-          lte(productVariants.stock, LOW_STOCK_THRESHOLD)
+          gt(products.stock, 0),
+          lte(products.stock, LOW_STOCK_THRESHOLD)
         )
       );
     } else if (status === "in") {
-      conditions.push(gt(productVariants.stock, LOW_STOCK_THRESHOLD));
+      conditions.push(gt(products.stock, LOW_STOCK_THRESHOLD));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const [variants, totalCount, outOfStockCount, lowStockCount] = await Promise.all([
-      db.query.productVariants.findMany({
+    const [productList, totalCount, outOfStockCount, lowStockCount] = await Promise.all([
+      db.query.products.findMany({
         where: whereClause,
-        orderBy: [productVariants.stock, desc(productVariants.createdAt)],
+        orderBy: [products.stock, desc(products.createdAt)],
         limit,
         offset,
         with: {
-          product: {
-            with: {
-              images: {
-                limit: 1,
-                orderBy: (images, { asc }) => [asc(images.position)],
-              },
-            },
+          images: {
+            limit: 1,
+            orderBy: (images, { asc }) => [asc(images.position)],
           },
         },
       }),
-      db.select({ count: sql<number>`count(*)` }).from(productVariants),
+      db.select({ count: sql<number>`count(*)` }).from(products),
       db
         .select({ count: sql<number>`count(*)` })
-        .from(productVariants)
-        .where(or(eq(productVariants.stock, 0), isNull(productVariants.stock))),
+        .from(products)
+        .where(or(eq(products.stock, 0), isNull(products.stock))),
       db
         .select({ count: sql<number>`count(*)` })
-        .from(productVariants)
+        .from(products)
         .where(
           and(
-            gt(productVariants.stock, 0),
-            lte(productVariants.stock, LOW_STOCK_THRESHOLD)
+            gt(products.stock, 0),
+            lte(products.stock, LOW_STOCK_THRESHOLD)
           )
         ),
     ]);
 
     return NextResponse.json({
-      variants,
+      products: productList,
       stats: {
         total: Number(totalCount[0]?.count || 0),
         outOfStock: Number(outOfStockCount[0]?.count || 0),
@@ -94,11 +89,11 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
-    const { variantId, stock } = body;
+    const { productId, stock } = body;
 
-    if (!variantId) {
+    if (!productId) {
       return NextResponse.json(
-        { error: "Variant ID is required" },
+        { error: "Product ID is required" },
         { status: 400 }
       );
     }
@@ -110,25 +105,24 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // Check if variant exists
-    const existing = await db.query.productVariants.findFirst({
-      where: eq(productVariants.id, variantId),
+    const existing = await db.query.products.findFirst({
+      where: eq(products.id, productId),
     });
 
     if (!existing) {
       return NextResponse.json(
-        { error: "Variant not found" },
+        { error: "Product not found" },
         { status: 404 }
       );
     }
 
     const [updated] = await db
-      .update(productVariants)
+      .update(products)
       .set({
         stock,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(productVariants.id, variantId))
+      .where(eq(products.id, productId))
       .returning();
 
     return NextResponse.json(updated);

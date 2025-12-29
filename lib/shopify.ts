@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import {
   products,
-  productVariants,
   productImages,
   categories,
   customers,
@@ -256,11 +255,9 @@ export interface MigrationResult {
 export async function clearAllProducts(): Promise<void> {
   // Delete in order due to foreign key constraints
   await db.delete(productImages);
-  await db.delete(productVariants);
   await db.delete(products);
   // Reset auto-increment (SQLite specific)
   await db.run(sql`DELETE FROM sqlite_sequence WHERE name='products'`);
-  await db.run(sql`DELETE FROM sqlite_sequence WHERE name='product_variants'`);
   await db.run(sql`DELETE FROM sqlite_sequence WHERE name='product_images'`);
 }
 
@@ -451,15 +448,28 @@ export async function migrateFromShopify(
 
         let productId: number;
 
+        // Get first variant data for product pricing/stock
+        const firstVariant = shopifyProduct.variants.edges[0]?.node;
+        let weightGrams = 100;
+        if (firstVariant?.inventoryItem?.measurement?.weight) {
+          weightGrams = convertWeightToGrams(
+            firstVariant.inventoryItem.measurement.weight.value,
+            firstVariant.inventoryItem.measurement.weight.unit
+          );
+        }
+
         const productData = {
           name: shopifyProduct.title,
           slug: shopifyProduct.handle,
           description: shopifyProduct.descriptionHtml || null,
           categoryId,
-          basePrice: parseFloat(shopifyProduct.variants.edges[0]?.node.price || "0"),
-          compareAtPrice: shopifyProduct.variants.edges[0]?.node.compareAtPrice
-            ? parseFloat(shopifyProduct.variants.edges[0].node.compareAtPrice)
+          price: parseFloat(firstVariant?.price || "0"),
+          compareAtPrice: firstVariant?.compareAtPrice
+            ? parseFloat(firstVariant.compareAtPrice)
             : null,
+          stock: Math.max(0, firstVariant?.inventoryQuantity || 0),
+          sku: firstVariant?.sku || null,
+          weightGrams,
           status: (shopifyProduct.status.toLowerCase() === "active" ? "active" : "draft") as "active" | "draft",
           featured: false,
           fiberContent: metafields["custom.fiber_content"] || null,
@@ -478,8 +488,7 @@ export async function migrateFromShopify(
             .where(eq(products.id, existingProduct.id));
           productId = existingProduct.id;
 
-          // Delete existing variants and images to replace them
-          await db.delete(productVariants).where(eq(productVariants.productId, productId));
+          // Delete existing images to replace them
           await db.delete(productImages).where(eq(productImages.productId, productId));
         } else {
           // Insert new product
@@ -495,39 +504,6 @@ export async function migrateFromShopify(
 
         result.productsImported++;
 
-        // Import variants
-        for (const variantEdge of shopifyProduct.variants.edges) {
-          const variant = variantEdge.node;
-          const variantShopifyId = extractShopifyId(variant.id);
-
-          // Get weight from inventoryItem measurement
-          let weightGrams = 100; // default
-          if (variant.inventoryItem?.measurement?.weight) {
-            weightGrams = convertWeightToGrams(
-              variant.inventoryItem.measurement.weight.value,
-              variant.inventoryItem.measurement.weight.unit
-            );
-          }
-
-          await db.insert(productVariants).values({
-            productId,
-            name: variant.title === "Default Title" ? shopifyProduct.title : variant.title,
-            sku: variant.sku,
-            price: parseFloat(variant.price),
-            compareAtPrice: variant.compareAtPrice
-              ? parseFloat(variant.compareAtPrice)
-              : null,
-            stock: Math.max(0, variant.inventoryQuantity),
-            weightGrams,
-            position: variant.position,
-            shopifyVariantId: variantShopifyId,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
-
-          result.variantsImported++;
-        }
-
         // Import images
         let imagePosition = 0;
         for (const imageEdge of shopifyProduct.images.edges) {
@@ -535,7 +511,6 @@ export async function migrateFromShopify(
 
           await db.insert(productImages).values({
             productId,
-            variantId: null,
             url: image.url,
             alt: image.altText || shopifyProduct.title,
             position: imagePosition++,
@@ -943,14 +918,14 @@ export async function migrateOrders(
         for (const itemEdge of shopifyOrder.lineItems.edges) {
           const item = itemEdge.node;
 
-          // Try to find variant by SKU
-          let variantId: number | null = null;
+          // Try to find product by SKU
+          let productId: number | null = null;
           if (item.sku) {
-            const variant = await db.query.productVariants.findFirst({
-              where: eq(productVariants.sku, item.sku),
+            const product = await db.query.products.findFirst({
+              where: eq(products.sku, item.sku),
             });
-            if (variant) {
-              variantId = variant.id;
+            if (product) {
+              productId = product.id;
             }
           }
 
@@ -959,9 +934,9 @@ export async function migrateOrders(
 
           await db.insert(orderItems).values({
             orderId: insertedOrder.id,
-            variantId,
+            productId,
             productName: item.title,
-            variantName: item.variantTitle,
+            colorway: item.variantTitle,
             sku: item.sku,
             quantity: item.quantity,
             price: parseFloat(item.originalUnitPriceSet.shopMoney.amount),

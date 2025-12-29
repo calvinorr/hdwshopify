@@ -190,7 +190,7 @@ function generateGdprExport(customer: any): string {
       trackingNumber: order.trackingNumber,
       items: order.items?.map((item: any) => ({
         productName: item.productName,
-        variantName: item.variantName,
+        colorway: item.colorway,
         quantity: item.quantity,
         price: item.price,
       })) || [],

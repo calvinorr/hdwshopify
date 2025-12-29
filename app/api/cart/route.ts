@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and, or, inArray } from "drizzle-orm";
-import { db, carts, productVariants, products, productImages } from "@/lib/db";
+import { eq, inArray } from "drizzle-orm";
+import { db, carts, products, productImages } from "@/lib/db";
 import {
   getOrCreateCartSession,
-  getCartSession,
   ensureCartLinkedToCustomer,
   CartItem,
   CartItemData,
@@ -16,7 +15,6 @@ import {
 // GET /api/cart - Fetch current cart with populated product details
 export async function GET() {
   try {
-    // Get cart identifier (handles merge if logged in with guest cart)
     const { customerId, sessionId } = await ensureCartLinkedToCustomer();
 
     if (!customerId && !sessionId) {
@@ -49,8 +47,6 @@ export async function GET() {
     }
 
     const storedItems: CartItemData[] = JSON.parse(cart.items || "[]");
-
-    // Populate cart items with current product data
     const populatedItems = await populateCartItems(storedItems);
 
     return NextResponse.json<CartResponse>({
@@ -71,11 +67,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { variantId, quantity = 1 } = body;
+    const { productId, quantity = 1 } = body;
 
-    if (!variantId || typeof variantId !== "number") {
+    if (!productId || typeof productId !== "number") {
       return NextResponse.json(
-        { error: "Invalid variant ID" },
+        { error: "Invalid product ID" },
         { status: 400 }
       );
     }
@@ -87,33 +83,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate variant exists and has stock
-    const variant = await db.query.productVariants.findFirst({
-      where: eq(productVariants.id, variantId),
-      with: {
-        product: true,
-      },
+    // Validate product exists and is active
+    const product = await db.query.products.findFirst({
+      where: eq(products.id, productId),
     });
 
-    if (!variant) {
+    if (!product) {
       return NextResponse.json(
-        { error: "Product variant not found" },
+        { error: "Product not found" },
         { status: 404 }
       );
     }
 
-    if (variant.product.status !== "active") {
+    if (product.status !== "active") {
       return NextResponse.json(
         { error: "Product is not available" },
         { status: 400 }
       );
     }
 
-    // Get cart identifier - handles merge if logged in with guest cart
+    // Get cart identifier
     const { customerId, sessionId: existingSessionId } = await ensureCartLinkedToCustomer();
     const sessionId = existingSessionId || await getOrCreateCartSession();
 
-    // Get or create cart - prefer customerId lookup
+    // Get or create cart
     let cart;
     if (customerId) {
       cart = await db.query.carts.findFirst({
@@ -130,13 +123,13 @@ export async function POST(request: NextRequest) {
 
     // Check if item already in cart
     const existingIndex = storedItems.findIndex(
-      (item) => item.variantId === variantId
+      (item) => item.productId === productId
     );
     const existingQuantity = existingIndex >= 0 ? storedItems[existingIndex].quantity : 0;
     const newQuantity = existingQuantity + quantity;
 
     // Validate stock
-    const stock = variant.stock ?? 0;
+    const stock = product.stock ?? 0;
     if (newQuantity > stock) {
       return NextResponse.json(
         {
@@ -153,7 +146,7 @@ export async function POST(request: NextRequest) {
     if (existingIndex >= 0) {
       storedItems[existingIndex].quantity = newQuantity;
     } else {
-      storedItems.push({ variantId, quantity });
+      storedItems.push({ productId, quantity });
     }
 
     const itemsJson = JSON.stringify(storedItems);
@@ -165,17 +158,15 @@ export async function POST(request: NextRequest) {
         .set({ items: itemsJson, updatedAt: now })
         .where(eq(carts.id, cart.id));
     } else {
-      // Create new cart - link to customer if logged in
       await db.insert(carts).values({
         customerId: customerId || null,
-        sessionId: customerId ? null : sessionId, // Only use sessionId for guests
+        sessionId: customerId ? null : sessionId,
         items: itemsJson,
         createdAt: now,
         updatedAt: now,
       });
     }
 
-    // Return updated cart
     const populatedItems = await populateCartItems(storedItems);
 
     return NextResponse.json<CartResponse>({
@@ -193,74 +184,51 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper to populate cart items with current product data
-// Uses batch loading to avoid N+1 queries
 async function populateCartItems(items: CartItemData[]): Promise<CartItem[]> {
   if (items.length === 0) return [];
 
-  const variantIds = items.map((item) => item.variantId);
+  const productIds = items.map((item) => item.productId);
 
-  // Batch load all variants with their products (1 query)
-  const variants = await db.query.productVariants.findMany({
-    where: inArray(productVariants.id, variantIds),
-    with: {
-      product: true,
-    },
+  // Batch load all products
+  const productList = await db.query.products.findMany({
+    where: inArray(products.id, productIds),
   });
 
-  // Create lookup map for quick access
-  const variantMap = new Map(variants.map((v) => [v.id, v]));
+  const productMap = new Map(productList.map((p) => [p.id, p]));
 
-  // Get all product IDs for image lookup
-  const productIds = [...new Set(variants.map((v) => v.productId))];
-
-  // Batch load all images for these products (1 query)
-  // Get both variant-specific and product-level images
+  // Batch load images
   const allImages = await db.query.productImages.findMany({
     where: inArray(productImages.productId, productIds),
     orderBy: (images, { asc }) => [asc(images.position)],
   });
 
-  // Create lookup maps for images
-  // variantImageMap: variantId -> image (for variant-specific images)
-  // productImageMap: productId -> first image (for fallback)
-  const variantImageMap = new Map<number, string>();
   const productImageMap = new Map<number, string>();
-
   for (const image of allImages) {
-    if (image.variantId && !variantImageMap.has(image.variantId)) {
-      variantImageMap.set(image.variantId, image.url);
-    }
     if (!productImageMap.has(image.productId)) {
       productImageMap.set(image.productId, image.url);
     }
   }
 
-  // Build populated items from in-memory data
   const populatedItems: CartItem[] = [];
 
   for (const item of items) {
-    const variant = variantMap.get(item.variantId);
+    const product = productMap.get(item.productId);
 
-    if (!variant || variant.product.status !== "active") {
-      continue; // Skip invalid or inactive products
+    if (!product || product.status !== "active") {
+      continue;
     }
 
-    // Try variant-specific image first, then fall back to product image
-    const imageUrl =
-      variantImageMap.get(variant.id) || productImageMap.get(variant.productId);
-
     populatedItems.push({
-      id: generateCartItemId(item.variantId),
-      variantId: item.variantId,
-      productId: variant.productId,
-      productName: variant.product.name,
-      productSlug: variant.product.slug,
-      variantName: variant.name,
-      price: variant.price,
+      id: generateCartItemId(item.productId),
+      productId: item.productId,
+      productName: product.name,
+      productSlug: product.slug,
+      colorway: product.colorHex ? undefined : undefined, // Could add colorway field to products
+      price: product.price,
       quantity: item.quantity,
-      stock: variant.stock ?? 0,
-      image: imageUrl,
-      weightGrams: variant.weightGrams ?? 100,
+      stock: product.stock ?? 0,
+      image: productImageMap.get(item.productId),
+      weightGrams: product.weightGrams ?? 100,
     });
   }
 

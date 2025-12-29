@@ -44,9 +44,6 @@ export async function GET(request: Request, { params }: RouteParams) {
         )
       ),
       with: {
-        variants: {
-          orderBy: (variants, { asc }) => [asc(variants.position)],
-        },
         images: {
           orderBy: (images, { asc }) => [asc(images.position)],
         },
@@ -70,9 +67,6 @@ export async function GET(request: Request, { params }: RouteParams) {
           ...existingIds.map((id) => ne(products.id, id))
         ),
         with: {
-          variants: {
-            orderBy: (variants, { asc }) => [asc(variants.position)],
-          },
           images: {
             orderBy: (images, { asc }) => [asc(images.position)],
           },

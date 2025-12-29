@@ -14,17 +14,16 @@ const isClerkConfigured =
   !clerkPubKey.includes("placeholder");
 
 export interface CartItemData {
-  variantId: number;
+  productId: number;
   quantity: number;
 }
 
 export interface CartItem {
   id: string;
-  variantId: number;
   productId: number;
   productName: string;
   productSlug: string;
-  variantName: string;
+  colorway?: string;
   price: number;
   quantity: number;
   stock: number;
@@ -68,8 +67,8 @@ export function calculateItemCount(items: CartItem[]): number {
   return items.reduce((sum, item) => sum + item.quantity, 0);
 }
 
-export function generateCartItemId(variantId: number): string {
-  return `cart_item_${variantId}`;
+export function generateCartItemId(productId: number): string {
+  return `cart_item_${productId}`;
 }
 
 /**
@@ -107,7 +106,7 @@ export async function getCartIdentifier(): Promise<{
 
 /**
  * Merge guest cart into customer cart on login.
- * Combines quantities for duplicate variants.
+ * Combines quantities for duplicate products.
  */
 export async function mergeCartsOnLogin(
   customerId: number,
@@ -149,18 +148,18 @@ export async function mergeCartsOnLogin(
   // Create map of customer items for quick lookup
   const itemMap = new Map<number, number>();
   for (const item of customerItems) {
-    itemMap.set(item.variantId, item.quantity);
+    itemMap.set(item.productId, item.quantity);
   }
 
   // Add guest items to map (combine quantities)
   for (const item of guestItems) {
-    const existing = itemMap.get(item.variantId) || 0;
-    itemMap.set(item.variantId, existing + item.quantity);
+    const existing = itemMap.get(item.productId) || 0;
+    itemMap.set(item.productId, existing + item.quantity);
   }
 
   // Convert map back to array
   const mergedItems: CartItemData[] = Array.from(itemMap.entries()).map(
-    ([variantId, quantity]) => ({ variantId, quantity })
+    ([productId, quantity]) => ({ productId, quantity })
   );
 
   // Update customer cart with merged items

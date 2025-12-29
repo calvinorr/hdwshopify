@@ -14,11 +14,10 @@ import { useRouter } from "next/navigation";
 
 export interface CartItem {
   id: string;
-  variantId: number;
   productId: number;
   productName: string;
   productSlug: string;
-  variantName: string;
+  colorway?: string;
   price: number;
   quantity: number;
   stock: number;
@@ -33,9 +32,9 @@ interface CartContextValue {
   isLoading: boolean;
   error: string | null;
   addItem: (
-    variantId: number,
+    productId: number,
     quantity: number,
-    productInfo?: { name: string; variant: string }
+    productInfo?: { name: string; colorway?: string }
   ) => Promise<boolean>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
@@ -93,14 +92,14 @@ export function CartProvider({ children }: CartProviderProps) {
   // Add item to cart with optimistic update
   const addItem = useCallback(
     async (
-      variantId: number,
+      productId: number,
       quantity: number,
-      productInfo?: { name: string; variant: string }
+      productInfo?: { name: string; colorway?: string }
     ): Promise<boolean> => {
       // Optimistic update
       setItems((prevItems) => {
         const existingIndex = prevItems.findIndex(
-          (item) => item.variantId === variantId
+          (item) => item.productId === productId
         );
         if (existingIndex >= 0) {
           const updated = [...prevItems];
@@ -118,7 +117,7 @@ export function CartProvider({ children }: CartProviderProps) {
         const response = await fetch("/api/cart", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ variantId, quantity }),
+          body: JSON.stringify({ productId, quantity }),
         });
 
         const data = await response.json();
@@ -138,7 +137,9 @@ export function CartProvider({ children }: CartProviderProps) {
         // Show success toast
         if (productInfo) {
           toast.success("Added to cart", {
-            description: `${productInfo.name} - ${productInfo.variant}`,
+            description: productInfo.colorway
+              ? `${productInfo.name} - ${productInfo.colorway}`
+              : productInfo.name,
             action: {
               label: "View Cart",
               onClick: () => router.push("/cart"),
@@ -235,7 +236,9 @@ export function CartProvider({ children }: CartProviderProps) {
 
         if (removedItem) {
           toast.success("Removed from cart", {
-            description: `${removedItem.productName} - ${removedItem.variantName}`,
+            description: removedItem.colorway
+              ? `${removedItem.productName} - ${removedItem.colorway}`
+              : removedItem.productName,
           });
         }
       } catch {

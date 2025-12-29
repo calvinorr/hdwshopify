@@ -1,9 +1,8 @@
 import { db } from "@/lib/db";
-import { productVariants, products } from "@/lib/db/schema";
-import { desc, eq, lte, gt, and, like, or, sql, isNull } from "drizzle-orm";
+import { products } from "@/lib/db/schema";
+import { desc, eq, lte, gt, and, or, sql, isNull } from "drizzle-orm";
 import Link from "next/link";
 import {
-  Package,
   Search,
   Filter,
   AlertTriangle,
@@ -27,74 +26,66 @@ async function getInventory(searchParams: SearchParams) {
   const limit = 30;
   const offset = (page - 1) * limit;
 
-  // Build conditions
   const conditions = [];
 
   if (searchParams.status === "out") {
-    conditions.push(or(eq(productVariants.stock, 0), isNull(productVariants.stock)));
+    conditions.push(or(eq(products.stock, 0), isNull(products.stock)));
   } else if (searchParams.status === "low") {
     conditions.push(
       and(
-        gt(productVariants.stock, 0),
-        lte(productVariants.stock, LOW_STOCK_THRESHOLD)
+        gt(products.stock, 0),
+        lte(products.stock, LOW_STOCK_THRESHOLD)
       )
     );
   } else if (searchParams.status === "in") {
-    conditions.push(gt(productVariants.stock, LOW_STOCK_THRESHOLD));
+    conditions.push(gt(products.stock, LOW_STOCK_THRESHOLD));
   }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  // Get variants with product info
-  const variants = await db.query.productVariants.findMany({
+  const productList = await db.query.products.findMany({
     where: whereClause,
-    orderBy: [productVariants.stock, desc(productVariants.createdAt)],
+    orderBy: [products.stock, desc(products.createdAt)],
     limit,
     offset,
     with: {
-      product: {
-        with: {
-          images: {
-            limit: 1,
-            orderBy: (images, { asc }) => [asc(images.position)],
-          },
-        },
+      images: {
+        limit: 1,
+        orderBy: (images, { asc }) => [asc(images.position)],
       },
     },
   });
 
-  // Filter by search query (product name or variant name)
-  let filteredVariants = variants;
+  // Filter by search query
+  let filteredProducts = productList;
   if (searchParams.q) {
     const q = searchParams.q.toLowerCase();
-    filteredVariants = variants.filter(
-      (v) =>
-        v.name.toLowerCase().includes(q) ||
-        v.product.name.toLowerCase().includes(q) ||
-        (v.sku && v.sku.toLowerCase().includes(q))
+    filteredProducts = productList.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.sku && p.sku.toLowerCase().includes(q))
     );
   }
 
-  // Get counts for stats
   const [totalCount, outOfStockCount, lowStockCount] = await Promise.all([
-    db.select({ count: sql<number>`count(*)` }).from(productVariants),
+    db.select({ count: sql<number>`count(*)` }).from(products),
     db
       .select({ count: sql<number>`count(*)` })
-      .from(productVariants)
-      .where(or(eq(productVariants.stock, 0), isNull(productVariants.stock))),
+      .from(products)
+      .where(or(eq(products.stock, 0), isNull(products.stock))),
     db
       .select({ count: sql<number>`count(*)` })
-      .from(productVariants)
+      .from(products)
       .where(
         and(
-          gt(productVariants.stock, 0),
-          lte(productVariants.stock, LOW_STOCK_THRESHOLD)
+          gt(products.stock, 0),
+          lte(products.stock, LOW_STOCK_THRESHOLD)
         )
       ),
   ]);
 
   return {
-    variants: filteredVariants,
+    products: filteredProducts,
     stats: {
       total: Number(totalCount[0]?.count || 0),
       outOfStock: Number(outOfStockCount[0]?.count || 0),
@@ -111,25 +102,23 @@ export default async function InventoryPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const { variants, stats, page, limit } = await getInventory(params);
+  const { products: productList, stats, page, limit } = await getInventory(params);
 
   const inStock = stats.total - stats.outOfStock - stats.lowStock;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-heading font-semibold text-stone-900">
             Inventory
           </h1>
           <p className="text-stone-600 mt-1">
-            Manage stock levels for all product variants
+            Manage stock levels for all products
           </p>
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Link
           href="/admin/inventory?status=in"
@@ -183,10 +172,8 @@ export default async function InventoryPage({
         </Link>
       </div>
 
-      {/* Filters */}
       <div className="bg-white rounded-lg border p-4">
         <form className="flex flex-wrap gap-4">
-          {/* Search */}
           <div className="flex-1 min-w-[200px]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
@@ -194,13 +181,12 @@ export default async function InventoryPage({
                 type="text"
                 name="q"
                 defaultValue={params.q}
-                placeholder="Search by product, variant, or SKU..."
+                placeholder="Search by product or SKU..."
                 className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
             </div>
           </div>
 
-          {/* Status filter */}
           <select
             name="status"
             defaultValue={params.status}
@@ -225,21 +211,20 @@ export default async function InventoryPage({
         </form>
       </div>
 
-      {/* Inventory table */}
-      {variants.length === 0 ? (
+      {productList.length === 0 ? (
         <div className="bg-white rounded-lg border p-12 text-center">
           <BarChart3 className="h-12 w-12 text-stone-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-stone-900 mb-2">
-            No variants found
+            No products found
           </h3>
           <p className="text-stone-500">
             {params.status || params.q
               ? "Try adjusting your filters"
-              : "Add products with variants to manage inventory"}
+              : "Add products to manage inventory"}
           </p>
         </div>
       ) : (
-        <InventoryTable variants={variants} />
+        <InventoryTable products={productList} />
       )}
     </div>
   );

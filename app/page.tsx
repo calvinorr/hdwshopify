@@ -16,7 +16,6 @@ async function getFeaturedProducts(): Promise<ProductWithRelations[]> {
     const featuredProducts = await db.query.products.findMany({
       where: eq(products.featured, true),
       with: {
-        variants: true,
         images: true,
         category: true,
       },
@@ -214,9 +213,6 @@ export default async function HomePage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 {featuredProducts.map((product, index) => {
                   const primaryImage = product.images?.[0];
-                  const minPrice = product.variants?.length
-                    ? Math.min(...product.variants.map(v => v.price))
-                    : product.basePrice;
 
                   return (
                     <Link
@@ -271,7 +267,7 @@ export default async function HomePage() {
                           {product.name}
                         </h3>
                         <p className="font-medium text-stone-700">
-                          From £{minPrice.toFixed(2)}
+                          £{product.price.toFixed(2)}
                         </p>
                       </div>
                     </Link>

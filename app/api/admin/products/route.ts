@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { products, productVariants, productImages, categories, productTagAssignments } from "@/lib/db/schema";
+import { products, productImages, productTagAssignments } from "@/lib/db/schema";
 import { eq, like, desc, sql, and, or } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createProductSchema, productQuerySchema } from "@/lib/validations/product";
@@ -13,7 +13,6 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // Parse and validate query params
     const queryResult = productQuerySchema.safeParse({
       search: searchParams.get("search") || undefined,
       status: searchParams.get("status") || undefined,
@@ -31,14 +30,14 @@ export async function GET(request: Request) {
     const { search, status, page, limit } = queryResult.data;
     const offset = (page - 1) * limit;
 
-    // Build where conditions for database-level filtering
     const conditions = [];
 
     if (search) {
       conditions.push(
         or(
           like(products.name, `%${search}%`),
-          like(products.slug, `%${search}%`)
+          like(products.slug, `%${search}%`),
+          like(products.sku, `%${search}%`)
         )
       );
     }
@@ -49,14 +48,12 @@ export async function GET(request: Request) {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    // Query products with database-level filtering
     const allProducts = await db.query.products.findMany({
       where: whereClause,
       orderBy: [desc(products.createdAt)],
       limit,
       offset,
       with: {
-        variants: true,
         images: {
           limit: 1,
           orderBy: (images, { asc }) => [asc(images.position)],
@@ -65,7 +62,6 @@ export async function GET(request: Request) {
       },
     });
 
-    // Get total count with same filters applied
     const [{ count }] = await db
       .select({ count: sql<number>`count(*)` })
       .from(products)
@@ -93,7 +89,6 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // Validate request body with Zod
     const parseResult = createProductSchema.safeParse(body);
 
     if (!parseResult.success) {
@@ -108,8 +103,12 @@ export async function POST(request: Request) {
       slug,
       description,
       categoryId,
-      basePrice,
+      price,
       compareAtPrice,
+      stock,
+      weightGrams,
+      sku,
+      colorHex,
       status,
       featured,
       fiberContent,
@@ -118,14 +117,11 @@ export async function POST(request: Request) {
       careInstructions,
       metaTitle,
       metaDescription,
-      variants,
       images,
       tagIds,
     } = parseResult.data;
 
-    // Use transaction to ensure data consistency
     const result = await db.transaction(async (tx) => {
-      // Create product
       const [product] = await tx
         .insert(products)
         .values({
@@ -133,8 +129,12 @@ export async function POST(request: Request) {
           slug,
           description,
           categoryId,
-          basePrice,
+          price: price ?? 0,
           compareAtPrice,
+          stock: stock ?? 0,
+          weightGrams: weightGrams ?? 100,
+          sku,
+          colorHex,
           status,
           featured,
           fiberContent,
@@ -148,40 +148,18 @@ export async function POST(request: Request) {
         })
         .returning();
 
-      // Create variants
-      if (variants && variants.length > 0) {
-        await tx.insert(productVariants).values(
-          variants.map((v, index) => ({
-            productId: product.id,
-            name: v.name,
-            sku: v.sku || null,
-            price: v.price,
-            compareAtPrice: v.compareAtPrice,
-            stock: v.stock,
-            weightGrams: v.weightGrams,
-            colorHex: v.colorHex || null,
-            position: index,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          }))
-        );
-      }
-
-      // Create images
       if (images && images.length > 0) {
         await tx.insert(productImages).values(
           images.map((img, index) => ({
             productId: product.id,
             url: img.url,
             alt: img.alt,
-            variantId: img.variantId,
             position: index,
             createdAt: new Date().toISOString(),
           }))
         );
       }
 
-      // Create tag assignments
       if (tagIds && tagIds.length > 0) {
         await tx.insert(productTagAssignments).values(
           tagIds.map((tagId) => ({

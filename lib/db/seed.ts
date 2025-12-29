@@ -2,7 +2,6 @@ import { db } from "./index";
 import {
   categories,
   products,
-  productVariants,
   productImages,
 } from "./schema";
 
@@ -16,7 +15,6 @@ const seed = async () => {
   // Clear existing data
   console.log("Clearing existing data...");
   await db.delete(productImages);
-  await db.delete(productVariants);
   await db.delete(products);
   await db.delete(categories);
 
@@ -79,7 +77,10 @@ const seed = async () => {
       description: `<p>Our finest laceweight yarn, spun from 100% extra-fine merino wool. Each skein is hand-dyed using traditional botanical methods, resulting in soft, nuanced colors that reflect the natural world.</p>
 <p>Perfect for heirloom shawls, wedding veils, and delicate lacework where drape and definition are paramount.</p>`,
       categoryId: categoryMap["laceweight"],
-      basePrice: 24.0,
+      price: 24.0,
+      stock: 8,
+      sku: "COB-LACE-001",
+      weightGrams: 100,
       status: "active" as const,
       featured: true,
       fiberContent: "100% Extra Fine Merino Wool",
@@ -96,7 +97,10 @@ const seed = async () => {
       description: `<p>A dreamy blend of mulberry silk and baby alpaca, creating a yarn with incredible sheen and softness. The silk takes natural dyes beautifully, producing jewel-like depths of color.</p>
 <p>Ideal for luxury shawls and special occasion pieces that deserve something extraordinary.</p>`,
       categoryId: categoryMap["laceweight"],
-      basePrice: 32.0,
+      price: 32.0,
+      stock: 5,
+      sku: "SIL-LACE-001",
+      weightGrams: 100,
       status: "active" as const,
       featured: false,
       fiberContent: "70% Mulberry Silk, 30% Baby Alpaca",
@@ -115,7 +119,10 @@ const seed = async () => {
       description: `<p>Our signature sock yarn, spun from British Bluefaced Leicester wool. BFL is renowned for its next-to-skin softness and excellent stitch definition, making it perfect for socks that last.</p>
 <p>Each colorway is inspired by the wildflowers and landscapes of the Irish countryside.</p>`,
       categoryId: categoryMap["4ply"],
-      basePrice: 22.0,
+      price: 22.0,
+      stock: 12,
+      sku: "HER-4PLY-001",
+      weightGrams: 100,
       status: "active" as const,
       featured: true,
       fiberContent: "100% British Bluefaced Leicester",
@@ -132,7 +139,10 @@ const seed = async () => {
       description: `<p>A durable sock yarn blending superwash merino with nylon for extra strength. The merino provides softness and warmth, while the nylon ensures your handknit socks will endure years of happy wearing.</p>
 <p>Dyed with plants foraged from local meadows and hedgerows.</p>`,
       categoryId: categoryMap["4ply"],
-      basePrice: 20.0,
+      price: 20.0,
+      stock: 15,
+      sku: "MEA-4PLY-001",
+      weightGrams: 100,
       status: "active" as const,
       featured: true,
       fiberContent: "75% Superwash Merino, 25% Nylon",
@@ -149,7 +159,10 @@ const seed = async () => {
       description: `<p>Pure luxury in fingering weight. This blend of baby alpaca and silk creates a yarn with incredible drape and a subtle halo. The colors have a watercolor quality unique to this fiber blend.</p>
 <p>Perfect for next-to-skin garments and elegant accessories.</p>`,
       categoryId: categoryMap["4ply"],
-      basePrice: 28.0,
+      price: 28.0,
+      stock: 6,
+      sku: "ALP-4PLY-001",
+      weightGrams: 100,
       status: "active" as const,
       featured: false,
       fiberContent: "70% Baby Alpaca, 30% Silk",
@@ -168,7 +181,10 @@ const seed = async () => {
       description: `<p>Our workhorse DK yarn, spun from carefully selected British Falkland wool. This wool has a beautiful lustre and takes natural dyes exceptionally well, creating rich, saturated colors.</p>
 <p>The perfect choice for sweaters, cardigans, and accessories that will become wardrobe staples.</p>`,
       categoryId: categoryMap["dk"],
-      basePrice: 18.0,
+      price: 18.0,
+      stock: 20,
+      sku: "FLO-DK-001",
+      weightGrams: 100,
       status: "active" as const,
       featured: true,
       fiberContent: "100% British Falkland Wool",
@@ -184,7 +200,10 @@ const seed = async () => {
       slug: "moorland-dk",
       description: `<p>A rustic DK blending Shetland wool with British alpaca. The Shetland provides traditional character and warmth, while the alpaca adds softness and drape. Colors are inspired by the wild moorlands of Northern Ireland.</p>`,
       categoryId: categoryMap["dk"],
-      basePrice: 20.0,
+      price: 20.0,
+      stock: 10,
+      sku: "MOO-DK-001",
+      weightGrams: 100,
       status: "active" as const,
       featured: false,
       fiberContent: "60% Shetland Wool, 40% British Alpaca",
@@ -200,7 +219,10 @@ const seed = async () => {
       slug: "merino-dk-superwash",
       description: `<p>All the softness of merino with the convenience of machine washability. This superwash merino DK is perfect for baby knits, children's garments, and anything that needs easy care without sacrificing quality.</p>`,
       categoryId: categoryMap["dk"],
-      basePrice: 19.0,
+      price: 19.0,
+      stock: 18,
+      sku: "MER-DK-001",
+      weightGrams: 100,
       status: "active" as const,
       featured: true,
       fiberContent: "100% Superwash Merino Wool",
@@ -219,7 +241,10 @@ const seed = async () => {
       description: `<p>A traditional 5-ply aran weight yarn, perfect for classic cable sweaters and cozy accessories. Spun from British wool with excellent stitch definition and a slight rustic character.</p>
 <p>Each skein is dyed using recipes passed down through generations of natural dyers.</p>`,
       categoryId: categoryMap["aran"],
-      basePrice: 16.0,
+      price: 16.0,
+      stock: 14,
+      sku: "COT-ARAN-001",
+      weightGrams: 100,
       status: "active" as const,
       featured: true,
       fiberContent: "100% British Wool",
@@ -235,7 +260,10 @@ const seed = async () => {
       slug: "heather-aran",
       description: `<p>A luxurious aran blending merino, cashmere, and silk. Despite its decadent composition, this yarn is surprisingly practical - the merino provides durability while the cashmere and silk add incomparable softness.</p>`,
       categoryId: categoryMap["aran"],
-      basePrice: 28.0,
+      price: 28.0,
+      stock: 4,
+      sku: "HEA-ARAN-001",
+      weightGrams: 100,
       status: "active" as const,
       featured: false,
       fiberContent: "70% Merino, 20% Cashmere, 10% Silk",
@@ -254,7 +282,10 @@ const seed = async () => {
       description: `<p>A curated set of 5 mini skeins showcasing our botanical dye range. Each 20g skein is dyed with a different plant - from indigo blue to madder red to weld yellow.</p>
 <p>Perfect for colorwork projects, heels and toes, or simply collecting beautiful colors.</p>`,
       categoryId: categoryMap["mini-skeins"],
-      basePrice: 24.0,
+      price: 24.0,
+      stock: 8,
+      sku: "MIN-SET-001",
+      weightGrams: 100,
       status: "active" as const,
       featured: true,
       fiberContent: "100% Superwash Merino",
@@ -272,78 +303,11 @@ const seed = async () => {
     .values(productData)
     .returning();
 
-  // Create colorway variants for each product
-  console.log("Creating product variants...");
-
-  const colorways = [
-    // Natural/neutral colors
-    { name: "Undyed Natural", hex: "#F5F5DC" },
-    { name: "Oatmeal", hex: "#D4C4A8" },
-    { name: "Stone", hex: "#8B8378" },
-    { name: "Charcoal", hex: "#36454F" },
-    // Plant-dyed colors
-    { name: "Indigo Deep", hex: "#1A237E" },
-    { name: "Indigo Sky", hex: "#5C6BC0" },
-    { name: "Madder Red", hex: "#B71C1C" },
-    { name: "Madder Coral", hex: "#E57373" },
-    { name: "Weld Yellow", hex: "#F9A825" },
-    { name: "Weld Gold", hex: "#FBC02D" },
-    { name: "Walnut Brown", hex: "#5D4037" },
-    { name: "Oak Gall Grey", hex: "#757575" },
-    { name: "Logwood Purple", hex: "#4A148C" },
-    { name: "Elderberry", hex: "#6A1B9A" },
-    { name: "Avocado Green", hex: "#689F38" },
-    { name: "Nettle Green", hex: "#33691E" },
-    { name: "Onion Skin", hex: "#FF8F00" },
-    { name: "Marigold", hex: "#FFB300" },
-    { name: "Black Bean", hex: "#263238" },
-    { name: "Iron Modified", hex: "#455A64" },
-  ];
-
-  const variantData: Array<{
-    productId: number;
-    name: string;
-    sku: string;
-    price: number;
-    stock: number;
-    weightGrams: number;
-    position: number;
-  }> = [];
-
-  insertedProducts.forEach((product, productIndex) => {
-    // Assign 4-6 random colorways to each product
-    const numColorways = 4 + Math.floor(Math.random() * 3);
-    const shuffledColorways = [...colorways].sort(() => Math.random() - 0.5);
-    const selectedColorways = shuffledColorways.slice(0, numColorways);
-
-    selectedColorways.forEach((colorway, variantIndex) => {
-      // Vary prices slightly for some colorways
-      const priceVariation = Math.random() > 0.7 ? 2 : 0;
-      const stock = Math.floor(Math.random() * 15);
-
-      variantData.push({
-        productId: product.id,
-        name: colorway.name,
-        sku: `${product.slug.toUpperCase().slice(0, 3)}-${colorway.name.toUpperCase().replace(/\s/g, "-").slice(0, 8)}-${productIndex}${variantIndex}`,
-        price: product.basePrice + priceVariation,
-        stock: stock,
-        weightGrams: product.weight === "Aran" ? 100 : product.weight === "DK" ? 100 : 100,
-        position: variantIndex,
-      });
-    });
-  });
-
-  const insertedVariants = await db
-    .insert(productVariants)
-    .values(variantData)
-    .returning();
-
   // Create product images
   console.log("Creating product images...");
 
   const imageData: Array<{
     productId: number;
-    variantId: number | null;
     url: string;
     alt: string;
     position: number;
@@ -352,11 +316,10 @@ const seed = async () => {
   let imageCounter = 1;
 
   insertedProducts.forEach((product) => {
-    // Main product images (not variant-specific)
+    // Main product images
     for (let i = 0; i < 3; i++) {
       imageData.push({
         productId: product.id,
-        variantId: null,
         url: getProductImage(imageCounter++),
         alt: `${product.name} - Image ${i + 1}`,
         position: i,
@@ -364,23 +327,11 @@ const seed = async () => {
     }
   });
 
-  // Add some variant-specific images
-  insertedVariants.slice(0, 20).forEach((variant, index) => {
-    imageData.push({
-      productId: variant.productId,
-      variantId: variant.id,
-      url: getProductImage(imageCounter++),
-      alt: `${variant.name} colorway`,
-      position: 0,
-    });
-  });
-
   await db.insert(productImages).values(imageData);
 
   console.log("✅ Seeding complete!");
   console.log(`   - ${insertedCategories.length} categories`);
   console.log(`   - ${insertedProducts.length} products`);
-  console.log(`   - ${insertedVariants.length} variants`);
   console.log(`   - ${imageData.length} images`);
 };
 

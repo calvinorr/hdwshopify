@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
   products,
-  productVariants,
   productImages,
   categories,
   customers,
@@ -34,7 +33,6 @@ export async function GET() {
     const counts = {
       categories: Number((await db.select({ count: sql<number>`count(*)` }).from(categories))[0].count),
       products: Number((await db.select({ count: sql<number>`count(*)` }).from(products))[0].count),
-      variants: Number((await db.select({ count: sql<number>`count(*)` }).from(productVariants))[0].count),
       images: Number((await db.select({ count: sql<number>`count(*)` }).from(productImages))[0].count),
       customers: Number((await db.select({ count: sql<number>`count(*)` }).from(customers))[0].count),
       addresses: Number((await db.select({ count: sql<number>`count(*)` }).from(addresses))[0].count),
@@ -52,24 +50,6 @@ export async function GET() {
     });
 
     // ========== PRODUCT INTEGRITY ==========
-
-    // Products without variants
-    const productsWithoutVariants = await db
-      .select({ id: products.id, name: products.name })
-      .from(products)
-      .leftJoin(productVariants, eq(products.id, productVariants.productId))
-      .where(isNull(productVariants.id));
-
-    checks.push({
-      category: "Products",
-      check: "Products with variants",
-      status: productsWithoutVariants.length === 0 ? "pass" : "fail",
-      message:
-        productsWithoutVariants.length === 0
-          ? "All products have at least one variant"
-          : `${productsWithoutVariants.length} products have no variants`,
-      details: productsWithoutVariants.slice(0, 3),
-    });
 
     // Products without images
     const productsWithoutImages = await db
@@ -90,9 +70,9 @@ export async function GET() {
 
     // Variants with valid prices
     const invalidPriceVariants = await db
-      .select({ id: productVariants.id })
-      .from(productVariants)
-      .where(sql`${productVariants.price} <= 0`);
+      .select({ id: products.id })
+      .from(products)
+      .where(sql`${products.price} <= 0`);
 
     checks.push({
       category: "Products",
@@ -100,8 +80,8 @@ export async function GET() {
       status: invalidPriceVariants.length === 0 ? "pass" : "warning",
       message:
         invalidPriceVariants.length === 0
-          ? "All variants have valid prices"
-          : `${invalidPriceVariants.length} variants have zero/negative prices`,
+          ? "All products have valid prices"
+          : `${invalidPriceVariants.length} products have zero/negative prices`,
     });
 
     // ========== CUSTOMER INTEGRITY ==========

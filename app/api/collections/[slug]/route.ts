@@ -32,9 +32,6 @@ export async function GET(
       where: eq(products.categoryId, category.id),
       orderBy: [desc(products.featured), desc(products.createdAt)],
       with: {
-        variants: {
-          orderBy: (variants, { asc }) => [asc(variants.position)],
-        },
         images: {
           orderBy: (images, { asc }) => [asc(images.position)],
           limit: 1,

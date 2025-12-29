@@ -10,8 +10,6 @@ import {
   ArrowLeft,
   Save,
   Trash2,
-  Plus,
-  GripVertical,
   X,
   Upload,
   Image as ImageIcon,
@@ -31,17 +29,6 @@ import { ImageUpload } from "@/components/admin/image-upload";
 import { SortableImageGrid } from "@/components/admin/sortable-image-grid";
 
 // Client-side form schema
-const variantFormSchema = z.object({
-  id: z.number().optional(),
-  name: z.string().min(1, "Variant name is required"),
-  sku: z.string().optional().nullable(),
-  price: z.number().positive("Price must be positive"),
-  compareAtPrice: z.number().positive().optional().nullable(),
-  stock: z.number().int().min(0, "Stock cannot be negative").nullable(),
-  weightGrams: z.number().int().positive().nullable(),
-  colorHex: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").optional().nullable(),
-});
-
 const imageFormSchema = z.object({
   id: z.number().optional(),
   url: z.string().url("Invalid image URL"),
@@ -57,9 +44,13 @@ const productFormSchema = z.object({
     .max(255)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens only"),
   description: z.string().optional(),
-  categoryId: z.string().optional(), // Keep as string for select, convert on submit
-  basePrice: z.number().positive("Base price must be positive"),
+  categoryId: z.string().optional(),
+  price: z.number().positive("Price must be positive"),
   compareAtPrice: z.number().positive().optional().nullable(),
+  stock: z.number().int().min(0, "Stock cannot be negative").nullable(),
+  sku: z.string().optional().nullable(),
+  weightGrams: z.number().int().positive().nullable(),
+  colorHex: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").optional().nullable(),
   status: z.enum(["active", "draft", "archived"]),
   featured: z.boolean(),
   fiberContent: z.string().optional(),
@@ -68,7 +59,6 @@ const productFormSchema = z.object({
   careInstructions: z.string().optional(),
   metaTitle: z.string().max(70).optional(),
   metaDescription: z.string().max(160).optional(),
-  variants: z.array(variantFormSchema).min(1, "At least one variant is required"),
   images: z.array(imageFormSchema).optional(),
   tagIds: z.array(z.number()).optional(),
 });
@@ -79,18 +69,6 @@ interface Category {
   id: number;
   name: string;
   slug: string;
-}
-
-interface Variant {
-  id?: number;
-  name: string;
-  sku: string | null;
-  price: number;
-  compareAtPrice: number | null;
-  stock: number | null;
-  weightGrams: number | null;
-  colorHex: string | null;
-  position: number | null;
 }
 
 interface ProductImage {
@@ -106,8 +84,12 @@ interface Product {
   slug: string;
   description: string | null;
   categoryId: number | null;
-  basePrice: number;
+  price: number;
   compareAtPrice: number | null;
+  stock: number | null;
+  sku: string | null;
+  weightGrams: number | null;
+  colorHex: string | null;
   status: "active" | "draft" | "archived" | null;
   featured: boolean | null;
   fiberContent: string | null;
@@ -116,7 +98,6 @@ interface Product {
   careInstructions: string | null;
   metaTitle: string | null;
   metaDescription: string | null;
-  variants: Variant[];
   images: ProductImage[];
   category: Category | null;
 }
@@ -153,16 +134,6 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
   const [deleting, setDeleting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const defaultVariant = {
-    name: "Default",
-    sku: "",
-    price: product?.basePrice || 0,
-    compareAtPrice: null,
-    stock: 0,
-    weightGrams: 100,
-    colorHex: null,
-  };
-
   // Extract existing tag IDs from product's tag assignments
   const existingTagIds = product?.tagAssignments?.map((ta) => ta.tagId) || [];
 
@@ -180,8 +151,12 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
       slug: product?.slug || "",
       description: product?.description || "",
       categoryId: product?.categoryId?.toString() || "none",
-      basePrice: product?.basePrice || 0,
+      price: product?.price || 0,
       compareAtPrice: product?.compareAtPrice || undefined,
+      stock: product?.stock ?? 0,
+      sku: product?.sku || "",
+      weightGrams: product?.weightGrams ?? 100,
+      colorHex: product?.colorHex || null,
       status: product?.status || "draft",
       featured: product?.featured || false,
       fiberContent: product?.fiberContent || "",
@@ -190,19 +165,9 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
       careInstructions: product?.careInstructions || "",
       metaTitle: product?.metaTitle || "",
       metaDescription: product?.metaDescription || "",
-      variants: product?.variants?.length ? product.variants : [defaultVariant],
       images: product?.images || [],
       tagIds: existingTagIds,
     },
-  });
-
-  const {
-    fields: variantFields,
-    append: appendVariant,
-    remove: removeVariant,
-  } = useFieldArray({
-    control,
-    name: "variants",
   });
 
   const {
@@ -232,19 +197,6 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
     if (mode === "create" || watchSlug === generateSlug(product?.name || "")) {
       setValue("slug", generateSlug(value));
     }
-  };
-
-  // Add new variant
-  const handleAddVariant = () => {
-    appendVariant({
-      name: "",
-      sku: "",
-      price: watch("basePrice") || 0,
-      compareAtPrice: null,
-      stock: 0,
-      weightGrams: 100,
-      colorHex: null,
-    });
   };
 
   // Delete product
@@ -287,13 +239,8 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
         ...data,
         categoryId: data.categoryId && data.categoryId !== "none" ? parseInt(data.categoryId) : null,
         compareAtPrice: data.compareAtPrice || null,
-        variants: data.variants.map((v, i) => ({
-          ...v,
-          position: i,
-          sku: v.sku || null,
-          compareAtPrice: v.compareAtPrice || null,
-          colorHex: v.colorHex || null,
-        })),
+        sku: data.sku || null,
+        colorHex: data.colorHex || null,
         images: data.images,
         tagIds: data.tagIds || [],
       };
@@ -372,7 +319,7 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
                 id="name"
                 {...register("name")}
                 onChange={handleNameChange}
-                placeholder="e.g., Merino DK"
+                placeholder="e.g., Merino DK - Autumn Gold"
               />
               {errors.name && (
                 <p className="text-sm text-red-600">{errors.name.message}</p>
@@ -384,7 +331,7 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
               <Input
                 id="slug"
                 {...register("slug")}
-                placeholder="merino-dk"
+                placeholder="merino-dk-autumn-gold"
               />
               <p className="text-xs text-stone-500">
                 /products/{watchSlug || "product-name"}
@@ -402,6 +349,117 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
                 placeholder="Describe your product..."
                 rows={5}
               />
+            </div>
+          </div>
+
+          {/* Pricing & Inventory */}
+          <div className="bg-white rounded-lg border p-6 space-y-4">
+            <h2 className="font-medium text-stone-900">Pricing & Inventory</h2>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="price">Price (£) *</Label>
+                <Controller
+                  name="price"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      placeholder="24.00"
+                    />
+                  )}
+                />
+                {errors.price && (
+                  <p className="text-sm text-red-600">{errors.price.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="compareAtPrice">Compare at Price</Label>
+                <Controller
+                  name="compareAtPrice"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      id="compareAtPrice"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                      placeholder="30.00"
+                    />
+                  )}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="stock">Stock</Label>
+                <Controller
+                  name="stock"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      id="stock"
+                      type="number"
+                      min="0"
+                      value={field.value ?? 0}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      placeholder="10"
+                    />
+                  )}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="sku">SKU</Label>
+                <Input
+                  id="sku"
+                  {...register("sku")}
+                  placeholder="MDK-AG-001"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="weightGrams">Weight (grams)</Label>
+                <Controller
+                  name="weightGrams"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      id="weightGrams"
+                      type="number"
+                      min="0"
+                      value={field.value ?? ""}
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
+                      placeholder="100"
+                    />
+                  )}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="colorHex">Color (hex)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="colorHex"
+                    {...register("colorHex")}
+                    placeholder="#C4A77D"
+                    className="flex-1"
+                  />
+                  {watch("colorHex") && /^#[0-9A-Fa-f]{6}$/.test(watch("colorHex") || "") && (
+                    <div
+                      className="w-10 h-10 rounded border"
+                      style={{ backgroundColor: watch("colorHex") || undefined }}
+                    />
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -474,164 +532,30 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
             </div>
           </div>
 
-          {/* Variants */}
-          <div className="bg-white rounded-lg border p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-medium text-stone-900">Variants</h2>
-              <Button type="button" variant="outline" size="sm" onClick={handleAddVariant}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add Variant
-              </Button>
-            </div>
-
-            {errors.variants && (
-              <p className="text-sm text-red-600">{errors.variants.message}</p>
-            )}
-
-            <div className="space-y-3">
-              {variantFields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="flex items-start gap-3 p-3 bg-stone-50 rounded-lg"
-                >
-                  <GripVertical className="h-5 w-5 text-stone-400 mt-2 cursor-grab" />
-
-                  <div className="flex-1 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div>
-                      <Label className="text-xs">Name / Colorway</Label>
-                      <Input
-                        {...register(`variants.${index}.name`)}
-                        placeholder="e.g., Ocean Blue"
-                        className="mt-1"
-                      />
-                      {errors.variants?.[index]?.name && (
-                        <p className="text-xs text-red-600 mt-1">
-                          {errors.variants[index]?.name?.message}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-xs">SKU</Label>
-                      <Input
-                        {...register(`variants.${index}.sku`)}
-                        placeholder="Optional"
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Price (£)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        {...register(`variants.${index}.price`, { valueAsNumber: true })}
-                        className="mt-1"
-                      />
-                      {errors.variants?.[index]?.price && (
-                        <p className="text-xs text-red-600 mt-1">
-                          {errors.variants[index]?.price?.message}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-xs">Stock</Label>
-                      <Input
-                        type="number"
-                        {...register(`variants.${index}.stock`, { valueAsNumber: true })}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Weight (grams)</Label>
-                      <Input
-                        type="number"
-                        {...register(`variants.${index}.weightGrams`, { valueAsNumber: true })}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Color Swatch</Label>
-                      <Controller
-                        name={`variants.${index}.colorHex`}
-                        control={control}
-                        render={({ field }) => (
-                          <div className="flex items-center gap-2 mt-1">
-                            <Input
-                              type="color"
-                              value={field.value || "#000000"}
-                              onChange={(e) => field.onChange(e.target.value)}
-                              className="w-10 h-9 p-1 cursor-pointer"
-                            />
-                            <Input
-                              type="text"
-                              value={field.value || ""}
-                              onChange={(e) => field.onChange(e.target.value || null)}
-                              placeholder="#RRGGBB"
-                              className="flex-1 font-mono text-xs"
-                            />
-                          </div>
-                        )}
-                      />
-                      {errors.variants?.[index]?.colorHex && (
-                        <p className="text-xs text-red-600 mt-1">
-                          {errors.variants[index]?.colorHex?.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="text-stone-400 hover:text-red-500"
-                    onClick={() => removeVariant(index)}
-                    disabled={variantFields.length === 1}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Images */}
           <div className="bg-white rounded-lg border p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-medium text-stone-900">Images</h2>
-              {imageFields.length > 1 && (
-                <p className="text-xs text-stone-500">
-                  Drag to reorder · First image is the main product photo
-                </p>
-              )}
-            </div>
+            <h2 className="font-medium text-stone-900">Images</h2>
 
             <SortableImageGrid
-              images={watch("images") || []}
-              onReorder={(reorderedImages) => {
-                setValue("images", reorderedImages);
+              images={imageFields}
+              onRemove={removeImage}
+              onReorder={(newOrder) => {
+                setValue("images", newOrder);
               }}
-              onRemove={(index) => removeImage(index)}
               renderUploader={() => (
                 <ImageUpload
-                  value={undefined}
                   onChange={(url) => {
                     if (url) {
+                      const currentImages = watch("images") || [];
                       setValue("images", [
-                        ...watch("images") || [],
-                        { url, alt: "", position: imageFields.length },
+                        ...currentImages,
+                        { url, alt: null, position: currentImages.length },
                       ]);
                     }
                   }}
-                  aspectRatio="square"
                 />
               )}
             />
-
-            {imageFields.length === 0 && (
-              <p className="text-sm text-stone-500 text-center">
-                Click or drag an image above to add product photos
-              </p>
-            )}
           </div>
 
           {/* SEO */}
@@ -643,14 +567,12 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
               <Input
                 id="metaTitle"
                 {...register("metaTitle")}
-                placeholder={watchName || "Product name"}
+                maxLength={70}
+                placeholder="Page title for search engines"
               />
               <p className="text-xs text-stone-500">
-                {(watchMetaTitle || "").length}/60 characters
+                {watchMetaTitle?.length || 0}/70 characters
               </p>
-              {errors.metaTitle && (
-                <p className="text-sm text-red-600">{errors.metaTitle.message}</p>
-              )}
             </div>
 
             <div className="space-y-2">
@@ -658,15 +580,13 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
               <Textarea
                 id="metaDescription"
                 {...register("metaDescription")}
-                placeholder="Brief description for search engines..."
-                rows={2}
+                maxLength={160}
+                rows={3}
+                placeholder="Description for search results"
               />
               <p className="text-xs text-stone-500">
-                {(watchMetaDescription || "").length}/160 characters
+                {watchMetaDescription?.length || 0}/160 characters
               </p>
-              {errors.metaDescription && (
-                <p className="text-sm text-red-600">{errors.metaDescription.message}</p>
-              )}
             </div>
           </div>
         </div>
@@ -694,59 +614,22 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
               )}
             />
 
-            <Controller
-              name="featured"
-              control={control}
-              render={({ field }) => (
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={field.value}
-                    onChange={(e) => field.onChange(e.target.checked)}
-                    className="rounded border-stone-300"
-                  />
-                  <span className="text-sm text-stone-700">Featured product</span>
-                </label>
-              )}
-            />
-          </div>
-
-          {/* Pricing */}
-          <div className="bg-white rounded-lg border p-6 space-y-4">
-            <h2 className="font-medium text-stone-900">Pricing</h2>
-
-            <div className="space-y-2">
-              <Label htmlFor="basePrice">Base Price (£) *</Label>
-              <Input
-                id="basePrice"
-                type="number"
-                step="0.01"
-                {...register("basePrice", { valueAsNumber: true })}
-                placeholder="0.00"
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="featured"
+                {...register("featured")}
+                className="h-4 w-4 rounded border-stone-300 text-primary focus:ring-primary"
               />
-              {errors.basePrice && (
-                <p className="text-sm text-red-600">{errors.basePrice.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="compareAtPrice">Compare at Price (£)</Label>
-              <Input
-                id="compareAtPrice"
-                type="number"
-                step="0.01"
-                {...register("compareAtPrice", { valueAsNumber: true })}
-                placeholder="0.00"
-              />
-              <p className="text-xs text-stone-500">
-                Original price for sale items
-              </p>
+              <Label htmlFor="featured" className="font-normal">
+                Featured product
+              </Label>
             </div>
           </div>
 
           {/* Category */}
           <div className="bg-white rounded-lg border p-6 space-y-4">
-            <h2 className="font-medium text-stone-900">Collection</h2>
+            <h2 className="font-medium text-stone-900">Category</h2>
 
             <Controller
               name="categoryId"
@@ -754,10 +637,10 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
               render={({ field }) => (
                 <Select value={field.value || "none"} onValueChange={field.onChange}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select collection" />
+                    <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="none">No category</SelectItem>
                     {categories.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id.toString()}>
                         {cat.name}
@@ -773,64 +656,44 @@ export function ProductForm({ product, categories, weightTypes, tags, mode }: Pr
           <div className="bg-white rounded-lg border p-6 space-y-4">
             <h2 className="font-medium text-stone-900">Tags</h2>
 
-            {tags.length === 0 ? (
-              <p className="text-sm text-stone-500">
-                No tags defined.{" "}
-                <Link href="/admin/settings/taxonomies" className="text-emerald-600 hover:underline">
-                  Create tags
-                </Link>{" "}
-                in Settings.
-              </p>
-            ) : (
-              <Controller
-                name="tagIds"
-                control={control}
-                render={({ field }) => (
-                  <div className="flex flex-wrap gap-2">
-                    {tags.map((tag) => {
-                      const isSelected = field.value?.includes(tag.id) || false;
-                      return (
-                        <button
-                          key={tag.id}
-                          type="button"
-                          onClick={() => {
-                            const current = field.value || [];
-                            if (isSelected) {
-                              field.onChange(current.filter((id) => id !== tag.id));
-                            } else {
-                              field.onChange([...current, tag.id]);
-                            }
-                          }}
-                          className={`
-                            inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm
-                            transition-colors cursor-pointer
-                            ${isSelected
-                              ? "bg-stone-800 text-white"
-                              : "bg-stone-100 text-stone-700 hover:bg-stone-200"
-                            }
-                          `}
-                        >
-                          <span
-                            className="w-3 h-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: tag.color || "#6b7280" }}
-                          />
-                          {tag.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              />
-            )}
+            <Controller
+              name="tagIds"
+              control={control}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  {tags.map((tag) => (
+                    <label key={tag.id} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={field.value?.includes(tag.id) || false}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            field.onChange([...(field.value || []), tag.id]);
+                          } else {
+                            field.onChange(field.value?.filter((id) => id !== tag.id) || []);
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-stone-300 text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm">{tag.name}</span>
+                    </label>
+                  ))}
+                  {tags.length === 0 && (
+                    <p className="text-sm text-stone-500">No tags defined</p>
+                  )}
+                </div>
+              )}
+            />
           </div>
 
           {/* Delete */}
-          {mode === "edit" && (
-            <div className="bg-white rounded-lg border p-6">
+          {mode === "edit" && product && (
+            <div className="bg-white rounded-lg border p-6 space-y-4">
+              <h2 className="font-medium text-stone-900">Danger Zone</h2>
               <Button
                 type="button"
-                variant="outline"
-                className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                variant="destructive"
+                className="w-full"
                 onClick={handleDelete}
                 disabled={deleting}
               >

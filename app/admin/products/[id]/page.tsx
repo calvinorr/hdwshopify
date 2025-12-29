@@ -12,9 +12,6 @@ async function getProduct(id: number) {
   const product = await db.query.products.findFirst({
     where: eq(products.id, id),
     with: {
-      variants: {
-        orderBy: (variants, { asc }) => [asc(variants.position)],
-      },
       images: {
         orderBy: (images, { asc }) => [asc(images.position)],
       },

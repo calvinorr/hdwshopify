@@ -28,8 +28,14 @@ export const products = sqliteTable("products", {
   slug: text("slug").notNull().unique(),
   description: text("description"),
   categoryId: integer("category_id").references(() => categories.id),
-  basePrice: real("base_price").notNull(),
+  // Inventory fields (moved from variants)
+  price: real("price").notNull().default(0),
   compareAtPrice: real("compare_at_price"),
+  stock: integer("stock").notNull().default(0),
+  weightGrams: integer("weight_grams").notNull().default(100),
+  sku: text("sku"),
+  colorHex: text("color_hex"),
+  // Status
   status: text("status", { enum: ["active", "draft", "archived"] }).default("draft"),
   featured: integer("featured", { mode: "boolean" }).default(false),
   // Yarn-specific attributes
@@ -48,40 +54,19 @@ export const products = sqliteTable("products", {
   index("products_status_idx").on(table.status),
   index("products_category_idx").on(table.categoryId),
   index("products_featured_idx").on(table.featured),
-]);
-
-// Product Variants (colorways, sizes)
-export const productVariants = sqliteTable("product_variants", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
-  name: text("name").notNull(), // e.g., "Bunny Paw", "French Rose"
-  sku: text("sku"),
-  price: real("price").notNull(),
-  compareAtPrice: real("compare_at_price"),
-  stock: integer("stock").default(0),
-  weightGrams: integer("weight_grams").default(100), // For shipping calculation
-  colorHex: text("color_hex"), // Hex color for swatch display, e.g., "#8B4513"
-  position: integer("position").default(0),
-  shopifyVariantId: text("shopify_variant_id"),
-  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
-}, (table) => [
-  index("variants_product_idx").on(table.productId),
-  index("variants_sku_idx").on(table.sku),
+  index("products_sku_idx").on(table.sku),
 ]);
 
 // Product Images
 export const productImages = sqliteTable("product_images", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
-  variantId: integer("variant_id").references(() => productVariants.id, { onDelete: "set null" }),
   url: text("url").notNull(),
   alt: text("alt"),
   position: integer("position").default(0),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [
   index("images_product_idx").on(table.productId),
-  index("images_variant_idx").on(table.variantId),
 ]);
 
 // Customers
@@ -205,9 +190,9 @@ export const orders = sqliteTable("orders", {
 export const orderItems = sqliteTable("order_items", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   orderId: integer("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
-  variantId: integer("variant_id").references(() => productVariants.id),
+  productId: integer("product_id").references(() => products.id),
   productName: text("product_name").notNull(),
-  variantName: text("variant_name"),
+  colorway: text("colorway"), // Product color/variant info for display
   sku: text("sku"),
   quantity: integer("quantity").notNull(),
   price: real("price").notNull(),
@@ -250,17 +235,8 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     fields: [products.categoryId],
     references: [categories.id],
   }),
-  variants: many(productVariants),
   images: many(productImages),
   tagAssignments: many(productTagAssignments),
-}));
-
-export const productVariantsRelations = relations(productVariants, ({ one, many }) => ({
-  product: one(products, {
-    fields: [productVariants.productId],
-    references: [products.id],
-  }),
-  images: many(productImages),
   reservations: many(stockReservations),
 }));
 
@@ -268,10 +244,6 @@ export const productImagesRelations = relations(productImages, ({ one }) => ({
   product: one(products, {
     fields: [productImages.productId],
     references: [products.id],
-  }),
-  variant: one(productVariants, {
-    fields: [productImages.variantId],
-    references: [productVariants.id],
   }),
 }));
 
@@ -317,9 +289,9 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
     fields: [orderItems.orderId],
     references: [orders.id],
   }),
-  variant: one(productVariants, {
-    fields: [orderItems.variantId],
-    references: [productVariants.id],
+  product: one(products, {
+    fields: [orderItems.productId],
+    references: [products.id],
   }),
 }));
 
@@ -424,21 +396,21 @@ export const orderEventsRelations = relations(orderEvents, ({ one }) => ({
 // Stock Reservations (for checkout inventory locking)
 export const stockReservations = sqliteTable("stock_reservations", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  variantId: integer("variant_id").notNull().references(() => productVariants.id, { onDelete: "cascade" }),
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
   quantity: integer("quantity").notNull(),
   stripeSessionId: text("stripe_session_id").notNull(),
   expiresAt: text("expires_at").notNull(),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [
-  index("reservations_variant_idx").on(table.variantId),
+  index("reservations_product_idx").on(table.productId),
   index("reservations_session_idx").on(table.stripeSessionId),
   index("reservations_expires_idx").on(table.expiresAt),
 ]);
 
 export const stockReservationsRelations = relations(stockReservations, ({ one }) => ({
-  variant: one(productVariants, {
-    fields: [stockReservations.variantId],
-    references: [productVariants.id],
+  product: one(products, {
+    fields: [stockReservations.productId],
+    references: [products.id],
   }),
 }));
 
@@ -463,8 +435,6 @@ export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
-export type ProductVariant = typeof productVariants.$inferSelect;
-export type NewProductVariant = typeof productVariants.$inferInsert;
 export type ProductImage = typeof productImages.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type Address = typeof addresses.$inferSelect;

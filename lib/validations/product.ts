@@ -1,23 +1,11 @@
 import { z } from "zod";
 
-// Variant schema
-const variantSchema = z.object({
-  id: z.number().int().positive().optional(), // For updates
-  name: z.string().min(1, "Variant name is required"),
-  sku: z.string().max(100).optional().nullable(),
-  price: z.number().positive("Price must be positive"),
-  compareAtPrice: z.number().positive().optional().nullable(),
-  stock: z.number().int().min(0, "Stock cannot be negative").default(0),
-  weightGrams: z.number().int().positive().default(100),
-  colorHex: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").optional().nullable(),
-});
-
 // Image schema
 const imageSchema = z.object({
   id: z.number().int().positive().optional(), // For updates
   url: z.string().url("Invalid image URL"),
-  alt: z.string().max(255).optional(),
-  variantId: z.number().int().positive().optional().nullable(),
+  alt: z.string().max(255).optional().nullable(),
+  position: z.number().int().optional().nullable(),
 });
 
 // Create product schema
@@ -33,8 +21,14 @@ export const createProductSchema = z.object({
     ),
   description: z.string().optional(),
   categoryId: z.number().int().positive().optional().nullable(),
-  basePrice: z.number().positive("Base price must be positive"),
+  // Pricing & Inventory (moved from variants)
+  price: z.number().positive("Price must be positive"),
   compareAtPrice: z.number().positive().optional().nullable(),
+  stock: z.number().int().min(0, "Stock cannot be negative").default(0),
+  sku: z.string().max(100).optional().nullable(),
+  weightGrams: z.number().int().positive().default(100),
+  colorHex: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").optional().nullable(),
+  // Status
   status: z.enum(["active", "draft", "archived"]).default("draft"),
   featured: z.boolean().default(false),
   // Yarn-specific fields
@@ -46,7 +40,6 @@ export const createProductSchema = z.object({
   metaTitle: z.string().max(70).optional(),
   metaDescription: z.string().max(160).optional(),
   // Related data
-  variants: z.array(variantSchema).optional(),
   images: z.array(imageSchema).optional(),
   tagIds: z.array(z.number().int().positive()).optional(),
 });

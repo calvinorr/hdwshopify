@@ -240,9 +240,9 @@ export default function CheckoutPage() {
                   >
                     <div className="flex-1">
                       <p className="font-body">{item.productName}</p>
-                      {item.variantName && item.variantName !== item.productName && (
+                      {item.colorway && item.colorway !== item.productName && (
                         <p className="text-sm text-muted-foreground font-body">
-                          {item.variantName}
+                          {item.colorway}
                         </p>
                       )}
                       <p className="text-sm text-muted-foreground font-body">

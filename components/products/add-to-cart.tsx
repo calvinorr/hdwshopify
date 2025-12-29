@@ -4,12 +4,12 @@ import { useState } from "react";
 import { Minus, Plus, ShoppingBag, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { ProductVariant } from "@/types/product";
+import type { ProductWithRelations } from "@/types/product";
 
 interface AddToCartProps {
-  variant: ProductVariant | null;
+  product: ProductWithRelations;
   availableStock?: number;
-  onAddToCart: (variantId: number, quantity: number) => Promise<void> | void;
+  onAddToCart: (quantity: number) => Promise<void> | void;
 }
 
 function formatPrice(price: number): string {
@@ -19,12 +19,12 @@ function formatPrice(price: number): string {
   }).format(price);
 }
 
-export function AddToCart({ variant, availableStock, onAddToCart }: AddToCartProps) {
+export function AddToCart({ product, availableStock, onAddToCart }: AddToCartProps) {
   const [quantity, setQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Use availableStock (accounts for reservations) when provided, otherwise fall back to variant.stock
-  const stock = availableStock ?? variant?.stock ?? 0;
+  // Use availableStock (accounts for reservations) when provided, otherwise fall back to product.stock
+  const stock = availableStock ?? product.stock ?? 0;
   const isOutOfStock = stock === 0;
   const maxQuantity = Math.min(stock, 10); // Cap at 10 or available stock
 
@@ -37,11 +37,11 @@ export function AddToCart({ variant, availableStock, onAddToCart }: AddToCartPro
   };
 
   const handleAddToCart = async () => {
-    if (!variant || isOutOfStock) return;
+    if (isOutOfStock) return;
 
     setIsLoading(true);
     try {
-      await onAddToCart(variant.id, quantity);
+      await onAddToCart(quantity);
       setQuantity(1); // Reset quantity after adding
     } finally {
       setIsLoading(false);
@@ -51,18 +51,16 @@ export function AddToCart({ variant, availableStock, onAddToCart }: AddToCartPro
   return (
     <div className="space-y-4">
       {/* Price Display */}
-      {variant && (
-        <div className="flex items-baseline gap-3">
-          <span className="font-heading text-2xl text-foreground sm:text-3xl">
-            {formatPrice(variant.price)}
+      <div className="flex items-baseline gap-3">
+        <span className="font-heading text-2xl text-foreground sm:text-3xl">
+          {formatPrice(product.price)}
+        </span>
+        {product.compareAtPrice && product.compareAtPrice > product.price && (
+          <span className="font-body text-lg text-muted-foreground line-through">
+            {formatPrice(product.compareAtPrice)}
           </span>
-          {variant.compareAtPrice && variant.compareAtPrice > variant.price && (
-            <span className="font-body text-lg text-muted-foreground line-through">
-              {formatPrice(variant.compareAtPrice)}
-            </span>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Quantity Selector and Add to Cart */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -78,7 +76,7 @@ export function AddToCart({ variant, availableStock, onAddToCart }: AddToCartPro
             size="icon"
             className="h-11 w-11 rounded-l-lg rounded-r-none border-r hover:bg-secondary"
             onClick={decrementQuantity}
-            disabled={quantity <= 1 || isOutOfStock || !variant}
+            disabled={quantity <= 1 || isOutOfStock}
             aria-label="Decrease quantity"
           >
             <Minus className="h-4 w-4" />
@@ -91,7 +89,7 @@ export function AddToCart({ variant, availableStock, onAddToCart }: AddToCartPro
             size="icon"
             className="h-11 w-11 rounded-l-none rounded-r-lg border-l hover:bg-secondary"
             onClick={incrementQuantity}
-            disabled={quantity >= maxQuantity || isOutOfStock || !variant}
+            disabled={quantity >= maxQuantity || isOutOfStock}
             aria-label="Increase quantity"
           >
             <Plus className="h-4 w-4" />
@@ -106,7 +104,7 @@ export function AddToCart({ variant, availableStock, onAddToCart }: AddToCartPro
             isOutOfStock && "bg-muted text-muted-foreground hover:bg-muted"
           )}
           onClick={handleAddToCart}
-          disabled={isOutOfStock || !variant || isLoading}
+          disabled={isOutOfStock || isLoading}
         >
           {isLoading ? (
             <>
@@ -125,16 +123,16 @@ export function AddToCart({ variant, availableStock, onAddToCart }: AddToCartPro
       </div>
 
       {/* Low Stock Warning */}
-      {!isOutOfStock && stock <= 5 && variant && (
+      {!isOutOfStock && stock <= 5 && (
         <p className="text-sm font-body text-amber-700">
           Only {stock} left in stock - order soon
         </p>
       )}
 
       {/* Total when quantity > 1 */}
-      {quantity > 1 && variant && !isOutOfStock && (
+      {quantity > 1 && !isOutOfStock && (
         <p className="text-sm font-body text-muted-foreground">
-          Total: {formatPrice(variant.price * quantity)} for {quantity} skeins
+          Total: {formatPrice(product.price * quantity)} for {quantity} skeins
         </p>
       )}
     </div>

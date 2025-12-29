@@ -8,7 +8,7 @@ import {
   orderItems,
   orderEvents,
   carts,
-  productVariants,
+  products,
   discountCodes,
   stockReservations,
 } from "@/lib/db";
@@ -16,7 +16,6 @@ import { sendOrderConfirmationEmail } from "@/lib/email/send-order-confirmation"
 import { logOrderEvent } from "@/lib/db/order-events";
 import type Stripe from "stripe";
 
-// Disable body parsing - we need raw body for signature verification
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
@@ -54,7 +53,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Handle the event
   try {
     switch (event.type) {
       case "checkout.session.completed":
@@ -70,7 +68,6 @@ export async function POST(request: NextRequest) {
         break;
 
       case "payment_intent.payment_failed":
-        // Optional: Log failed payments
         console.log("Payment failed:", event.data.object.id);
         break;
 
@@ -91,7 +88,7 @@ export async function POST(request: NextRequest) {
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
   console.log("Processing checkout.session.completed:", session.id);
 
-  // Check if order already exists (idempotency) - BEFORE transaction
+  // Check if order already exists (idempotency)
   const existingOrder = await db.query.orders.findFirst({
     where: eq(orders.stripeSessionId, session.id),
   });
@@ -101,9 +98,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
-  // Get cart from metadata
   const cartId = session.metadata?.cartId;
-  const sessionId = session.metadata?.sessionId;
   const discountCodeId = session.metadata?.discountCodeId;
 
   if (!cartId) {
@@ -121,7 +116,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   }
 
   const cartItems = JSON.parse(cart.items || "[]") as Array<{
-    variantId: number;
+    productId: number;
     quantity: number;
   }>;
   if (cartItems.length === 0) {
@@ -129,36 +124,32 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
-  // Batch-load all variants before transaction (read operations)
-  const variantIds = cartItems.map((item) => item.variantId);
-  const variants = await db.query.productVariants.findMany({
-    where: sql`${productVariants.id} IN (${sql.join(
-      variantIds.map((id) => sql`${id}`),
+  // Batch-load all products
+  const productIds = cartItems.map((item) => item.productId);
+  const productList = await db.query.products.findMany({
+    where: sql`${products.id} IN (${sql.join(
+      productIds.map((id) => sql`${id}`),
       sql`, `
     )})`,
-    with: { product: true },
   });
 
-  // Create a map for quick lookup
-  const variantMap = new Map(variants.map((v) => [v.id, v]));
+  const productMap = new Map(productList.map((p) => [p.id, p]));
 
-  // Validate all variants exist
-  const missingVariants = variantIds.filter((id) => !variantMap.has(id));
-  if (missingVariants.length > 0) {
-    console.error("Missing variants:", missingVariants);
+  // Validate all products exist
+  const missingProducts = productIds.filter((id) => !productMap.has(id));
+  if (missingProducts.length > 0) {
+    console.error("Missing products:", missingProducts);
     return;
   }
 
-  // ============================================================
-  // STOCK VALIDATION: Check if all items have sufficient stock
-  // ============================================================
+  // Stock validation
   const stockIssues: string[] = [];
   for (const item of cartItems) {
-    const variant = variantMap.get(item.variantId)!;
-    const availableStock = variant.stock ?? 0;
+    const product = productMap.get(item.productId)!;
+    const availableStock = product.stock ?? 0;
     if (availableStock < item.quantity) {
       stockIssues.push(
-        `${variant.product.name} - ${variant.name}: requested ${item.quantity}, available ${availableStock}`
+        `${product.name}: requested ${item.quantity}, available ${availableStock}`
       );
     }
   }
@@ -167,15 +158,12 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     console.warn("Stock issues detected:", stockIssues);
   }
 
-  // Calculate amounts early (convert from pence to pounds) - needed for discount validation
   const subtotal = (session.amount_subtotal ?? 0) / 100;
   const shippingCost = (session.shipping_cost?.amount_total ?? 0) / 100;
   const discountAmount = (session.total_details?.amount_discount ?? 0) / 100;
   const total = (session.amount_total ?? 0) / 100;
 
-  // ============================================================
-  // DISCOUNT VALIDATION: Recheck discount is still valid
-  // ============================================================
+  // Discount validation
   let discountIssues: string[] = [];
   let validatedDiscountCodeId: number | null = null;
 
@@ -189,22 +177,18 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     } else {
       const now = new Date();
 
-      // Check if active
       if (!discountCode.active) {
         discountIssues.push("Discount code is no longer active");
       }
 
-      // Check start date
       if (discountCode.startsAt && new Date(discountCode.startsAt) > now) {
         discountIssues.push("Discount code has not started yet");
       }
 
-      // Check expiry date
       if (discountCode.expiresAt && new Date(discountCode.expiresAt) < now) {
         discountIssues.push("Discount code has expired");
       }
 
-      // Check usage limit
       const currentUses = discountCode.usesCount ?? 0;
       if (discountCode.maxUses !== null && currentUses >= discountCode.maxUses) {
         discountIssues.push(
@@ -212,14 +196,12 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         );
       }
 
-      // Check minimum order value
       if (discountCode.minOrderValue !== null && subtotal < discountCode.minOrderValue) {
         discountIssues.push(
           `Order subtotal £${subtotal.toFixed(2)} below minimum £${discountCode.minOrderValue.toFixed(2)}`
         );
       }
 
-      // If no issues, the discount is valid
       if (discountIssues.length === 0) {
         validatedDiscountCodeId = discountCode.id;
       }
@@ -230,22 +212,18 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     console.warn("Discount issues detected:", discountIssues);
   }
 
-  // Determine order status and build internal notes
   const allIssues = [...stockIssues, ...discountIssues];
   const orderStatus = hasStockIssues ? "on-hold" : "pending";
   const internalNotes = allIssues.length > 0
     ? `[AUTO] Order requires attention:\n- ${allIssues.join("\n- ")}`
     : null;
 
-  // Generate order number (involves a read, do before transaction)
   const orderNumber = await generateOrderNumber();
 
-  // Extract shipping details (collected via shipping_address_collection)
   const collectedShipping = session.collected_information?.shipping_details;
   const shippingAddress = collectedShipping?.address ?? session.customer_details?.address;
   const shippingName = collectedShipping?.name ?? session.customer_details?.individual_name;
 
-  // Build shipping address JSON
   const shippingAddressJson = JSON.stringify({
     name: shippingName,
     line1: shippingAddress?.line1,
@@ -256,19 +234,14 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     country: shippingAddress?.country,
   });
 
-  // Get shipping method name
   const shippingMethod = session.shipping_cost?.shipping_rate
     ? await getShippingMethodName(session.shipping_cost.shipping_rate as string)
     : "Standard Shipping";
 
   const now = new Date().toISOString();
 
-  // ============================================================
-  // TRANSACTION: All writes happen atomically
-  // If any operation fails, everything rolls back
-  // ============================================================
+  // Transaction: All writes happen atomically
   const { order, createdOrderItems } = await db.transaction(async (tx) => {
-    // 1. Create order (use on-hold status if stock issues detected)
     const [order] = await tx
       .insert(orders)
       .values({
@@ -279,7 +252,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         subtotal,
         shippingCost,
         discountAmount,
-        taxAmount: 0, // VAT included in prices
+        taxAmount: 0,
         total,
         currency: "GBP",
         discountCodeId: validatedDiscountCodeId,
@@ -293,18 +266,17 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       })
       .returning();
 
-    // 2. Create all order items
     const orderItemsToInsert = cartItems.map((item) => {
-      const variant = variantMap.get(item.variantId)!;
+      const product = productMap.get(item.productId)!;
       return {
         orderId: order.id,
-        variantId: item.variantId,
-        productName: variant.product.name,
-        variantName: variant.name,
-        sku: variant.sku,
+        productId: item.productId,
+        productName: product.name,
+        colorway: product.colorHex ?? null,
+        sku: product.sku,
         quantity: item.quantity,
-        price: variant.price,
-        weightGrams: variant.weightGrams,
+        price: product.price,
+        weightGrams: product.weightGrams,
         createdAt: now,
       };
     });
@@ -314,18 +286,17 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       .values(orderItemsToInsert)
       .returning();
 
-    // 3. Decrement inventory for all variants
+    // Decrement inventory for all products
     for (const item of cartItems) {
       await tx
-        .update(productVariants)
+        .update(products)
         .set({
-          stock: sql`${productVariants.stock} - ${item.quantity}`,
+          stock: sql`${products.stock} - ${item.quantity}`,
           updatedAt: now,
         })
-        .where(eq(productVariants.id, item.variantId));
+        .where(eq(products.id, item.productId));
     }
 
-    // 4. Update discount code usage count (only if discount was validated)
     if (validatedDiscountCodeId) {
       await tx
         .update(discountCodes)
@@ -335,14 +306,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         .where(eq(discountCodes.id, validatedDiscountCodeId));
     }
 
-    // 5. Clear the cart
     await tx.delete(carts).where(eq(carts.id, parseInt(cartId, 10)));
-
-    // 6. Delete stock reservations for this session (stock now decremented)
     await tx.delete(stockReservations).where(eq(stockReservations.stripeSessionId, session.id));
 
-    // 7. Log order events (immutable audit trail)
-    // Log order created
     await tx.insert(orderEvents).values({
       orderId: order.id,
       event: "created",
@@ -355,7 +321,6 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       createdAt: now,
     });
 
-    // Log payment received
     await tx.insert(orderEvents).values({
       orderId: order.id,
       event: "paid",
@@ -367,13 +332,12 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       createdAt: now,
     });
 
-    // Log stock updated
     await tx.insert(orderEvents).values({
       orderId: order.id,
       event: "stock_updated",
       data: JSON.stringify({
         items: cartItems.map((item) => ({
-          variantId: item.variantId,
+          productId: item.productId,
           quantity: item.quantity,
         })),
         hasStockIssues,
@@ -383,22 +347,16 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
     return { order, createdOrderItems };
   });
-  // ============================================================
-  // END TRANSACTION
-  // ============================================================
 
   console.log("Order created:", order.orderNumber, "status:", order.status);
   if (hasStockIssues || hasDiscountIssues) {
     console.warn("Order requires attention:", order.orderNumber, allIssues);
   }
-  console.log("Order processing complete:", order.orderNumber);
 
-  // Send confirmation email (async, don't block webhook response)
   sendOrderConfirmationEmail(order, createdOrderItems)
     .then(async (result) => {
       if (result.success) {
         console.log("Order confirmation email sent for:", order.orderNumber);
-        // Log email sent event
         await logOrderEvent({
           orderId: order.id,
           event: "email_sent",
@@ -413,14 +371,10 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     });
 }
 
-/**
- * Handle expired checkout session - release stock reservations
- */
 async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session) {
   console.log("Processing checkout.session.expired:", session.id);
 
-  // Delete all reservations for this session (frees up the reserved stock)
-  const result = await db
+  await db
     .delete(stockReservations)
     .where(eq(stockReservations.stripeSessionId, session.id));
 
@@ -431,7 +385,6 @@ async function generateOrderNumber(): Promise<string> {
   const date = new Date();
   const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
 
-  // Get today's order count
   const todayStart = new Date(date);
   todayStart.setHours(0, 0, 0, 0);
 

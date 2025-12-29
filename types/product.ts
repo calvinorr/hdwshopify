@@ -1,14 +1,12 @@
 import type {
   Product,
-  ProductVariant,
   ProductImage,
   Category,
 } from "@/lib/db/schema";
 
-export type { Product, ProductVariant, ProductImage, Category };
+export type { Product, ProductImage, Category };
 
 export interface ProductWithRelations extends Product {
-  variants: ProductVariant[];
   images: ProductImage[];
   category?: Category | null;
 }

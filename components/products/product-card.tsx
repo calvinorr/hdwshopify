@@ -16,8 +16,8 @@ interface ProductCardProps {
   className?: string;
 }
 
-function getStockStatus(variants: ProductWithRelations["variants"]) {
-  const totalStock = variants.reduce((sum, v) => sum + (v.stock ?? 0), 0);
+function getStockStatus(stock: number | null) {
+  const totalStock = stock ?? 0;
 
   if (totalStock === 0) {
     return { label: "Sold Out", status: "sold-out" as const };
@@ -30,38 +30,13 @@ function getStockStatus(variants: ProductWithRelations["variants"]) {
   return { label: "In Stock", status: "in-stock" as const };
 }
 
-function getPriceDisplay(variants: ProductWithRelations["variants"], basePrice: number) {
-  if (variants.length === 0) {
-    return { display: `£${basePrice.toFixed(2)}`, hasRange: false };
-  }
-
-  const prices = variants.map((v) => v.price);
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-
-  if (minPrice === maxPrice) {
-    return { display: `£${minPrice.toFixed(2)}`, hasRange: false };
-  }
-
-  return {
-    display: `From £${minPrice.toFixed(2)}`,
-    hasRange: true,
-  };
-}
-
 export function ProductCard({ product, className }: ProductCardProps) {
   const [isHovered, setIsHovered] = React.useState(false);
   const [isAdding, setIsAdding] = React.useState(false);
   const { addItem } = useCart();
 
-  const stockInfo = getStockStatus(product.variants);
-  const priceInfo = getPriceDisplay(product.variants, product.basePrice);
+  const stockInfo = getStockStatus(product.stock);
   const isSoldOut = stockInfo.status === "sold-out";
-
-  // Check if product has a single variant (can quick-add directly)
-  const hasSingleVariant = product.variants.length === 1;
-  const singleVariant = hasSingleVariant ? product.variants[0] : null;
-  const canQuickAdd = hasSingleVariant && !isSoldOut && (singleVariant?.stock ?? 0) > 0;
 
   // Get primary and secondary images (sorted by position)
   const sortedImages = [...product.images].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -78,21 +53,21 @@ export function ProductCard({ product, className }: ProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!singleVariant || isAdding) return;
+    if (isSoldOut || isAdding) return;
 
     setIsAdding(true);
     try {
-      const success = await addItem(singleVariant.id, 1, {
+      const success = await addItem(product.id, 1, {
         name: product.name,
-        variant: singleVariant.name,
+        colorway: product.colorHex ?? undefined,
       });
 
       if (success) {
         toast.success("Added to cart", {
-          description: `${product.name} - ${singleVariant.name}`,
+          description: product.name,
         });
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to add to cart");
     } finally {
       setIsAdding(false);
@@ -177,40 +152,24 @@ export function ProductCard({ product, className }: ProductCardProps) {
               "opacity-100 translate-y-0"
             )}
           >
-            {canQuickAdd ? (
-              <Button
-                size="icon"
-                variant="secondary"
-                className={cn(
-                  "h-9 w-9 md:h-10 md:w-10 rounded-full shadow-md",
-                  "bg-white/90 hover:bg-white text-foreground",
-                  "backdrop-blur-sm"
-                )}
-                onClick={handleQuickAdd}
-                disabled={isAdding}
-                aria-label={`Add ${product.name} to cart`}
-              >
-                {isAdding ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-              </Button>
-            ) : (
-              // Multi-variant: show "+" that links to PDP (the Link wrapper handles it)
-              <div
-                className={cn(
-                  "h-9 w-9 md:h-10 md:w-10 rounded-full shadow-md",
-                  "bg-white/90 text-foreground",
-                  "backdrop-blur-sm",
-                  "flex items-center justify-center",
-                  "pointer-events-none" // Let the parent Link handle the click
-                )}
-                aria-label={`View ${product.name} options`}
-              >
+            <Button
+              size="icon"
+              variant="secondary"
+              className={cn(
+                "h-9 w-9 md:h-10 md:w-10 rounded-full shadow-md",
+                "bg-white/90 hover:bg-white text-foreground",
+                "backdrop-blur-sm"
+              )}
+              onClick={handleQuickAdd}
+              disabled={isAdding}
+              aria-label={`Add ${product.name} to cart`}
+            >
+              {isAdding ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
                 <Plus className="h-4 w-4" />
-              </div>
-            )}
+              )}
+            </Button>
           </div>
         )}
       </div>
@@ -246,9 +205,9 @@ export function ProductCard({ product, className }: ProductCardProps) {
         {/* Price */}
         <div className="pt-2">
           <span className="font-heading text-xl font-medium text-foreground">
-            {priceInfo.display}
+            £{product.price.toFixed(2)}
           </span>
-          {product.compareAtPrice && product.compareAtPrice > product.basePrice && (
+          {product.compareAtPrice && product.compareAtPrice > product.price && (
             <span className="ml-2 font-body text-sm text-muted-foreground line-through">
               £{product.compareAtPrice.toFixed(2)}
             </span>

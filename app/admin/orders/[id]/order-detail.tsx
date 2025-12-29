@@ -31,7 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 interface OrderItem {
   id: number;
   productName: string;
-  variantName: string | null;
+  colorway: string | null;
   sku: string | null;
   quantity: number;
   price: number;
@@ -328,8 +328,8 @@ export function OrderDetail({ order }: Props) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-stone-900">{item.productName}</h3>
-                    {item.variantName && (
-                      <p className="text-sm text-stone-500">{item.variantName}</p>
+                    {item.colorway && (
+                      <p className="text-sm text-stone-500">{item.colorway}</p>
                     )}
                     {item.sku && (
                       <p className="text-xs text-stone-400 font-mono">SKU: {item.sku}</p>

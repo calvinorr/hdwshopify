@@ -20,9 +20,6 @@ export async function POST(request: Request) {
         eq(products.status, "active")
       ),
       with: {
-        variants: {
-          orderBy: (variants, { asc }) => [asc(variants.position)],
-        },
         images: {
           orderBy: (images, { asc }) => [asc(images.position)],
         },

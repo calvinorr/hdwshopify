@@ -21,7 +21,6 @@ import { db } from "../lib/db";
 import {
   categories,
   products,
-  productVariants,
   productImages,
   customers,
   addresses,
@@ -51,10 +50,9 @@ async function exportAllData() {
   fs.mkdirSync(exportDir, { recursive: true });
 
   try {
-    // 1. Export Products (with variants and images nested)
+    // 1. Export Products (with images nested)
     console.log("Exporting products...");
     const allProducts = await db.select().from(products);
-    const allVariants = await db.select().from(productVariants);
     const allImages = await db.select().from(productImages);
     const allCategories = await db.select().from(categories);
     const allWeightTypes = await db.select().from(weightTypes);
@@ -62,7 +60,6 @@ async function exportAllData() {
 
     const productsWithDetails = allProducts.map((product) => ({
       ...product,
-      variants: allVariants.filter((v) => v.productId === product.id),
       images: allImages.filter((i) => i.productId === product.id),
     }));
 
@@ -165,7 +162,6 @@ async function exportAllData() {
       ],
       counts: {
         products: allProducts.length,
-        variants: allVariants.length,
         images: allImages.length,
         customers: allCustomers.length,
         orders: allOrders.length,

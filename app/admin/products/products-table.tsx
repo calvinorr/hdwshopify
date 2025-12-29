@@ -25,9 +25,9 @@ interface Product {
   id: number;
   name: string;
   slug: string;
-  basePrice: number;
+  price: number;
+  stock: number | null;
   status: "active" | "draft" | "archived" | null;
-  variants: { id: number; stock: number | null; price: number }[];
   images: { url: string; alt: string | null }[];
   category: { name: string } | null;
   tagAssignments?: TagAssignment[];
@@ -38,10 +38,6 @@ interface Props {
 }
 
 export function ProductsTable({ products }: Props) {
-  const getTotalStock = (variants: Product["variants"]) => {
-    return variants.reduce((sum, v) => sum + (v.stock || 0), 0);
-  };
-
   return (
     <div className="bg-white rounded-lg border overflow-hidden">
       <table className="w-full">
@@ -93,36 +89,30 @@ export function ProductsTable({ products }: Props) {
                     <p className="font-medium text-stone-900 truncate">
                       {product.name}
                     </p>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <span className="text-xs text-stone-500">
-                        {product.variants.length} variant
-                        {product.variants.length !== 1 ? "s" : ""}
-                      </span>
-                      {product.tagAssignments && product.tagAssignments.length > 0 && (
-                        <div className="flex items-center gap-1 ml-1">
-                          {product.tagAssignments.slice(0, 3).map((ta) => (
+                    {product.tagAssignments && product.tagAssignments.length > 0 && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        {product.tagAssignments.slice(0, 3).map((ta) => (
+                          <span
+                            key={ta.tag.id}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-stone-100"
+                            title={ta.tag.name}
+                          >
                             <span
-                              key={ta.tag.id}
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-stone-100"
-                              title={ta.tag.name}
-                            >
-                              <span
-                                className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: ta.tag.color || "#6b7280" }}
-                              />
-                              <span className="text-stone-600 truncate max-w-[60px]">
-                                {ta.tag.name}
-                              </span>
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: ta.tag.color || "#6b7280" }}
+                            />
+                            <span className="text-stone-600 truncate max-w-[60px]">
+                              {ta.tag.name}
                             </span>
-                          ))}
-                          {product.tagAssignments.length > 3 && (
-                            <span className="text-xs text-stone-400">
-                              +{product.tagAssignments.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                          </span>
+                        ))}
+                        {product.tagAssignments.length > 3 && (
+                          <span className="text-xs text-stone-400">
+                            +{product.tagAssignments.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </Link>
               </td>
@@ -134,12 +124,12 @@ export function ProductsTable({ products }: Props) {
               <td className="px-4 py-3 hidden md:table-cell">
                 <span
                   className={`text-sm ${
-                    getTotalStock(product.variants) < 5
+                    (product.stock ?? 0) < 5
                       ? "text-amber-600 font-medium"
                       : "text-stone-600"
                   }`}
                 >
-                  {getTotalStock(product.variants)} in stock
+                  {product.stock ?? 0} in stock
                 </span>
               </td>
 
@@ -151,7 +141,7 @@ export function ProductsTable({ products }: Props) {
 
               <td className="px-4 py-3 text-right">
                 <span className="font-medium text-stone-900">
-                  £{product.basePrice.toFixed(2)}
+                  £{product.price.toFixed(2)}
                 </span>
               </td>
 
