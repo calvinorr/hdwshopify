@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq, and, inArray, gt, sql } from "drizzle-orm";
+// Using fetch-based HTTP client for Vercel serverless compatibility
 import { stripe } from "@/lib/stripe";
 import { db, carts, shippingZones, discountCodes, products, productImages, stockReservations } from "@/lib/db";
 import { getCartSession, CartItemData } from "@/lib/cart";
