@@ -63,19 +63,21 @@ Pretend you're a customer visiting the shop for the first time. Try to buy somet
 
 ---
 
-### S2.3: Customer Account
+### S2.3: Customer Account ✅
 **Goal**: Can a customer manage their account?
 
-- [ ] Create a new account (sign up)
-- [ ] Log in with the account
-- [ ] View account dashboard - shows recent orders?
-- [ ] View order history - shows the test order?
-- [ ] Click into order detail - shows items, status, tracking?
-- [ ] Add a saved address
-- [ ] Edit the address
-- [ ] Delete the address
-- [ ] Update profile settings
-- [ ] Log out
+- [x] Create a new account (sign up)
+- [x] Log in with the account
+- [x] View account dashboard - shows recent orders?
+- [x] View order history - shows the test order?
+- [x] Click into order detail - shows items, status, tracking?
+- [x] Add a saved address
+- [x] Edit the address
+- [x] Delete the address
+- [x] Update profile settings
+- [x] Log out
+
+**Verified**: 2025-12-29 | Bug found & fixed: New Clerk users had no customer record, causing 401 on account APIs. Fixed with auto-create on first access.
 
 **Log issues to**: `docs/ISSUES.md`
 
