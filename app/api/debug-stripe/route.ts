@@ -5,20 +5,42 @@ export async function GET() {
   const keyPrefix = process.env.STRIPE_SECRET_KEY?.substring(0, 10) || "NOT_SET";
   const keyLength = process.env.STRIPE_SECRET_KEY?.length || 0;
 
-  let stripeTest = "not tested";
+  let sdkTest = "not tested";
+  let fetchTest = "not tested";
 
   if (keyExists) {
+    const key = process.env.STRIPE_SECRET_KEY!;
+
+    // Test 1: Direct fetch to Stripe API (no SDK)
+    try {
+      const fetchResponse = await fetch("https://api.stripe.com/v1/balance", {
+        headers: {
+          Authorization: `Bearer ${key}`,
+        },
+      });
+      const fetchData = await fetchResponse.json();
+      if (fetchResponse.ok) {
+        fetchTest = `OK - status ${fetchResponse.status}`;
+      } else {
+        fetchTest = `FAILED: ${fetchData.error?.message || "Unknown"}`;
+      }
+    } catch (error) {
+      fetchTest = `FETCH ERROR: ${error instanceof Error ? error.message : "Unknown"}`;
+    }
+
+    // Test 2: Stripe SDK with explicit timeout
     try {
       const Stripe = (await import("stripe")).default;
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      const stripe = new Stripe(key, {
         typescript: true,
+        timeout: 30000, // 30 seconds explicit timeout
+        maxNetworkRetries: 0, // No retries to see raw error
       });
 
-      // Simple test - list balance
       const balance = await stripe.balance.retrieve();
-      stripeTest = `OK - available: ${balance.available[0]?.amount || 0}`;
+      sdkTest = `OK - available: ${balance.available[0]?.amount || 0}`;
     } catch (error) {
-      stripeTest = `ERROR: ${error instanceof Error ? error.message : "Unknown"}`;
+      sdkTest = `SDK ERROR: ${error instanceof Error ? error.message : "Unknown"}`;
     }
   }
 
@@ -26,7 +48,9 @@ export async function GET() {
     keyExists,
     keyPrefix,
     keyLength,
-    stripeTest,
+    fetchTest,
+    sdkTest,
     nodeEnv: process.env.NODE_ENV,
+    region: process.env.VERCEL_REGION || "unknown",
   });
 }
