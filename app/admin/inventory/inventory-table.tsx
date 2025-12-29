@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 interface Product {
   id: number;
@@ -176,7 +177,7 @@ export function InventoryTable({ products }: Props) {
       setSelectedIds(new Set());
       router.refresh();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update stock");
+      toast.error(err instanceof Error ? err.message : "Failed to update stock");
     } finally {
       setBulkSaving(false);
     }

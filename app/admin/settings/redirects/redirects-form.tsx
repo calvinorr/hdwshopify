@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -96,7 +97,7 @@ export function RedirectsForm({ redirects: initialRedirects }: RedirectsFormProp
 
       if (!response.ok) {
         const data = await response.json();
-        alert(data.error || "Failed to create redirect");
+        toast.error(data.error || "Failed to create redirect");
         return;
       }
 
@@ -106,7 +107,7 @@ export function RedirectsForm({ redirects: initialRedirects }: RedirectsFormProp
       resetForm();
     } catch (error) {
       console.error("Error creating redirect:", error);
-      alert("Failed to create redirect");
+      toast.error("Failed to create redirect");
     } finally {
       setIsLoading(false);
     }
@@ -130,7 +131,7 @@ export function RedirectsForm({ redirects: initialRedirects }: RedirectsFormProp
 
       if (!response.ok) {
         const data = await response.json();
-        alert(data.error || "Failed to update redirect");
+        toast.error(data.error || "Failed to update redirect");
         return;
       }
 
@@ -141,7 +142,7 @@ export function RedirectsForm({ redirects: initialRedirects }: RedirectsFormProp
       resetForm();
     } catch (error) {
       console.error("Error updating redirect:", error);
-      alert("Failed to update redirect");
+      toast.error("Failed to update redirect");
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +157,7 @@ export function RedirectsForm({ redirects: initialRedirects }: RedirectsFormProp
       });
 
       if (!response.ok) {
-        alert("Failed to toggle redirect");
+        toast.error("Failed to toggle redirect");
         return;
       }
 
@@ -164,7 +165,7 @@ export function RedirectsForm({ redirects: initialRedirects }: RedirectsFormProp
       setRedirects(redirects.map((r) => (r.id === updated.id ? updated : r)));
     } catch (error) {
       console.error("Error toggling redirect:", error);
-      alert("Failed to toggle redirect");
+      toast.error("Failed to toggle redirect");
     }
   };
 
@@ -178,7 +179,7 @@ export function RedirectsForm({ redirects: initialRedirects }: RedirectsFormProp
       });
 
       if (!response.ok) {
-        alert("Failed to delete redirect");
+        toast.error("Failed to delete redirect");
         return;
       }
 
@@ -187,7 +188,7 @@ export function RedirectsForm({ redirects: initialRedirects }: RedirectsFormProp
       setSelectedRedirect(null);
     } catch (error) {
       console.error("Error deleting redirect:", error);
-      alert("Failed to delete redirect");
+      toast.error("Failed to delete redirect");
     } finally {
       setIsLoading(false);
     }
@@ -201,7 +202,7 @@ export function RedirectsForm({ redirects: initialRedirects }: RedirectsFormProp
       });
 
       if (!response.ok) {
-        alert("Failed to clear redirects");
+        toast.error("Failed to clear redirects");
         return;
       }
 
@@ -209,7 +210,7 @@ export function RedirectsForm({ redirects: initialRedirects }: RedirectsFormProp
       setIsClearDialogOpen(false);
     } catch (error) {
       console.error("Error clearing redirects:", error);
-      alert("Failed to clear redirects");
+      toast.error("Failed to clear redirects");
     } finally {
       setIsLoading(false);
     }

@@ -43,19 +43,7 @@ _None currently_
 
 ### Low
 
-### Toast notifications using browser console/modal instead of app toasts
-**Severity**: Low
-**Found in**: E3 S3.2
-**Description**: Some user feedback messages appear as browser console messages or native browser modals instead of the app's styled toast notifications. This creates an inconsistent UX.
-**Expected**: All user feedback should use the app's Sonner toast system
-**Actual**: Mix of console messages, native alerts, and toast notifications
-
-### Toast/popup text difficult to read
-**Severity**: Low
-**Found in**: E3 S3.2
-**Description**: When toast notifications do appear correctly, the text contrast or styling makes them difficult to read.
-**Expected**: Clear, readable text with good contrast
-**Actual**: Text is hard to read in some toast popups
+_None currently_
 
 ---
 
@@ -63,6 +51,8 @@ _None currently_
 
 | Issue | Severity | Found In | Fixed In | Notes |
 |-------|----------|----------|----------|-------|
+| Toast notifications inconsistent | Low | E3 | E4 | Replaced all alert() with toast.error() in admin components |
+| Toast text hard to read | Low | E3 | E4 | Added explicit success/error colors to Sonner config |
 | Weight dropdown has no options | Medium | E3 | E4 | Seeded 8 weight types (Laceweight through Super Chunky) |
 | Discount codes not displaying in admin list | High | E3 | E3 | Added `dynamic = "force-dynamic"` to discounts page - was being statically cached. |
 | New collections show 500 error on frontend | High | E3 | E3 | Changed collection page from ISR to dynamic rendering to avoid cache issues with new collections. |

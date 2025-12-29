@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export function ExportCustomersButton() {
   const [isExporting, setIsExporting] = useState(false);
@@ -37,7 +38,7 @@ export function ExportCustomersButton() {
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error("Export error:", error);
-      alert("Failed to export customers. Please try again.");
+      toast.error("Failed to export customers. Please try again.");
     } finally {
       setIsExporting(false);
     }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export function ExportOrdersButton() {
   const [isExporting, setIsExporting] = useState(false);
@@ -51,7 +52,7 @@ export function ExportOrdersButton() {
       setShowDateRange(false);
     } catch (error) {
       console.error("Export error:", error);
-      alert("Failed to export orders. Please try again.");
+      toast.error("Failed to export orders. Please try again.");
     } finally {
       setIsExporting(false);
     }
