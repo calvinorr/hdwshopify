@@ -35,6 +35,32 @@ _None currently_
 
 ### High
 
+### Discount codes not displaying in admin list
+**Severity**: High
+**Found in**: E3 S3.6
+**Steps to reproduce**:
+1. Go to Admin > Discounts
+2. Create a new discount code (e.g., TEST10, 10%, £20 minimum)
+3. Save the discount
+4. Return to discount list
+
+**Expected**: Discount code should appear in the list
+**Actual**: List shows "No discount codes yet" even though code exists in database
+
+**Note**: Verified via database query that discount code IS saved correctly. UI/API fetching issue.
+
+### Order prices displayed incorrectly (pence shown as pounds)
+**Severity**: High
+**Found in**: E3 S3.4
+**Steps to reproduce**:
+1. Create a test order or view existing order
+2. Look at order totals in admin
+
+**Expected**: Prices should show correct values (e.g., £0.40, £3.95 shipping)
+**Actual**: Prices appear 100x larger (e.g., £40.00, £395.00 shipping)
+
+**Note**: Prices are stored in pence but displayed without dividing by 100.
+
 ### New collections show 500 error on frontend (production only)
 **Severity**: High
 **Found in**: E3 S3.3
