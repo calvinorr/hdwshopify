@@ -51,7 +51,7 @@ _None yet_
 
 | Issue | Severity | Found In | Fixed In | Notes |
 |-------|----------|----------|----------|-------|
-| _Example: Cart badge not updating_ | _High_ | _E2_ | _E2_ | _Fixed in commit abc123_ |
+| Collections show 0 products | High | E2 | E2 | Products had NULL categoryId - fixed via script |
 
 ---
 
