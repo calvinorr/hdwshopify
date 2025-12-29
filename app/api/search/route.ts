@@ -14,14 +14,16 @@ export async function GET(request: NextRequest) {
 
     const searchTerm = `%${query.trim()}%`;
 
-    // Search products by name, description, and sku
+    // Search products by name, description, sku, fiber content, and weight
     const matchingProducts = await db.query.products.findMany({
       where: and(
         eq(products.status, "active"),
         or(
           like(products.name, searchTerm),
           like(products.description, searchTerm),
-          like(products.sku, searchTerm)
+          like(products.sku, searchTerm),
+          like(products.fiberContent, searchTerm),
+          like(products.weight, searchTerm)
         )
       ),
       limit,

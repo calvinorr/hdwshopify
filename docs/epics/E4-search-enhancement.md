@@ -1,6 +1,6 @@
 # E4: Search Enhancement
 
-> **Status**: TODO
+> **Status**: ✅ COMPLETE
 > **Goal**: Make search actually useful for finding yarn
 > **Sessions**: 1
 > **Depends on**: E2 (tested current search, logged issues)
@@ -15,39 +15,43 @@ Currently search only looks at product name, description, and SKU. Customers wan
 
 ## Stories
 
-### S4.1: Expand Search Fields
+### S4.1: Expand Search Fields ✅
 **Goal**: Search includes fiber and weight
 
-- [ ] Update `/api/search/route.ts` to include:
+- [x] Update `/api/search/route.ts` to include:
   - `fiberContent` field
   - `weight` field
-- [ ] Test search for "merino" returns silk/merino blends
-- [ ] Test search for "DK" returns DK weight yarns
-- [ ] Test search for "laceweight" returns laceweight yarns
+- [x] Test search for "merino" returns silk/merino blends
+- [x] Test search for "DK" returns DK weight yarns
+- [x] Test search for "laceweight" returns laceweight yarns
 
 **Done when**: Fiber and weight searches return relevant results.
 
 ---
 
-### S4.2: Search Results Display
+### S4.2: Search Results Display ✅
 **Goal**: Results show why they matched
 
-- [ ] Show fiber content in search results (if matched)
-- [ ] Show weight in search results (if matched)
-- [ ] Results are clearly formatted
-- [ ] "No results" message is helpful
+- [x] Show fiber content in search results (if matched)
+- [x] Show weight in search results (if matched)
+- [x] Results are clearly formatted
+- [x] "No results" message is helpful
+
+**Note**: ProductCard already displays fiberContent and weight badges. No changes needed.
 
 **Done when**: Search results are informative.
 
 ---
 
-### S4.3: Search UX Polish
+### S4.3: Search UX Polish ✅
 **Goal**: Search feels good to use
 
-- [ ] Search input in header works
-- [ ] Search suggestions as you type (stretch goal)
-- [ ] Recent searches shown (stretch goal)
-- [ ] Mobile search experience is good
+- [x] Search input in header works
+- [ ] Search suggestions as you type (stretch goal - skipped)
+- [ ] Recent searches shown (stretch goal - skipped)
+- [x] Mobile search experience is good
+
+**Note**: Header has expandable search. Search page is responsive. Stretch goals deferred.
 
 **Done when**: Search is pleasant to use.
 
@@ -80,6 +84,6 @@ _Log any issues here during the epic._
 
 ## Completion
 
-- [ ] All stories complete
-- [ ] Search tested with real queries
-- [ ] PROJECT_PLAN.md updated
+- [x] All stories complete
+- [x] Search tested with real queries
+- [x] PROJECT_PLAN.md updated
