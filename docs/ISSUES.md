@@ -31,20 +31,7 @@ When you find an issue during testing:
 
 ### Critical
 
-### Product detail page crashes for products without images
-**Severity**: Critical
-**Found in**: E3 S3.2
-**Steps to reproduce**:
-1. Create a new product in admin
-2. Fill in all fields but don't upload any images
-3. Set status to Active and save
-4. Navigate to the product page on frontend (e.g., /products/test-yarn-meadow-green)
-5. See 500 Internal Server Error
-
-**Expected**: Product page should display with a placeholder image
-**Actual**: 500 Internal Server Error - page crashes
-
-**Note**: Product appears correctly in search results and listings with "No image" placeholder, only the detail page crashes.
+_None currently_
 
 ### High
 
@@ -75,6 +62,7 @@ _None yet_
 
 | Issue | Severity | Found In | Fixed In | Notes |
 |-------|----------|----------|----------|-------|
+| Product detail page crashes for products without images | Critical | E3 | E3 | Added defensive null checks for product.images across gallery, card, client, and page components. |
 | Cart session mismatch blocks checkout | Critical | E2 | E2 | Checkout API only looked by sessionId, which was NULL for logged-in users. Fixed to check customerId first. |
 | Collections show 0 products | High | E2 | E2 | Products had NULL categoryId - fixed via script |
 | Account features "Unauthorized" for new users | High | E2 | E2 | Auto-create customer record on first account access |
