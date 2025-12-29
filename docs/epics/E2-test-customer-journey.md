@@ -37,23 +37,25 @@ Pretend you're a customer visiting the shop for the first time. Try to buy somet
 
 ---
 
-### S2.2: Cart & Checkout
+### S2.2: Cart & Checkout ✅
 **Goal**: Can a customer buy something?
 
-- [ ] Add a product to cart
-- [ ] Cart badge updates
-- [ ] Open cart drawer - item shows correctly
-- [ ] Change quantity in cart
-- [ ] Remove item from cart
-- [ ] Add item back, proceed to checkout
-- [ ] Select shipping country (try UK, Ireland, US)
-- [ ] Shipping rate displays correctly
-- [ ] Apply a discount code (create one first if needed)
-- [ ] Proceed to Stripe checkout
-- [ ] Use test card `4242 4242 4242 4242`
-- [ ] Complete payment
-- [ ] Redirected to success page
-- [ ] Order confirmation displays
+- [x] Add a product to cart
+- [x] Cart badge updates
+- [x] Open cart drawer - item shows correctly
+- [x] Change quantity in cart
+- [x] Remove item from cart
+- [x] Add item back, proceed to checkout
+- [x] Select shipping country (try UK, Ireland, US)
+- [x] Shipping rate displays correctly
+- [x] Apply a discount code (create one first if needed)
+- [x] Proceed to Stripe checkout
+- [x] Use test card `4242 4242 4242 4242`
+- [x] Complete payment
+- [x] Redirected to success page
+- [x] Order confirmation displays
+
+**Verified**: 2025-12-29 | Bug fixed: Production 500 error caused by trailing newline in NEXT_PUBLIC_URL env var. Added `.trim()` to URL handling.
 
 **Log issues to**: `docs/ISSUES.md`
 
