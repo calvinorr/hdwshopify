@@ -51,6 +51,7 @@ _None currently_
 
 | Issue | Severity | Found In | Fixed In | Notes |
 |-------|----------|----------|----------|-------|
+| Discount delete used native confirm() | Medium | E3 | E4 | Replaced with AlertDialog modal for consistent UX and automation compatibility |
 | Toast notifications inconsistent | Low | E3 | E4 | Replaced all alert() with toast.error() in admin components |
 | Toast text hard to read | Low | E3 | E4 | Added explicit success/error colors to Sonner config |
 | Weight dropdown has no options | Medium | E3 | E4 | Seeded 8 weight types (Laceweight through Super Chunky) |
