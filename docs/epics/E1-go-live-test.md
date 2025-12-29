@@ -1,6 +1,6 @@
 # E1: Go Live (Test)
 
-> **Status**: TODO
+> **Status**: ✅ COMPLETE
 > **Goal**: Get the app running on the test URL so we can see it working
 > **Sessions**: 1
 
@@ -19,10 +19,10 @@ We have a fully built app sitting on a feature branch. This epic merges it to ma
 ### S1.1: Merge Feature Branch
 **Goal**: Get all the code onto main branch
 
-- [ ] Review what's on `feature/e16-remove-variants` vs `main`
-- [ ] Merge feature branch to main
-- [ ] Push to origin
-- [ ] Verify build passes
+- [x] Review what's on `feature/e16-remove-variants` vs `main`
+- [x] Merge feature branch to main
+- [x] Push to origin
+- [x] Verify build passes
 
 **Done when**: Main branch has all the latest code and builds successfully.
 
@@ -31,10 +31,10 @@ We have a fully built app sitting on a feature branch. This epic merges it to ma
 ### S1.2: Deploy to Vercel
 **Goal**: Get the app live on the test domain
 
-- [ ] Verify Vercel project is connected to repo
-- [ ] Check environment variables are set (DATABASE_URL, STRIPE keys, etc.)
-- [ ] Deploy to production (push to main triggers this)
-- [ ] Verify deployment completes without errors
+- [x] Verify Vercel project is connected to repo
+- [x] Check environment variables are set (DATABASE_URL, STRIPE keys, etc.)
+- [x] Deploy to production (push to main triggers this)
+- [x] Verify deployment completes without errors
 
 **Done when**: Deployment shows as "Ready" in Vercel dashboard.
 
@@ -43,11 +43,11 @@ We have a fully built app sitting on a feature branch. This epic merges it to ma
 ### S1.3: Smoke Test
 **Goal**: Quick check that everything loads
 
-- [ ] Homepage loads with products
-- [ ] A product page loads with images
-- [ ] A collection page loads
-- [ ] Admin dashboard loads (may need auth)
-- [ ] No console errors on any page
+- [x] Homepage loads with products
+- [x] A product page loads with images
+- [x] A collection page loads
+- [x] Admin dashboard loads (may need auth)
+- [x] No console errors on any page
 
 **Done when**: All pages load without errors. Real data is visible.
 
@@ -63,12 +63,13 @@ We have a fully built app sitting on a feature branch. This epic merges it to ma
 
 ## Issues Found
 
-_Log any issues here during the epic. Move to `docs/ISSUES.md` if not fixing immediately._
+- **Cron schedule**: Changed from every 5 mins to daily (Vercel hobby tier limitation)
+- **Env var newlines**: Had to use `printf` instead of `echo` when setting Vercel env vars via CLI
 
 ---
 
 ## Completion
 
-- [ ] All stories complete
-- [ ] Issues logged
-- [ ] PROJECT_PLAN.md updated
+- [x] All stories complete
+- [x] Issues logged (none found)
+- [x] PROJECT_PLAN.md updated
