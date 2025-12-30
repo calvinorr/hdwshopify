@@ -40,8 +40,8 @@
 | E3 | Test Admin Journey | ✅ COMPLETE | 1-2 |
 | E4 | Search Enhancement | ✅ COMPLETE | 1 |
 | E5 | Email Notifications | ✅ COMPLETE | 1 |
-| E6 | Customer Import | TODO | 1 |
-| E7 | Security & GDPR | TODO | 1-2 |
+| E6 | Customer Import | ✅ COMPLETE | 1 |
+| E7 | Security & GDPR | ✅ COMPLETE | 1 |
 | E8 | Polish & Social | TODO | 1 |
 | E9 | Go Live (Production) | TODO | 1 |
 

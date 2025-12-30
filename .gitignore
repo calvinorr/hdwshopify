@@ -48,3 +48,6 @@ local.db
 /backups
 /exports
 .claude/
+
+# Customer data (PII)
+docs/customers_export.csv
