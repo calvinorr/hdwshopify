@@ -1,6 +1,6 @@
 # E6: Customer Import
 
-> **Status**: TODO
+> **Status**: IN PROGRESS
 > **Goal**: Bring existing customers from Shopify
 > **Sessions**: 1
 > **Depends on**: Shopify API access updated by user
@@ -33,13 +33,19 @@ The Shopify store has existing customers. We want to import their email addresse
 ### S6.2: Import Customers
 **Goal**: Customer records in our database
 
-- [ ] Run import script for customers
-- [ ] Import fields: email, first name, last name, phone (if available)
-- [ ] Set `acceptsMarketing` based on Shopify consent
-- [ ] Log import results (count, any failures)
+- [x] Run import script for customers
+- [x] Import fields: email, first name, last name, phone (if available)
+- [x] Set `acceptsMarketing` based on Shopify consent
+- [x] Log import results (count, any failures)
 - [ ] Verify customers appear in admin
 
-**Done when**: Customers are in the database.
+**Done when**: Customers are in the database. ✅
+
+**Results (2025-12-30):**
+- New customers: 380
+- Updated: 2
+- Addresses imported: 60
+- Script: `scripts/import-customers-csv.ts`
 
 ---
 
@@ -57,7 +63,7 @@ The Shopify store has existing customers. We want to import their email addresse
 
 ## Technical Notes
 
-Import script: `scripts/import-from-shopify.ts` (may need customer section added)
+Import script: `scripts/import-customers-csv.ts` (imports from Shopify CSV export)
 
 Customer table fields:
 - email (unique)
