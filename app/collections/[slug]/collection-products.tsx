@@ -214,7 +214,7 @@ export function CollectionProducts({ products, slug }: CollectionProductsProps) 
   );
 
   return (
-    <div className="flex gap-8">
+    <div className="flex lg:gap-8">
       {/* Desktop Filters Sidebar */}
       <ProductFilters
         filters={filters}

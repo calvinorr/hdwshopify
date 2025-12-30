@@ -160,7 +160,7 @@ export function ProductsPageClient({
     filters.availability.length;
 
   return (
-    <div className="flex gap-8">
+    <div className="flex lg:gap-8">
       {/* Desktop Filters Sidebar */}
       <ProductFilters
         filters={filters}

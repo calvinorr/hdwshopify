@@ -256,20 +256,14 @@ export function ProductFilters({
   options,
   className,
 }: ProductFiltersProps) {
+  // Only render desktop filters here - mobile is rendered separately via ProductFiltersMobile
   return (
-    <>
-      <DesktopFilters
-        filters={filters}
-        onFilterChange={onFilterChange}
-        options={options}
-        className={className}
-      />
-      <MobileFilters
-        filters={filters}
-        onFilterChange={onFilterChange}
-        options={options}
-      />
-    </>
+    <DesktopFilters
+      filters={filters}
+      onFilterChange={onFilterChange}
+      options={options}
+      className={className}
+    />
   );
 }
 
