@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Quattrocento_Sans, Trirong } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
+import { CookieConsent } from "@/components/cookie-consent";
 import "./globals.css";
 
 const quattrocentoSans = Quattrocento_Sans({
@@ -54,6 +55,7 @@ export default function RootLayout({
       >
         <Providers>{children}</Providers>
         <Toaster />
+        <CookieConsent />
       </body>
     </html>
   );

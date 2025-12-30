@@ -20,11 +20,13 @@ The Shopify store has existing customers. We want to import their email addresse
 ### S6.1: Update Shopify API Access
 **Goal**: API can access customer data
 
-- [ ] User updates Shopify app permissions to include customer data
-- [ ] Test API can fetch customers
-- [ ] Document what fields are available
+- [x] User updates Shopify app permissions to include customer data
+- [x] Test API can fetch customers
+- [x] Document what fields are available
 
-**Done when**: API returns customer data without errors.
+**Result**: API access blocked by Shopify plan (requires Shopify/Advanced/Plus for PII access). Switching to CSV export approach instead.
+
+**Done when**: ~~API returns customer data without errors.~~ CSV received from client.
 
 ---
 
