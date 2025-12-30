@@ -127,26 +127,28 @@ export function Header({
                 <span className="sr-only">Open menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[300px] sm:w-[350px]">
-              <nav className="flex flex-col gap-4 mt-8">
+            <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0">
+              <nav className="flex flex-col gap-6 px-6 py-8">
+                {/* Shop All */}
                 <Link
                   href="/products"
-                  className="text-lg font-heading hover:text-primary transition-colors"
+                  className="text-lg font-heading font-medium hover:text-primary transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Shop All
                 </Link>
 
-                <div>
-                  <span className="text-lg font-heading text-foreground">
+                {/* Collections */}
+                <div className="space-y-3">
+                  <span className="text-sm font-body font-medium text-muted-foreground uppercase tracking-wide">
                     Collections
                   </span>
-                  <div className="ml-4 mt-2 flex flex-col gap-2">
+                  <div className="flex flex-col gap-2">
                     {collections.map((item) => (
                       <Link
                         key={item.name}
                         href={item.href}
-                        className="text-sm font-body text-muted-foreground hover:text-primary transition-colors"
+                        className="text-base font-body text-foreground hover:text-primary transition-colors py-1"
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         {item.name}
@@ -155,20 +157,27 @@ export function Header({
                   </div>
                 </div>
 
-                <div className="border-t pt-4 mt-4">
-                  {infoLinks.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className="block py-2 text-sm font-body text-muted-foreground hover:text-primary transition-colors"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
+                {/* Info Links */}
+                <div className="space-y-3 pt-4 border-t border-border">
+                  <span className="text-sm font-body font-medium text-muted-foreground uppercase tracking-wide">
+                    Information
+                  </span>
+                  <div className="flex flex-col gap-2">
+                    {infoLinks.map((item) => (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className="text-base font-body text-foreground hover:text-primary transition-colors py-1"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        {item.name}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="border-t pt-4 mt-4">
+                {/* Account */}
+                <div className="pt-4 border-t border-border">
                   <UserMenu
                     isMobile
                     onMobileClose={() => setMobileMenuOpen(false)}
